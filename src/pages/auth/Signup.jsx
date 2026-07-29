@@ -116,7 +116,7 @@ const Signup = () => {
               control={<Checkbox {...register('termsAccepted')} color="primary" />}
               label={
                 <Typography variant="body2" color="text.secondary">
-                  I agree to the VerifyHub <Link href="#" underline="hover">Terms & Conditions</Link>
+                  I agree to the VerifyHub <Link href="#" underline="hover" sx={{ color: '#2563EB' }}>Terms & Conditions</Link>
                 </Typography>
               }
             />
@@ -144,7 +144,7 @@ const Signup = () => {
             <Link
               component={RouterLink}
               to="/login"
-              sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 600 }}
+              sx={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}
             >
               Log in
             </Link>

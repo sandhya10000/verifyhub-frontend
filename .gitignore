@@ -13,6 +13,7 @@ dist/
 
 # Local files
 *.local
+.env
 
 # Editor
 .vscode/*
