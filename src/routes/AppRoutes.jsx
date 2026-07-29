@@ -10,7 +10,7 @@ const About = lazy(() => import("../Components/home/AboutSection"));
 const Services = lazy(() => import("../pages/Services"));
 const Contact = lazy(() => import("../pages/Contact"));
 const Login = lazy(() => import("../pages/Login"));
-
+const Register = lazy(() => import("../pages/Register"));
 const theme = createTheme();
 
 const AppRoutes = () => {
@@ -40,6 +40,7 @@ const AppRoutes = () => {
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </Suspense>
       </ThemeProvider>
