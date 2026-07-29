@@ -84,7 +84,7 @@ const Login = () => {
               component={RouterLink}
               to="/forgot-password"
               variant="body2"
-              sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}
+              sx={{ color: '#2563EB', textDecoration: 'none', fontWeight: 500 }}
             >
               Forgot password?
             </Link>
@@ -107,7 +107,7 @@ const Login = () => {
             <Link
               component={RouterLink}
               to="/signup"
-              sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 600 }}
+              sx={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}
             >
               Request access
             </Link>

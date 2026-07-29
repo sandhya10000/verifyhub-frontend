@@ -4,69 +4,99 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#12B886', // teal-green accent
-      dark: '#0FBF8F',
+      main: '#2563EB',    // home page blue
+      dark: '#1D4ED8',    // home page blue-dk
+      light: '#EFF4FF',   // home page blue-bg
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#0B1B2B', // deep navy
-      dark: '#0D2136',
+      main: '#0A1628',    // home page navy
+      dark: '#16294A',    // home page navy-3
     },
     background: {
-      default: '#F5F6F8', // light neutral gray
+      default: '#F6F8FB', // home page bg-soft
       paper: '#FFFFFF',
     },
     error: {
       main: '#C0392B',
-      light: '#FDECEC', // error background pill
+      light: '#FDECEC',
     },
     success: {
-      main: '#127A5C',
-      light: '#E7F7F1', // success background pill
+      main: '#059669',    // home page green
+      light: '#ECFDF5',   // home page green-bg
     },
     text: {
-      primary: '#111827',
-      secondary: '#4B5563',
-      disabled: '#9CA3AF',
+      primary: '#0F1B2D', // home page ink
+      secondary: '#475569', // home page slate
+      disabled: '#94A3B8',
     },
-    divider: '#E5E7EB', // subtle 1px border
+    divider: '#E5EAF1',   // home page line
   },
   typography: {
     fontFamily: '"Inter", "system-ui", "sans-serif"',
-    h1: { fontWeight: 700 },
-    h2: { fontWeight: 700 },
-    h3: { fontWeight: 700 },
-    h4: { fontWeight: 600 },
-    h5: { fontWeight: 600 },
-    h6: { fontWeight: 600 },
+    h1: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 800 },
+    h2: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 800 },
+    h3: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 700 },
+    h4: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 700 },
+    h5: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 600 },
+    h6: { fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 600 },
     subtitle1: {
       fontWeight: 500,
     },
     button: {
+      fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
       fontWeight: 600,
       textTransform: 'none',
     },
-    overline: { // Used for micro-labels
+    overline: {
       fontSize: '0.75rem',
       fontWeight: 600,
-      letterSpacing: '0.05em',
+      letterSpacing: '0.06em',
       textTransform: 'uppercase',
-      color: '#6B7280', // muted gray
+      color: '#64748B', // home page slate-lt
     },
     fontFamilyMono: '"JetBrains Mono", "Roboto Mono", monospace',
   },
   shape: {
-    borderRadius: 12, // 12px-16px as requested
+    borderRadius: 12,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8, // full width rounded button
-          padding: '10px 24px',
+          borderRadius: 10,
+          padding: '12px 24px',
           boxShadow: 'none',
+          fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+          fontWeight: 600,
+          fontSize: '15px',
           '&:hover': {
             boxShadow: 'none',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
+          boxShadow: '0 1px 2px rgba(37,99,235,.45), 0 8px 24px rgba(37,99,235,.28), inset 0 1px 0 rgba(255,255,255,.22)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: '-80%',
+            width: '50%',
+            height: '100%',
+            background: 'linear-gradient(105deg, transparent, rgba(255,255,255,.35), transparent)',
+            transform: 'skewX(-20deg)',
+            transition: 'left .5s ease',
+          },
+          '&:hover': {
+            background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 10px 32px rgba(37,99,235,.45), inset 0 1px 0 rgba(255,255,255,.25)',
+            '&::after': {
+              left: '130%',
+            },
           },
         },
       },
@@ -75,8 +105,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-          border: '1px solid #E5E7EB',
+          boxShadow: '0 8px 30px rgba(15,27,45,.08)',
+          border: '1px solid #E5EAF1',
         },
       },
     },
@@ -89,7 +119,33 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#C3CFE0',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#2563EB',
+            },
           },
+          '& .MuiInputLabel-root.Mui-focused': {
+            color: '#2563EB',
+          },
+        },
+      },
+    },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          color: '#CBD5E1',
+          '&.Mui-checked': {
+            color: '#2563EB',
+          },
+        },
+      },
+    },
+    MuiLink: {
+      styleOverrides: {
+        root: {
+          color: '#2563EB',
         },
       },
     },

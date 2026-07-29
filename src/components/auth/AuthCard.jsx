@@ -20,8 +20,8 @@ const AuthCard = ({ children, sx = {} }) => {
           top: 0,
           left: 0,
           right: 0,
-          height: '4px',
-          background: 'linear-gradient(to right, #E74C3C, #F39C12, #F1C40F, #12B886)',
+          height: '3px',
+          background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
         }}
       />
       <Box sx={{ p: { xs: 3, sm: 4 } }}>

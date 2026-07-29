@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import Logo from '../shared/Logo';
 
 const BrandPanel = () => {
   return (
@@ -7,7 +8,13 @@ const BrandPanel = () => {
       sx={{
         width: { xs: '100%', md: '55%' },
         minHeight: { xs: 'auto', md: '100vh' },
-        bgcolor: 'secondary.main',
+        // Home page navy with same radial-gradient glow as the hero section
+        background: `
+          radial-gradient(1000px 500px at 80% -10%, rgba(37,99,235,.30), transparent 60%),
+          radial-gradient(700px 400px at 10% 110%, rgba(5,150,105,.16), transparent 60%),
+          radial-gradient(500px 300px at 45% 50%, rgba(37,99,235,.10), transparent 70%),
+          #0A1628
+        `,
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
@@ -16,61 +23,78 @@ const BrandPanel = () => {
         p: { xs: 4, md: 8 },
       }}
     >
-      {/* Brand Gradient Hairline */}
+      {/* Subtle grid-line texture — identical to home page hero::before */}
       <Box
         sx={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: 'linear-gradient(to right, #E74C3C, #F39C12, #F1C40F, #12B886)',
-        }}
-      />
-
-      {/* Subtle Abstract Graphic (Using CSS shapes) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '-10%',
-          right: '-10%',
-          width: '500px',
-          height: '500px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(18,184,134,0.1) 0%, rgba(11,27,43,0) 70%)',
-          zIndex: 0,
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: '-15%',
-          left: '-20%',
-          width: '600px',
-          height: '600px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(11,27,43,0) 70%)',
-          zIndex: 0,
+          inset: 0,
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)
+          `,
+          backgroundSize: '56px 56px',
+          maskImage: 'radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 75%)',
+          pointerEvents: 'none',
         }}
       />
 
       {/* Content */}
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         {/* Logo */}
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, display: 'flex', alignItems: 'center' }}>
-          <Box component="span" sx={{ color: 'white' }}>Verify</Box>
-          <Box component="span" sx={{ color: 'primary.main' }}>Hub</Box>
-        </Typography>
-        <Typography variant="overline" sx={{ color: '#9CA3AF', letterSpacing: '0.1em' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+          <Logo height={44} alt="VerifyHub" />
+        </Box>
+
+        <Typography
+          variant="overline"
+          sx={{
+            color: '#8CA1C4',
+            letterSpacing: '0.1em',
+            fontFamily: '"Inter", sans-serif',
+          }}
+        >
           PARTNER PORTAL • VERIFYHUB.IN
         </Typography>
 
         <Box sx={{ mt: { xs: 4, md: 'auto' }, mb: { xs: 0, md: '20vh' } }}>
-          <Typography variant="h3" sx={{ fontWeight: 700, mb: 2, lineHeight: 1.2 }}>
-            Instant Credit Insights,<br />
-            Seamless Verification.
+          {/* Headline — "Instant Credit Insights," plain, then highlighted phrase with home page blue→green gradient */}
+          <Typography
+            variant="h3"
+            sx={{
+              fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+              fontWeight: 800,
+              mb: 2,
+              lineHeight: 1.1,
+              letterSpacing: '-0.025em',
+              fontSize: 'clamp(28px, 3.2vw, 42px)',
+              color: '#fff',
+            }}
+          >
+            Instant Credit Insights,{' '}
+            <Box
+              component="span"
+              sx={{
+                background: 'linear-gradient(92deg, #7EA6FF 0%, #4ADE9C 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                color: 'transparent',
+              }}
+            >
+              Seamless Verification.
+            </Box>
           </Typography>
-          <Typography variant="subtitle1" sx={{ color: '#9CA3AF', maxWidth: 400, lineHeight: 1.6 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              color: '#A9BAD6',
+              maxWidth: 400,
+              lineHeight: 1.7,
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '17px',
+            }}
+          >
             Access CIBIL, Experian, and CRIF reports instantly. Manage wallet balances, track activity, and streamline your partner workflow from a single dashboard.
           </Typography>
         </Box>

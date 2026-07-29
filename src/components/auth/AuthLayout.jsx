@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import BrandPanel from './BrandPanel';
+import Logo from '../shared/Logo';
 
 const AuthLayout = ({ children, variant = 'split' }) => {
   if (variant === 'centered') {
@@ -8,7 +9,7 @@ const AuthLayout = ({ children, variant = 'split' }) => {
       <Box
         sx={{
           minHeight: '100vh',
-          bgcolor: 'background.default',
+          bgcolor: '#F6F8FB',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -16,11 +17,8 @@ const AuthLayout = ({ children, variant = 'split' }) => {
           p: 2,
         }}
       >
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-            <Box component="span" sx={{ color: 'secondary.main', fontSize: '2rem', fontWeight: 800 }}>Verify</Box>
-            <Box component="span" sx={{ color: 'primary.main', fontSize: '2rem', fontWeight: 800 }}>Hub</Box>
-          </Box>
+        <Box sx={{ mb: 4, textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+          <Logo height={44} alt="VerifyHub" />
         </Box>
         {children}
       </Box>
@@ -34,7 +32,7 @@ const AuthLayout = ({ children, variant = 'split' }) => {
       <Box
         sx={{
           width: { xs: '100%', md: '45%' },
-          bgcolor: 'background.default',
+          bgcolor: '#F6F8FB',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
