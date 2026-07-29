@@ -148,10 +148,21 @@ const Header = () => {
                 alignItems: "center",
               }}
             >
-              <Button sx={menuStyle}>Products</Button>
-              <Button sx={menuStyle}>Platform</Button>
-              <Button sx={menuStyle}>Developers</Button>
-              <Button sx={menuStyle}>Pricing</Button>
+              <Button component={Link} to="/products" sx={menuStyle}>
+                Products
+              </Button>
+
+              <Button component={Link} to="/platform" sx={menuStyle}>
+                Platform
+              </Button>
+
+              <Button component={Link} to="/developers" sx={menuStyle}>
+                Developers
+              </Button>
+
+              <Button component={Link} to="/pricing" sx={menuStyle}>
+                Pricing
+              </Button>
             </Box>
 
             {/* Right Buttons */}

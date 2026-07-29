@@ -11,6 +11,7 @@ const Services = lazy(() => import("../pages/Services"));
 const Contact = lazy(() => import("../pages/Contact"));
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Register"));
+const ProductCards = lazy(() => import("../Components/home/ProductSection"));
 const theme = createTheme();
 
 const AppRoutes = () => {
@@ -41,6 +42,7 @@ const AppRoutes = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/products" element={<ProductCards />} />
           </Routes>
         </Suspense>
       </ThemeProvider>
