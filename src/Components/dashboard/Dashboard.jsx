@@ -1,107 +1,156 @@
-import React from "react";
+import React from 'react';
+import { Box, Paper, Stack, Typography, Button, Card, CardContent } from '@mui/material';
+
+const navItems = [
+  "Add Fund",
+  "RCU",
+  "Banking Services",
+  "CIBIL Services",
+  "Loans & Credit",
+  "Commission Plans",
+  "Contact For API"
+];
+
+const bankStatementItems = [
+  "Bank Statement Analysis",
+  "Fetch Bank Statement (Mobile)"
+];
+
+const rcuItems = [
+  "PAN Verification",
+  "Aadhaar Verification",
+  "GST Verification",
+  "MSME Verification",
+  "Bank Verification",
+  "RC Verification",
+  "Electricity Verification"
+];
+
+const loansCreditItems = [
+  "Personal Loan (Instant)",
+  "Personal Loan (Normal)",
+  "Business Loan (Instant)",
+  "Business Loan (Normal)",
+  "Credit Card Apply",
+  "Insurance (PolicyBazaar)",
+  "Open Saving Account",
+  "Loan Status",
+  "Education Loan",
+  "Education Leads"
+];
+
+const GridBox = ({ children }) => (
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+      gap: 2
+    }}
+  >
+    {children}
+  </Box>
+);
+
+const DashboardCard = ({ title }) => (
+  <Card sx={{ height: '100%', display: 'flex', alignItems: 'center', p: 1 }}>
+    <Typography variant="body2">{title}</Typography>
+  </Card>
+);
 
 const Dashboard = () => {
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f3f4f6' }}>
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-md p-4">
-        <h2 className="text-xl font-bold mb-6">Management</h2>
+      <Paper elevation={2} sx={{ width: 256, p: 2, borderRadius: 0, borderRight: 1, borderColor: 'divider', zIndex: 1 }}>
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>
+          Management
+        </Typography>
 
-        <nav className="space-y-4">
-          <p className="font-semibold text-white bg-blue-600 p-2 rounded">
-            Dashboard
-          </p>
-          <p className="text-gray-600">Add Fund</p>
-          <p className="text-gray-600">RCU</p>
-          <p className="text-gray-600">Banking Services</p>
-          <p className="text-gray-600">CIBIL Services</p>
-          <p className="text-gray-600">Loans & Credit</p>
-          <p className="text-gray-600">Commission Plans</p>
-          <p className="text-gray-600">Contact For API</p>
-        </nav>
-      </div>
+        <Stack spacing={2}>
+          <Box sx={{ bgcolor: '#2563eb', color: 'white', p: 1, borderRadius: 1 }}>
+            <Typography variant="body2" fontWeight="600">Dashboard</Typography>
+          </Box>
+          {navItems.map((item) => (
+            <Typography key={item} variant="body2" sx={{ color: 'text.secondary', cursor: 'pointer' }}>
+              {item}
+            </Typography>
+          ))}
+        </Stack>
+      </Paper>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto">
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {/* Header */}
-        <div className="bg-white shadow p-4 flex justify-between items-center">
-          <div className="text-lg font-semibold">Welcome back</div>
+        <Paper elevation={1} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0, zIndex: 0 }}>
+          <Typography variant="subtitle1" fontWeight="600">Welcome back</Typography>
 
-          <div className="flex items-center gap-4">
-            <span className="bg-gray-200 px-3 py-1 rounded">Main ₹0</span>
-            <span className="bg-gray-200 px-3 py-1 rounded">CIBIL ₹0</span>
-            <button className="bg-green-500 text-white px-4 py-1 rounded">
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box sx={{ bgcolor: '#e5e7eb', px: 1.5, py: 0.5, borderRadius: 1 }}>
+              <Typography variant="body2">Main ₹0</Typography>
+            </Box>
+            <Box sx={{ bgcolor: '#e5e7eb', px: 1.5, py: 0.5, borderRadius: 1 }}>
+              <Typography variant="body2">CIBIL ₹0</Typography>
+            </Box>
+            <Button variant="contained" sx={{ bgcolor: '#22c55e', color: 'white', px: 2, py: 0.5, minWidth: 0, '&:hover': { bgcolor: '#16a34a' } }}>
               + Add Fund
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Stack>
+        </Paper>
 
         {/* Banner */}
-        <div className="p-4">
-          <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-lg font-semibold">
-            Booking • Recharge • Hotel • Visa • Coming Soon
-          </div>
-        </div>
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ background: 'linear-gradient(to right, #ef4444, #ec4899)', color: 'white', p: 2, borderRadius: 2 }}>
+            <Typography variant="subtitle2" fontWeight="600">
+              Booking • Recharge • Hotel • Visa • Coming Soon
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Content */}
-        <div className="p-6 space-y-10">
+        <Stack spacing={5} sx={{ p: 3 }}>
           {/* Partner Hub */}
-          <div>
-            <h1 className="text-2xl font-bold">Partner Hub</h1>
-            <p className="text-gray-500 mb-4">Welcome back, Online Sales</p>
-
-            <div className="bg-blue-100 p-3 rounded">UPDATE:</div>
-          </div>
+          <Box>
+            <Typography variant="h5" fontWeight="bold">Partner Hub</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Welcome back, Online Sales
+            </Typography>
+            <Box sx={{ bgcolor: '#dbeafe', p: 1.5, borderRadius: 1 }}>
+              <Typography variant="body2">UPDATE:</Typography>
+            </Box>
+          </Box>
 
           {/* Bank Statement */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 border-b pb-2">
+          <Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider', pb: 1 }}>
               Bank Statement Analysis
-            </h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="card">Bank Statement Analysis</div>
-              <div className="card">Fetch Bank Statement (Mobile)</div>
-            </div>
-          </div>
+            </Typography>
+            <GridBox>
+              {bankStatementItems.map(item => <DashboardCard key={item} title={item} />)}
+            </GridBox>
+          </Box>
 
           {/* RCU */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 border-b pb-2">RCU</h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="card">PAN Verification</div>
-              <div className="card">Aadhaar Verification</div>
-              <div className="card">GST Verification</div>
-              <div className="card">MSME Verification</div>
-              <div className="card">Bank Verification</div>
-              <div className="card">RC Verification</div>
-              <div className="card">Electricity Verification</div>
-            </div>
-          </div>
+          <Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider', pb: 1 }}>
+              RCU
+            </Typography>
+            <GridBox>
+              {rcuItems.map(item => <DashboardCard key={item} title={item} />)}
+            </GridBox>
+          </Box>
 
           {/* Loans & Credit */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 border-b pb-2">
+          <Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider', pb: 1 }}>
               Loans & Credit
-            </h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="card">Personal Loan (Instant)</div>
-              <div className="card">Personal Loan (Normal)</div>
-              <div className="card">Business Loan (Instant)</div>
-              <div className="card">Business Loan (Normal)</div>
-              <div className="card">Credit Card Apply</div>
-              <div className="card">Insurance (PolicyBazaar)</div>
-              <div className="card">Open Saving Account</div>
-              <div className="card">Loan Status</div>
-              <div className="card">Education Loan</div>
-              <div className="card">Education Leads</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </Typography>
+            <GridBox>
+              {loansCreditItems.map(item => <DashboardCard key={item} title={item} />)}
+            </GridBox>
+          </Box>
+        </Stack>
+      </Box>
+    </Box>
   );
 };
 
