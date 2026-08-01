@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import Logo from '../components/shared/Logo';
+import React, { useEffect, useRef } from 'react';
+import { Box } from '@mui/material';
 import './Home.css';
+import SectionHeading from '../Components/common/SectionHeading';
+import FeatureCard from '../Components/common/FeatureCard';
+import PrimaryButton from '../Components/common/PrimaryButton';
 
 const Home = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const revealRefs = useRef([]);
   const countRefs = useRef([]);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
 
   useEffect(() => {
     // Reveal on scroll
@@ -90,40 +84,6 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <div className="announce">
-        <div className="announce-in">
-          <span className="announce-tag">New</span>
-          <span>Commercial Credit Bureau API is now live for MSME lending</span>
-          <a href="#products">Explore <span className="arr" aria-hidden="true">→</span></a>
-        </div>
-      </div>
-
-      <nav aria-label="Main navigation">
-        <div className="wrap nav-in">
-          <a href="#" className="logo" aria-label="VerifyHub home">
-            <Logo height={36} alt="VerifyHub" />
-          </a>
-          <div className="nav-links">
-            <a href="#products">Products</a>
-            <a href="#platform">Platform</a>
-            <a href="#developers">Developers</a>
-            <a href="#contact">Pricing</a>
-          </div>
-          <div className="nav-cta">
-            <Link className="signin" to="/login">Sign in</Link>
-            <a className="btn btn-outline" href="#developers">Documentation</a>
-            <a className="btn btn-primary" href="#contact">Get started <span className="arr">→</span></a>
-            <button className="hamburger" aria-label="Toggle menu" aria-expanded={isMenuOpen} onClick={toggleMenu}>☰</button>
-          </div>
-        </div>
-      </nav>
-      <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`} id="mmenu">
-        <a href="#products" onClick={closeMenu}>Products</a>
-        <a href="#platform" onClick={closeMenu}>Platform</a>
-        <a href="#developers" onClick={closeMenu}>Developers</a>
-        <a href="#contact" onClick={closeMenu}>Pricing</a>
-        <a href="#contact" className="btn btn-primary" onClick={closeMenu}>Get started →</a>
-      </div>
 
       {/* ================= HERO ================= */}
       <header className="hero">
@@ -133,7 +93,7 @@ const Home = () => {
             <h1>The verification layer behind <span className="grad">modern lending</span></h1>
             <p className="lead">Credit bureau data, identity verification, bank statement intelligence and AI decisioning — unified into one enterprise-grade API platform trusted by banks, NBFCs and fintechs across India.</p>
             <div className="hero-actions">
-              <a className="btn btn-primary" href="#contact">Start with sandbox <span className="arr">→</span></a>
+              <PrimaryButton href="#contact" sx={{ px: 4, py: 1.5, fontSize: '16px' }}>Start with sandbox <span className="arr" style={{marginLeft: 8}}>→</span></PrimaryButton>
               <a className="btn btn-dark-outline" href="#contact">Book a demo</a>
             </div>
           </div>
@@ -150,80 +110,71 @@ const Home = () => {
       {/* ================= PRODUCTS ================= */}
       <section className="products" id="products">
         <div className="wrap">
-          <div className="sec-head center reveal" ref={addToRevealRefs}>
-            <span className="eyebrow">Product suite</span>
-            <h2>Everything your credit stack needs, in one platform</h2>
-            <p>Modular APIs that work independently or together — assess creditworthiness, verify identity and automate decisions end to end.</p>
-          </div>
-          <div className="prod-grid">
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <div className="ico ico-blue">📊</div>
-              <h3>Credit Bureau API</h3>
-              <p>Consumer and commercial credit reports from all major Indian bureaus, delivered through one normalised schema.</p>
-              <div className="pts">
-                <span>Soft &amp; hard pull support</span>
-                <span>Built-in consent capture</span>
-                <span>Score bands &amp; summary attributes</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <div className="ico ico-green">🪪</div>
-              <h3>Identity &amp; KYC Suite</h3>
-              <p>Real-time verification of PAN, Aadhaar (offline), GSTIN, driving licence, voter ID, bank accounts and UPI handles.</p>
-              <div className="pts">
-                <span>Face match &amp; liveness detection</span>
-                <span>Video KYC workflows</span>
-                <span>CKYC search &amp; download</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <div className="ico ico-blue">🏦</div>
-              <h3>Bank Statement Analyzer</h3>
-              <p>Convert PDFs and account aggregator feeds into categorised transactions and lender-ready cashflow insights.</p>
-              <div className="pts">
-                <span>700+ bank formats supported</span>
-                <span>Fraud &amp; tampering detection</span>
-                <span>FOIR, ABB &amp; obligation analysis</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <span className="badge-new">NEW</span>
-              <div className="ico ico-gold">🤖</div>
-              <h3>AI Decisioning Engine</h3>
-              <p>Combine bureau, banking and alternate data into configurable scorecards that return instant credit decisions.</p>
-              <div className="pts">
-                <span>No-code rule builder</span>
-                <span>ML models with explainability</span>
-                <span>Champion–challenger testing</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <div className="ico ico-green">📄</div>
-              <h3>Document Intelligence</h3>
-              <p>AI-powered OCR and forgery detection for salary slips, ITRs, Form 16, invoices and financial statements.</p>
-              <div className="pts">
-                <span>Structured field extraction</span>
-                <span>Tamper &amp; template checks</span>
-                <span>Confidence scoring per field</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-            <div className="pcard reveal" ref={addToRevealRefs}>
-              <div className="ico ico-gold">📡</div>
-              <h3>Portfolio Monitoring</h3>
-              <p>Track borrower health after disbursal with bureau refresh triggers, employment signals and early-warning alerts.</p>
-              <div className="pts">
-                <span>Scheduled bureau refreshes</span>
-                <span>EPFO &amp; employment tracking</span>
-                <span>Risk-event webhooks</span>
-              </div>
-              <a className="link" href="#contact">Explore API →</a>
-            </div>
-          </div>
+          <Box className="reveal" ref={addToRevealRefs} sx={{ mb: 7 }}>
+            <SectionHeading 
+              alignment="center"
+              eyebrow="Product suite"
+              title="Everything your credit stack needs, in one platform"
+              subtext="Modular APIs that work independently or together — assess creditworthiness, verify identity and automate decisions end to end."
+            />
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              icon="📊"
+              iconColor="primary"
+              title="Credit Bureau API"
+              description="Consumer and commercial credit reports from all major Indian bureaus, delivered through one normalised schema."
+              points={['Soft & hard pull support', 'Built-in consent capture', 'Score bands & summary attributes']}
+            />
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              icon="🪪"
+              iconColor="success"
+              title="Identity & KYC Suite"
+              description="Real-time verification of PAN, Aadhaar (offline), GSTIN, driving licence, voter ID, bank accounts and UPI handles."
+              points={['Face match & liveness detection', 'Video KYC workflows', 'CKYC search & download']}
+            />
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              icon="🏦"
+              iconColor="primary"
+              title="Bank Statement Analyzer"
+              description="Convert PDFs and account aggregator feeds into categorised transactions and lender-ready cashflow insights."
+              points={['700+ bank formats supported', 'Fraud & tampering detection', 'FOIR, ABB & obligation analysis']}
+            />
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              isNew={true}
+              icon="🤖"
+              iconColor="warning"
+              title="AI Decisioning Engine"
+              description="Combine bureau, banking and alternate data into configurable scorecards that return instant credit decisions."
+              points={['No-code rule builder', 'ML models with explainability', 'Champion–challenger testing']}
+            />
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              icon="📄"
+              iconColor="success"
+              title="Document Intelligence"
+              description="AI-powered OCR and forgery detection for salary slips, ITRs, Form 16, invoices and financial statements."
+              points={['Structured field extraction', 'Tamper & template checks', 'Confidence scoring per field']}
+            />
+            <FeatureCard 
+              className="reveal"
+              ref={addToRevealRefs}
+              icon="📡"
+              iconColor="warning"
+              title="Portfolio Monitoring"
+              description="Track borrower health after disbursal with bureau refresh triggers, employment signals and early-warning alerts."
+              points={['Scheduled bureau refreshes', 'EPFO & employment tracking', 'Risk-event webhooks']}
+            />
+          </Box>
         </div>
       </section>
 
@@ -243,11 +194,13 @@ const Home = () => {
       {/* ================= WORKFLOW ================= */}
       <section id="platform">
         <div className="wrap">
-          <div className="sec-head reveal" ref={addToRevealRefs}>
-            <span className="eyebrow">Implementation</span>
-            <h2>From first API call to production in days, not months</h2>
-            <p>A structured onboarding process backed by dedicated solution engineers — most teams go live within two weeks.</p>
-          </div>
+          <Box className="reveal" ref={addToRevealRefs} sx={{ mb: 7 }}>
+            <SectionHeading 
+              eyebrow="Implementation"
+              title="From first API call to production in days, not months"
+              subtext="A structured onboarding process backed by dedicated solution engineers — most teams go live within two weeks."
+            />
+          </Box>
           <div className="flow-grid">
             <div className="fstep reveal" ref={addToRevealRefs}>
               <span className="num">STEP 1</span>
@@ -276,11 +229,14 @@ const Home = () => {
       {/* ================= DEVELOPERS ================= */}
       <section className="dev" id="developers">
         <div className="wrap">
-          <div className="sec-head reveal" ref={addToRevealRefs}>
-            <span className="eyebrow on-dark">Developer experience</span>
-            <h2>An API your engineers will actually enjoy</h2>
-            <p>Predictable JSON, semantic errors, idempotent retries and webhooks — designed to the standard of the best global API companies.</p>
-          </div>
+          <Box className="reveal" ref={addToRevealRefs} sx={{ mb: 7 }}>
+            <SectionHeading 
+              eyebrow="Developer experience"
+              title="An API your engineers will actually enjoy"
+              subtext="Predictable JSON, semantic errors, idempotent retries and webhooks — designed to the standard of the best global API companies."
+              sx={{ '& h2': { color: '#fff' }, '& p': { color: '#A9BAD6' } }}
+            />
+          </Box>
           <div className="dev-points">
               <div className="dev-pt reveal" ref={addToRevealRefs}>
                 <span className="di">🔁</span>
@@ -313,74 +269,13 @@ const Home = () => {
             <h2>Start verifying in minutes</h2>
             <p>Get free sandbox access today, or speak with our solutions team about enterprise volumes and custom scorecards.</p>
             <div className="row">
-              <a className="btn btn-primary" href="mailto:hello@verifyhub.in">Get sandbox keys <span className="arr">→</span></a>
+              <PrimaryButton href="mailto:info@verifyhub.in" sx={{ px: 4, py: 1.5, fontSize: '16px' }}>Get sandbox keys <span className="arr" style={{marginLeft: 8}}>→</span></PrimaryButton>
               <a className="btn btn-dark-outline" href="mailto:sales@verifyhub.in">Talk to sales</a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ================= FOOTER ================= */}
-      <footer>
-        <div className="wrap">
-          <div className="foot-grid">
-            <div className="foot-brand">
-              <a href="#" className="logo">
-                <Logo height={36} alt="VerifyHub" />
-              </a>
-              <p>API and technology infrastructure for India's lending ecosystem — credit data, verification and AI decisioning under one platform.</p>
-            </div>
-            <div>
-              <h4>Products</h4>
-              <ul>
-                <li><a href="#products">Credit Bureau API</a></li>
-                <li><a href="#products">Identity &amp; KYC</a></li>
-                <li><a href="#products">Statement Analyzer</a></li>
-                <li><a href="#products">AI Decisioning</a></li>
-                <li><a href="#products">Monitoring</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4>Developers</h4>
-              <ul>
-                <li><a href="#developers">Documentation</a></li>
-                <li><a href="#developers">API Reference</a></li>
-                <li><a href="#developers">SDKs</a></li>
-                <li><a href="#developers">System status</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4>Company</h4>
-              <ul>
-                <li><a href="#">About us</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#contact">Contact</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4>Legal</h4>
-              <ul>
-                <li><a href="#">Privacy policy</a></li>
-                <li><a href="#">Terms of service</a></li>
-                <li><a href="#">Data protection</a></li>
-                <li><a href="#">Grievance officer</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="foot-bottom">
-            <div className="foot-legal">
-              <span>© 2026 Optimystic Auxiliary Services Private Limited. All rights reserved.</span>
-              <span className="foot-sub">VerifyHub is a brand of Optimystic Auxiliary Services Private Limited.</span>
-            </div>
-            <div className="foot-meta">
-              <a className="foot-chip" href="https://www.verifyhub.in" target="_blank" rel="noreferrer noopener">www.verifyhub.in</a>
-              <a className="foot-chip" href="mailto:hello@verifyhub.in">hello@verifyhub.in</a>
-              <span className="foot-chip"><span className="tricolor" aria-hidden="true"><i></i><i></i><i></i></span>Made in India</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import ScrollToTop from "../components/shared/ScrollToTop";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("../pages/Home"));
@@ -9,6 +10,7 @@ const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
 const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
+const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
@@ -19,6 +21,10 @@ const About = lazy(() => import("../Components/home/AboutSection"));
 const Services = lazy(() => import("../pages/Services"));
 const Contact = lazy(() => import("../pages/Contact"));
 const ProductCards = lazy(() => import("../Components/home/ProductSection"));
+const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("../pages/TermsOfService"));
+const GrievanceOfficer = lazy(() => import("../pages/GrievanceOfficer"));
+const DataProtection = lazy(() => import("../pages/DataProtection"));
 
 const AppRoutes = () => {
   return (
@@ -37,13 +43,20 @@ const AppRoutes = () => {
         </div>
       }
     >
+      <ScrollToTop />
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/products" element={<ProductCards />} />
+        {/* Public Routes with PageLayout */}
+        <Route element={<PageLayout><Outlet /></PageLayout>}>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/products" element={<ProductCards />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/grievance-officer" element={<GrievanceOfficer />} />
+          <Route path="/data-protection" element={<DataProtection />} />
+        </Route>
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
