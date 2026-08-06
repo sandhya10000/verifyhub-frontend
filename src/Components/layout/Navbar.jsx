@@ -86,7 +86,7 @@ const Navbar = () => {
                 alignItems: 'center',
               }}
             >
-              {/* <Box
+              <Box
                 component={RouterLink}
                 to="/login"
                 sx={{
@@ -100,8 +100,8 @@ const Navbar = () => {
                 }}
               >
                 Sign in
-              </Box> */}
-              <Button
+              </Box>
+              {/* <Button
                 variant="outlined"
                 href="/#developers"
                 sx={{
@@ -116,10 +116,10 @@ const Navbar = () => {
                 }}
               >
                 Documentation
-              </Button>
-              <PrimaryButton href="/#contact">
+              </Button> */}
+              {/* <PrimaryButton href="/#contact">
                 Get started <Box component="span" sx={{ ml: 0.5 }}>→</Box>
-              </PrimaryButton>
+              </PrimaryButton> */}
             </Box>
 
             {/* Mobile Hamburger */}
