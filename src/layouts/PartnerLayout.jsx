@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, Divider, IconButton, AppBar, Toolbar, Chip } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, IconButton, AppBar, Toolbar, Chip } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Wallet, FileText, IndianRupee, Bot, UserCircle, Menu, LogOut, ChevronRight } from 'lucide-react';
 import { currentPartner } from '../services/mockData';
@@ -34,30 +34,33 @@ const PartnerLayout = () => {
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'secondary.main', color: 'primary.contrastText' }}>
-      <Box sx={{ p: 2.5 }}>
-        <Box sx={{ mb: 0.5 }}>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
           <Logo height={32} alt="VerifyHub" />
+          <Typography variant="h6" sx={{ ml: 1, fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', color: '#fff' }}>
+            Verify<Box component="span" sx={{ color: 'success.main' }}>Hub</Box>
+          </Typography>
         </Box>
-        <Typography variant="overline" sx={{ color: 'primary.main', opacity: 0.9 }}>
-          PARTNER PORTAL
+        <Typography variant="overline" sx={{ color: 'success.main', opacity: 0.9, letterSpacing: '0.05em', lineHeight: 1, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>
+          PARTNER PORTAL · VERIFYHUB.IN
         </Typography>
       </Box>
 
-      <List sx={{ px: 2, flexGrow: 1 }}>
+      <List sx={{ px: 0, py: 1, flexGrow: 1 }}>
         {navItems.map((item) => {
           const active = location.pathname.startsWith(item.path);
           return (
-            <ListItem
-              button
+            <ListItemButton
               key={item.text}
               onClick={() => navigate(item.path)}
               sx={{
-                mb: 0.5,
-                borderRadius: 2,
-                bgcolor: active ? 'primary.main' : 'transparent',
+                py: 1,
+                px: 3,
+                bgcolor: active ? 'success.main' : 'transparent',
                 color: active ? '#fff' : 'text.disabled',
+                borderLeft: active ? '4px solid #fff' : '4px solid transparent',
                 '&:hover': {
-                  bgcolor: active ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  bgcolor: active ? 'success.main' : 'rgba(255,255,255,0.05)',
                   color: '#fff',
                   '& .MuiListItemIcon-root': { color: '#fff' }
                 }
@@ -66,23 +69,26 @@ const PartnerLayout = () => {
               <ListItemIcon sx={{ minWidth: 40, color: active ? '#fff' : 'text.disabled' }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: active ? 600 : 500, fontSize: '0.95rem' }} />
+              <ListItemText
+                primary={item.text}
+                slotProps={{ primary: { fontWeight: active ? 600 : 500, fontSize: '0.95rem' } }}
+              />
               {item.text === 'Credit Reports' && <ChevronRight size={16} />}
-            </ListItem>
+            </ListItemButton>
           )
         })}
         
-        <Box sx={{ mt: 3, mb: 1, px: 2 }}>
+        <Box sx={{ mt: 4, mb: 1, px: 3 }}>
           <Typography variant="overline" sx={{ color: 'text.disabled' }}>ACCOUNT</Typography>
         </Box>
         {accountItems.map((item) => (
-          <ListItem
-            button
+          <ListItemButton
             key={item.text}
             onClick={() => navigate(item.path)}
             sx={{
-              py: 0.5,
-              borderRadius: 2,
+              py: 0.75,
+              px: 3,
+              borderLeft: '4px solid transparent',
               color: location.pathname === item.path ? '#fff' : 'text.disabled',
               '&:hover': { color: '#fff' }
             }}
@@ -90,16 +96,29 @@ const PartnerLayout = () => {
             <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
                <Box sx={{ width: 20 }} /> {/* Spacer matching icon width */}
             </ListItemIcon>
-            <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
-          </ListItem>
+            <ListItemText
+              primary={item.text}
+              slotProps={{ primary: { fontSize: '0.85rem', fontWeight: 500, fontFamily: '"Inter", sans-serif' } }}
+            />
+          </ListItemButton>
         ))}
       </List>
 
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ p: 2, bgcolor: 'secondary.dark', borderRadius: 2 }}>
-          <Typography variant="subtitle2" sx={{ color: '#fff' }}>Tier {currentPartner.tier} · {currentPartner.tierName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Bureau price locked at your assigned tier</Typography>
+      <Box sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <Typography variant="overline" sx={{ color: 'text.disabled', display: 'block', mb: 1, fontSize: '0.65rem' }}>
+          JOIN US ON SOCIAL MEDIA
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>W</Typography>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>I</Typography>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>F</Typography>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>Y</Typography>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>T</Typography>
+          <Typography component="a" href="#" sx={{ color: 'text.disabled', '&:hover': { color: '#fff' } }}>L</Typography>
         </Box>
+
+        <Typography variant="subtitle2" sx={{ color: '#fff', fontSize: '0.8rem' }}>Tier {currentPartner.tier} · {currentPartner.tierName}</Typography>
+        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>Bureau price locked at your assigned tier</Typography>
       </Box>
     </Box>
   );
@@ -139,15 +158,16 @@ const PartnerLayout = () => {
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Chip 
-                icon={<IndianRupee size={16} />} 
                 label={`WALLET ₹${currentPartner.walletBalance.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
-                sx={{ bgcolor: 'success.light', color: 'success.main', fontWeight: 700, borderRadius: 2, py: 2.5, px: 1, '& .MuiChip-icon': { color: 'success.main' } }}
+                sx={{ bgcolor: '#ECFDF5', color: '#059669', fontWeight: 800, borderRadius: 6, py: 2.5, px: 2 }}
               />
               <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{currentPartner.name}</Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>{currentPartner.id} · Tier {currentPartner.tier}</Typography>
               </Box>
-              <UserCircle size={32} color="#111827" />
+              <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>
+                SF
+              </Box>
             </Box>
           </Toolbar>
         </AppBar>

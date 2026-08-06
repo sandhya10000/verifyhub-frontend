@@ -13,6 +13,7 @@ const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
+const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 
 const PlaceholderPage = lazy(() => import("../pages/PlaceholderPage"));
@@ -78,7 +79,7 @@ const AppRoutes = () => {
           <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
           <Route
             path="ai-analyzer"
-            element={<PlaceholderPage title="AI Report Analyzer" />}
+            element={<AiAnalyzer />}
           />
           <Route
             path="account/*"

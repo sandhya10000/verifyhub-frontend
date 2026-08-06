@@ -35,7 +35,7 @@ const Signup = () => {
     try {
       setError(null);
       await authService.signup(data);
-      navigate('/dashboard'); // Redirect to dashboard on success
+      navigate('/partner/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to create account');
     }

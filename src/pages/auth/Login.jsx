@@ -35,7 +35,7 @@ const Login = () => {
     try {
       setError(null);
       await authService.login(data);
-      navigate('/dashboard'); // Mock redirect
+      navigate('/partner/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to login');
     }
