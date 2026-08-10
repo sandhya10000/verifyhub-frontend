@@ -38,7 +38,7 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <StatCard 
             title="REPORTS DOWNLOADED · TODAY" 
             value="18" 
@@ -46,14 +46,14 @@ const Dashboard = () => {
             subtitle="17 success / 1 failed" 
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <StatCard 
             title="REPORTS DOWNLOADED · THIS MONTH" 
             value="342" 
             subtitle="July 2026 · success rate 96.2%" 
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <StatCard 
             variant="dark"
             title="WALLET BALANCE AVAILABLE" 
@@ -65,7 +65,7 @@ const Dashboard = () => {
       </Grid>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <DataTable 
             title="Recent Report Pulls" 
             actionLabel="All reports" 
@@ -73,7 +73,7 @@ const Dashboard = () => {
             data={recentPulls} 
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
             <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Activity</Typography>
@@ -93,10 +93,14 @@ const Dashboard = () => {
                       } fill="currentColor" />
                     </ListItemIcon>
                     <ListItemText 
-                      primary={activity.message} 
-                      primaryTypographyProps={{ variant: 'body2', fontWeight: 600, mb: 0.5 }}
+                      disableTypography
+                      primary={
+                        <Typography variant="body2" fontWeight={600} mb={0.5}>
+                          {activity.message}
+                        </Typography>
+                      }
                       secondary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             {new Date(activity.timestamp).toLocaleDateString() === new Date().toLocaleDateString() ? 'Today' : new Date(activity.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </Typography>
