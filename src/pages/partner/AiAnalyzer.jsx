@@ -53,6 +53,7 @@ const AiAnalyzer = () => {
   // a download failure doesn't reset the on-screen result cards.
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
+  const [chunkProgress, setChunkProgress] = useState(null);
   const fileInputRef = useRef(null);
 
 
@@ -65,6 +66,7 @@ const AiAnalyzer = () => {
       setError(null);
       setAnalysisResult(null);
       setAnalysisId(null);
+      setChunkProgress(null);
     }
   };
 
@@ -77,6 +79,7 @@ const AiAnalyzer = () => {
       setError(null);
       setAnalysisResult(null);
       setAnalysisId(null);
+      setChunkProgress(null);
     }
   };
 
@@ -93,6 +96,7 @@ const AiAnalyzer = () => {
     setError(null);
     setAnalysisResult(null);
     setAnalysisId(null);
+    setChunkProgress(null);
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -141,16 +145,22 @@ const AiAnalyzer = () => {
           console.log('[AiAnalyzer] Poll response:', response.data.status, response.data);
 
           if (response.data.success) {
-            const { status, result, errorMessage } = response.data;
+            const { status, result, errorMessage, debugError, isChunked, chunkCount, chunksCompleted } = response.data;
+            
+            if (isChunked && chunkCount > 0) {
+              setChunkProgress({ completed: chunksCompleted || 0, total: chunkCount });
+            }
+
             if (status === 'completed') {
               console.log('[AiAnalyzer] Analysis COMPLETED:', result);
               setAnalysisResult(result);
               setIsAnalyzing(false);
               clearInterval(intervalId);
             } else if (status === 'failed') {
-              console.error('[AiAnalyzer] Analysis FAILED — backend errorMessage:', errorMessage);
-              setError(errorMessage || 'Analysis failed');
+              console.error('[AiAnalyzer] Analysis FAILED — backend errorMessage:', errorMessage, 'debugError:', debugError);
+              setError(debugError || errorMessage || 'Analysis failed');
               setIsAnalyzing(false);
+              setChunkProgress(null);
               clearInterval(intervalId);
             } else {
               console.log('[AiAnalyzer] Still processing, status:', status);
@@ -194,10 +204,10 @@ const AiAnalyzer = () => {
         );
 
         // Success — trigger browser download
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/html' }));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `credit-analysis-${analysisId}.pdf`);
+        link.setAttribute('download', `credit-analysis-${analysisId}.html`);
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
@@ -340,7 +350,12 @@ const AiAnalyzer = () => {
                   boxShadow: 'none'
                 }}
               >
-                {isUploading ? 'Uploading...' : isAnalyzing ? 'Analyzing with AI...' : '✦ Generate AI Analysis'}
+                {isUploading ? 'Uploading...' : 
+                 isAnalyzing ? (
+                   chunkProgress 
+                     ? `Analyzing chunk ${chunkProgress.completed + 1} of ${chunkProgress.total}...` 
+                     : 'Analyzing with AI...'
+                 ) : '✦ Generate AI Analysis'}
               </Button>
             </CardContent>
           </Card>
@@ -462,7 +477,7 @@ const AiAnalyzer = () => {
                       Generating report…
                     </Box>
                   ) : (
-                    'Download Analysis PDF'
+                    'Download Analysis Report'
                   )}
                 </Button>
                 <Button
