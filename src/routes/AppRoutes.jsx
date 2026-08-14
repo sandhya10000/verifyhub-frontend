@@ -9,6 +9,11 @@ const Signup = lazy(() => import("../pages/auth/Signup"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
+const CibilReport = lazy(() => import("../pages/partner/CibilReport"));
+const ExperianReport = lazy(() => import("../pages/partner/ExperianReport"));
+const EquifaxReport = lazy(() => import("../pages/partner/EquifaxReport"));
+const CrifReport = lazy(() => import("../pages/partner/CrifReport"));
+
 const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 
@@ -47,7 +52,13 @@ const AppRoutes = () => {
       <ScrollToTop />
       <Routes>
         {/* Public Routes with PageLayout */}
-        <Route element={<PageLayout><Outlet /></PageLayout>}>
+        <Route
+          element={
+            <PageLayout>
+              <Outlet />
+            </PageLayout>
+          }
+        >
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
@@ -76,11 +87,21 @@ const AppRoutes = () => {
             path="credit-reports"
             element={<PlaceholderPage title="Credit Reports" />}
           />
-          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
           <Route
-            path="ai-analyzer"
-            element={<AiAnalyzer />}
+            path="/partner/credit-reports/cibil"
+            element={<CibilReport />}
           />
+          <Route
+            path="/partner/credit-reports/experian"
+            element={<ExperianReport />}
+          />
+          <Route
+            path="/partner/credit-reports/equifax"
+            element={<EquifaxReport />}
+          />
+          <Route path="/partner/credit-reports/crif" element={<CrifReport />} />
+          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
+          <Route path="ai-analyzer" element={<AiAnalyzer />} />
           <Route
             path="account/*"
             element={<PlaceholderPage title="Account" />}
