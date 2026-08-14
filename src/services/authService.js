@@ -1,70 +1,96 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/auth";
+// Create axios instance
+// const api = axios.create({
+//   baseURL:
+//     import.meta.env.VITE_REACT_APP_API_URL ||
+//     "https://reactbackend.verifyhub.in/api",
+//   withCredentials: true,
+// });
+const api = axios.create({
+  baseURL:
+    import.meta.env.VITE_REACT_APP_API_URL || "http://localhost:5000/api",
+  withCredentials: true,
+});
 
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Unauthorized - remove token and redirect to login
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
 export const authService = {
   login: async (data) => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, {
-        email: data.email,
-        password: data.password,
-      });
-      if (response.data.success && response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-      }
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || "Failed to login");
-    }
-  },
+    const response = await api.post("/auth/login", {
+      email: data.email,
+      password: data.password,
+    });
 
+    if (response.data.success && response.data.token) {
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+
+    return response.data;
+  },
   signup: async (data) => {
-    try {
-      const payload = {
-        name: `${data.firstName} ${data.lastName}`.trim(),
-        email: data.email,
-        phone: data.phone,
-        password: data.password,
-      };
-      const response = await axios.post(`${API_URL}/register`, payload);
-      if (response.data.success && response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-      }
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to create account",
-      );
+    const payload = {
+      name: `${data.firstName} ${data.lastName}`.trim(),
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+    };
+
+    const response = await api.post("/auth/register", payload);
+
+    if (response.data.success && response.data.token) {
+      localStorage.setItem("token", response.data.token);
+
+      localStorage.setItem("user", JSON.stringify(response.data.user));
     }
+
+    return response.data;
   },
 
+  // ========================================
+  // FORGOT PASSWORD
+  // ========================================
   forgotPassword: async (email) => {
-    try {
-      const response = await axios.post(`${API_URL}/request-password-reset`, {
-        email,
-      });
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to request password reset",
-      );
-    }
+    const response = await api.post("/auth/request-password-reset", {
+      email,
+    });
+
+    return response.data;
   },
 
+  // ========================================
+  // LOGOUT
+  // ========================================
   logout: async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_URL}/logout`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-    } catch (error) {
-      console.error("Logout error", error);
+      await api.post("/auth/logout");
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -73,83 +99,31 @@ export const authService = {
 };
 
 // Credit Bureau APIs
-// export const creditAPI = {
-//   generateCibilReport: async (payload) => {
-//     try {
-//       const token = localStorage.getItem("token");
-//       const response = await axios.post(
-//         `${API_URL}/credit/generate-cibil-report`,
-//         payload,
-//         {
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//             "Content-Type": "application/json",
-//           },
-//         },
-//       );
-//       return response.data;
-//     } catch (error) {
-//       throw new Error(
-//         error.response?.data?.message || "Failed to generate CIBIL report",
-//       );
-//     }
-//   },
-// };
+
 export const creditAPI = {
-  generateCibilReport: async (payload) => {
-    try {
-      const token = localStorage.getItem("token");
+  // ==========================================
+  // GENERATE CIBIL REPORT
+  // ==========================================
+  generateCibilReport: async (payload) =>
+    await api.post("/credit/generate-cibil-report", payload),
 
-      const response = await axios.post(
-        `${API_URL}/credit/generate-cibil-report`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+  // ==========================================
+  // GET CIBIL REPORT
+  // ==========================================
 
-      return response.data;
-    } catch (error) {
-      console.error(
-        "CIBIL API Error:",
-        error.response?.status,
-        error.response?.data,
-      );
-
-      throw new Error(
-        error.response?.data?.message || "Failed to generate CIBIL report",
-      );
-    }
+  getCibilReport: async (id) => {
+    const response = await api.get(`/credit/get-cibil-rpt/${id}`);
+    return response.data;
   },
-  generateCrifReport: async (payload) => {
-    try {
-      const token = localStorage.getItem("token");
+  // ==========================================
+  // GENERATE CRIF REPORT
+  // ==========================================
+  generateCrifReport: async (payload) =>
+    await api.post("/credit/generate-crif-report", payload),
 
-      const response = await axios.post(
-        `${API_URL}/credit/generate-crif-report`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+  generateEquifaxReport: async (payload) =>
+    await api.post("/credit/generate-equifax-report", payload),
 
-      return response.data;
-    } catch (error) {
-      console.error(
-        "CIBIL API Error:",
-        error.response?.status,
-        error.response?.data,
-      );
-
-      throw new Error(
-        error.response?.data?.message || "Failed to generate CIBIL report",
-      );
-    }
-  },
+  generateExperianReport: async (payload) =>
+    await api.post("/credit/generate-experian-report", payload),
 };
