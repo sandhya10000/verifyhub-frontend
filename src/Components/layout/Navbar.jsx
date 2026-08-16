@@ -42,7 +42,7 @@ const Navbar = () => {
             }}
           >
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-              <Logo height={55} alt="VerifyHub" />
+              {/* <Logo height={55} alt="VerifyHub" /> */}
             </Box>
 
             {/* Desktop Links */}
@@ -89,6 +89,7 @@ const Navbar = () => {
               <Box
                 component={RouterLink}
                 to="/login"
+                onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
                 sx={{
                   fontSize: '14.5px',
                   fontWeight: 500,
@@ -172,7 +173,14 @@ const Navbar = () => {
             </Box>
           ))}
           <Box sx={{ mt: 1 }}>
-            <PrimaryButton href="/#contact" sx={{ width: '100%' }} onClick={closeMenu}>
+            <PrimaryButton 
+              href="/#contact" 
+              sx={{ width: '100%' }} 
+              onClick={() => {
+                sessionStorage.setItem('preLoginPath', window.location.pathname);
+                closeMenu();
+              }}
+            >
               Get started →
             </PrimaryButton>
           </Box>

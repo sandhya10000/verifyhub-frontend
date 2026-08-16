@@ -11,10 +11,17 @@ const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
 const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
+const ProtectedRoute = lazy(() => import("../Components/common/ProtectedRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
+const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
+
+const Activity = lazy(() => import("../pages/partner/Activity"));
+const Reports = lazy(() => import("../pages/partner/Reports"));
+const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
+const Profile = lazy(() => import("../pages/partner/Profile"));
 
 const PlaceholderPage = lazy(() => import("../pages/PlaceholderPage"));
 
@@ -65,12 +72,12 @@ const AppRoutes = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Partner */}
-        <Route path="/partner" element={<PartnerLayout />}>
+        <Route path="/partner" element={<ProtectedRoute><PartnerLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/partner/dashboard" replace />} />
           <Route path="dashboard" element={<PartnerDashboard />} />
           <Route
             path="add-funds"
-            element={<PlaceholderPage title="Add Funds" />}
+            element={<AddFunds />}
           />
           <Route
             path="credit-reports"
@@ -82,8 +89,20 @@ const AppRoutes = () => {
             element={<AiAnalyzer />}
           />
           <Route
-            path="account/*"
-            element={<PlaceholderPage title="Account" />}
+            path="account/activity"
+            element={<Activity />}
+          />
+          <Route
+            path="account/reports"
+            element={<Reports />}
+          />
+          <Route
+            path="account/transaction-history"
+            element={<TransactionHistory />}
+          />
+          <Route
+            path="account/profile"
+            element={<Profile />}
           />
         </Route>
 
