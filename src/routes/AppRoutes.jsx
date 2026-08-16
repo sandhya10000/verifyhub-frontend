@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
-import ScrollToTop from "../components/shared/ScrollToTop";
+import ScrollToTop from "../Components/shared/ScrollToTop";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("../pages/Home"));
@@ -9,6 +9,11 @@ const Signup = lazy(() => import("../pages/auth/Signup"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
+const CibilReport = lazy(() => import("../pages/partner/CibilReport"));
+const ExperianReport = lazy(() => import("../pages/partner/ExperianReport"));
+const EquifaxReport = lazy(() => import("../pages/partner/EquifaxReport"));
+const CrifReport = lazy(() => import("../pages/partner/CrifReport"));
+
 const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 const ProtectedRoute = lazy(() => import("../Components/common/ProtectedRoute"));
@@ -54,7 +59,13 @@ const AppRoutes = () => {
       <ScrollToTop />
       <Routes>
         {/* Public Routes with PageLayout */}
-        <Route element={<PageLayout><Outlet /></PageLayout>}>
+        <Route
+          element={
+            <PageLayout>
+              <Outlet />
+            </PageLayout>
+          }
+        >
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
@@ -83,10 +94,9 @@ const AppRoutes = () => {
             path="credit-reports"
             element={<PlaceholderPage title="Credit Reports" />}
           />
-          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
           <Route
-            path="ai-analyzer"
-            element={<AiAnalyzer />}
+            path="/partner/credit-reports/cibil"
+            element={<CibilReport />}
           />
           <Route
             path="account/activity"
@@ -103,6 +113,21 @@ const AppRoutes = () => {
           <Route
             path="account/profile"
             element={<Profile />}
+          />
+          <Route
+            path="/partner/credit-reports/experian"
+            element={<ExperianReport />}
+          />
+          <Route
+            path="/partner/credit-reports/equifax"
+            element={<EquifaxReport />}
+          />
+          <Route path="/partner/credit-reports/crif" element={<CrifReport />} />
+          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
+          <Route path="ai-analyzer" element={<AiAnalyzer />} />
+          <Route
+            path="account/*"
+            element={<PlaceholderPage title="Account" />}
           />
         </Route>
 

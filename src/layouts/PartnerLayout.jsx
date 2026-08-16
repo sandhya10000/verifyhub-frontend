@@ -1,39 +1,36 @@
-import React from 'react';
+import React from "react";
+import { useState } from "react";
+import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import {
   Box,
   Drawer,
   List,
+  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Typography,
+  Divider,
   IconButton,
   AppBar,
   Toolbar,
   Chip,
-  Button,
-  Tooltip,
-  Avatar,
-  Menu as MuiMenu,
-  MenuItem,
-} from '@mui/material';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+  Collapse,
+} from "@mui/material";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  Home,
-  PlusCircle,
+  LayoutDashboard,
+  Wallet,
   FileText,
-  Wand2,
-  Activity,
-  ArrowLeftRight,
-  BarChart2,
-  User,
-  HelpCircle,
+  IndianRupee,
+  Bot,
+  UserCircle,
   Menu,
   LogOut,
-} from 'lucide-react';
-import { FaWhatsapp, FaInstagram, FaFacebook, FaYoutube, FaTelegram, FaLinkedin } from 'react-icons/fa';
-import Logo from '../components/shared/Logo';
-import useAuth from '../context/useAuth';
+  ChevronRight,
+} from "lucide-react";
+import { currentPartner } from "../services/mockData";
+import Logo from "../Components/shared/Logo";
 
 const DRAWER_WIDTH = 268;
 
@@ -49,39 +46,59 @@ const PartnerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const { user, logout } = useAuth();
-  
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const open = Boolean(anchorEl);
-  
-  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
-  const handleLogout = () => {
-    handleMenuClose();
-    logout();
-  };
-
-  // If user is somehow missing, render nothing (ProtectedRoute handles redirect)
-  if (!user) return null;
+  const [creditReportsOpen, setCreditReportsOpen] = useState(false);
 
   const navItems = [
-    { text: 'Dashboard',         icon: <Home size={20} />,         path: '/partner/dashboard' },
-    { text: 'Add Funds',         icon: <PlusCircle size={20} />,   path: '/partner/add-funds' },
     {
-      text: 'Credit Reports',
-      icon: <FileText size={20} />,
-      path: '/partner/credit-reports',
-      badge: 'Live',
+      text: "Dashboard",
+      icon: <LayoutDashboard size={20} />,
+      path: "/partner/dashboard",
     },
-    { text: 'AI Report Analyzer', icon: <Wand2 size={20} />,       path: '/partner/ai-analyzer' },
+    {
+      text: "Add Funds",
+      icon: <Wallet size={20} />,
+      path: "/partner/add-funds",
+    },
+    {
+      text: "Credit Reports",
+      icon: <FileText size={20} />,
+      children: [
+        {
+          text: "CIBIL Credit Report",
+          path: "/partner/credit-reports/cibil",
+        },
+        {
+          text: "Experian Credit Report",
+          path: "/partner/credit-reports/experian",
+        },
+        {
+          text: "Equifax Credit Report",
+          path: "/partner/credit-reports/equifax",
+        },
+        {
+          text: "CRIF Credit Report",
+          path: "/partner/credit-reports/crif",
+        },
+      ],
+    },
+    {
+      text: "Pricing",
+      icon: <IndianRupee size={20} />,
+      path: "/partner/pricing",
+    },
+    {
+      text: "AI Report Analyzer",
+      icon: <Bot size={20} />,
+      path: "/partner/ai-analyzer",
+    },
   ];
 
   const accountItems = [
-    { text: 'Activity',            icon: <Activity size={16} />,        path: '/partner/account/activity' },
-    { text: 'Transaction History', icon: <ArrowLeftRight size={16} />,  path: '/partner/account/transaction-history' },
-    { text: 'Reports',             icon: <BarChart2 size={16} />,       path: '/partner/account/reports' },
-    { text: 'Profile',             icon: <User size={16} />,            path: '/partner/account/profile' },
-    { text: 'Support',             icon: <HelpCircle size={16} />,      path: '/partner/account/support' },
+    { text: "Activity", path: "/partner/account/activity" },
+    { text: "Transaction History", path: "/partner/account/transactions" },
+    { text: "Reports", path: "/partner/account/reports" },
+    { text: "Profile", path: "/partner/account/profile" },
+    { text: "Support", path: "/partner/account/support" },
   ];
 
   const socialLinks = [
@@ -96,21 +113,44 @@ const PartnerLayout = () => {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'secondary.main', color: '#fff', overflowY: 'auto' }}>
-      {/* Logo / Brand */}
-      <Box sx={{ p: 3, pb: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "secondary.main",
+        color: "primary.contrastText",
+      }}
+    >
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
           <Logo height={32} alt="VerifyHub" />
           <Typography
             variant="h6"
-            sx={{ ml: 1, fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', color: '#fff' }}
+            sx={{
+              ml: 1,
+              fontWeight: 800,
+              fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+              color: "#fff",
+            }}
           >
-            Verify<Box component="span" sx={{ color: 'success.main' }}>Hub</Box>
+            Verify
+            <Box component="span" sx={{ color: "success.main" }}>
+              Hub
+            </Box>
           </Typography>
         </Box>
         <Typography
           variant="overline"
-          sx={{ color: 'success.main', opacity: 0.9, letterSpacing: '0.05em', lineHeight: 1, display: 'block', mt: 0.5, fontSize: '0.62rem' }}
+          sx={{
+            color: "success.main",
+            opacity: 0.9,
+            letterSpacing: "0.05em",
+            lineHeight: 1,
+            display: "block",
+            mt: 0.5,
+            fontSize: "0.65rem",
+          }}
         >
           PARTNER PORTAL · VERIFYHUB.IN
         </Typography>
@@ -131,198 +171,312 @@ const PartnerLayout = () => {
       {/* Nav items */}
       <List sx={{ px: 0, py: 1.5, flexGrow: 1 }}>
         {navItems.map((item) => {
-          const active = location.pathname.startsWith(item.path);
+          const active = item.path
+            ? location.pathname.startsWith(item.path)
+            : item.children?.some((child) =>
+                location.pathname.startsWith(child.path),
+              );
+
           return (
-            <ListItemButton
-              key={item.text}
-              onClick={() => navigate(item.path)}
-              sx={{
-                py: 1,
-                px: 3,
-                bgcolor: active ? 'success.main' : 'transparent',
-                color: active ? '#fff' : 'rgba(255,255,255,0.55)',
-                borderLeft: active ? '3px solid rgba(255,255,255,0.8)' : '3px solid transparent',
-                '&:hover': {
-                  bgcolor: active ? 'success.main' : 'rgba(255,255,255,0.06)',
-                  color: '#fff',
-                  '& .MuiListItemIcon-root': { color: '#fff' },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 38, color: active ? '#fff' : 'rgba(255,255,255,0.45)' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                slotProps={{ primary: { fontWeight: active ? 600 : 500, fontSize: '0.9rem', fontFamily: '"Inter", sans-serif' } }}
-              />
-              {item.badge && (
-                <Box
-                  component="span"
+            <React.Fragment key={item.text}>
+              <ListItemButton
+                onClick={() => {
+                  if (item.children) {
+                    setCreditReportsOpen(!creditReportsOpen);
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
+                sx={{
+                  py: 1,
+                  px: 3,
+                  bgcolor: active ? "success.main" : "transparent",
+                  color: active ? "#fff" : "text.disabled",
+                  borderLeft: active
+                    ? "4px solid #fff"
+                    : "4px solid transparent",
+                  "&:hover": {
+                    bgcolor: active ? "success.main" : "rgba(255,255,255,0.05)",
+                    color: "#fff",
+                  },
+                }}
+              >
+                <ListItemIcon
                   sx={{
-                    ml: 1,
-                    px: 0.9,
-                    py: 0.2,
-                    bgcolor: '#16A34A',
-                    color: '#fff',
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    borderRadius: '20px',
-                    letterSpacing: '0.04em',
-                    lineHeight: 1.4,
-                    textTransform: 'uppercase',
-                    border: '1px solid rgba(255,255,255,0.3)',
+                    minWidth: 40,
+                    color: active ? "#fff" : "text.disabled",
                   }}
                 >
-                  {item.badge}
-                </Box>
+                  {item.icon}
+                </ListItemIcon>
+
+                <ListItemText primary={item.text} />
+
+                {item.children &&
+                  (creditReportsOpen ? <ExpandLess /> : <ExpandMore />)}
+              </ListItemButton>
+
+              {item.children && (
+                <Collapse in={creditReportsOpen} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map((child) => (
+                      <ListItemButton
+                        key={child.text}
+                        onClick={() => navigate(child.path)}
+                        sx={{
+                          pl: 8,
+                          py: 0.8,
+                          color:
+                            location.pathname === child.path
+                              ? "#fff"
+                              : "text.disabled",
+                          bgcolor:
+                            location.pathname === child.path
+                              ? "rgba(255,255,255,0.08)"
+                              : "transparent",
+                        }}
+                      >
+                        <ListItemText
+                          primary={child.text}
+                          slotProps={{
+                            primary: {
+                              fontSize: "0.85rem",
+                              fontWeight: 500,
+                            },
+                          }}
+                        />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Collapse>
               )}
-            </ListItemButton>
+            </React.Fragment>
           );
         })}
 
-        {/* Account section */}
-        <Box sx={{ mt: 3.5, mb: 1, px: 3 }}>
-          <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
+        <Box sx={{ mt: 4, mb: 1, px: 3 }}>
+          <Typography variant="overline" sx={{ color: "text.disabled" }}>
             ACCOUNT
           </Typography>
         </Box>
-        {accountItems.map((item) => {
-          const active = location.pathname === item.path;
-          return (
-            <ListItemButton
-              key={item.text}
-              onClick={() => navigate(item.path)}
-              sx={{
-                py: 0.65,
-                px: 3,
-                borderLeft: '3px solid transparent',
-                color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+        {accountItems.map((item) => (
+          <ListItemButton
+            key={item.text}
+            onClick={() => navigate(item.path)}
+            sx={{
+              py: 0.75,
+              px: 3,
+              borderLeft: "4px solid transparent",
+              color: location.pathname === item.path ? "#fff" : "text.disabled",
+              "&:hover": { color: "#fff" },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
+              <Box sx={{ width: 20 }} /> {/* Spacer matching icon width */}
+            </ListItemIcon>
+            <ListItemText
+              primary={item.text}
+              slotProps={{
+                primary: {
+                  fontSize: "0.85rem",
+                  fontWeight: 500,
+                  fontFamily: '"Inter", sans-serif',
+                },
               }}
-            >
-              <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                slotProps={{ primary: { fontSize: '0.83rem', fontWeight: active ? 600 : 400, fontFamily: '"Inter", sans-serif' } }}
-              />
-            </ListItemButton>
-          );
-        })}
+            />
+          </ListItemButton>
+        ))}
       </List>
 
-      {/* Footer */}
-      <Box sx={{ p: 3, pt: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mb: 1.25, fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+      <Box sx={{ p: 3, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <Typography
+          variant="overline"
+          sx={{
+            color: "text.disabled",
+            display: "block",
+            mb: 1,
+            fontSize: "0.65rem",
+          }}
+        >
           JOIN US ON SOCIAL MEDIA
         </Typography>
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 2.5, flexWrap: 'wrap' }}>
-          {socialLinks.map((s) => (
-            <Tooltip key={s.label} title={s.label} placement="top" arrow>
-              <IconButton
-                component="a"
-                href={s.href}
-                size="small"
-                sx={{
-                  width: 30,
-                  height: 30,
-                  bgcolor: 'rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.5)',
-                  borderRadius: '50%',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.18)', color: '#fff' },
-                  transition: 'all 0.18s ease',
-                }}
-              >
-                {s.icon}
-              </IconButton>
-            </Tooltip>
-          ))}
+        <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            W
+          </Typography>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            I
+          </Typography>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            F
+          </Typography>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            Y
+          </Typography>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            T
+          </Typography>
+          <Typography
+            component="a"
+            href="#"
+            sx={{ color: "text.disabled", "&:hover": { color: "#fff" } }}
+          >
+            L
+          </Typography>
         </Box>
 
-        <Typography variant="subtitle2" sx={{ color: '#fff', fontSize: '0.78rem', fontWeight: 700 }}>
-          Tier {user.tier || 2} · {user.tierName || 'Standard'}
+        <Typography
+          variant="subtitle2"
+          sx={{ color: "#fff", fontSize: "0.8rem" }}
+        >
+          Tier {currentPartner.tier} · {currentPartner.tierName}
         </Typography>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem' }}>
-          Bureau price locked at your assigned tier.
+        <Typography
+          variant="caption"
+          sx={{ color: "text.disabled", fontSize: "0.7rem" }}
+        >
+          Bureau price locked at your assigned tier
         </Typography>
       </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
+      <Box
+        component="nav"
+        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+      >
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
-          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH } }}
+          sx={{
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+            },
+          }}
         >
           {drawer}
         </Drawer>
         <Drawer
           variant="permanent"
-          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, borderRight: 'none' } }}
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+              borderRight: "none",
+            },
+          }}
           open
         >
           {drawer}
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}
+      >
         <AppBar
           position="sticky"
-          sx={{ bgcolor: '#fff', color: 'text.primary', boxShadow: 'none', borderBottom: '1px solid', borderColor: 'divider' }}
+          sx={{
+            bgcolor: "#fff",
+            color: "text.primary",
+            boxShadow: "none",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
         >
-          <Toolbar sx={{ justifyContent: 'space-between', minHeight: 64 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' } }}>
-                <Menu size={20} />
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { md: "none" } }}
+              >
+                <Menu />
               </IconButton>
-              <Typography variant="h6" noWrap sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                {location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+              <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
+                {location.pathname
+                  .split("/")
+                  .pop()
+                  .replace("-", " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase())}
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {/* Wallet balance */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Chip
-                label={`WALLET ₹${(user.walletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-                sx={{ bgcolor: '#ECFDF5', color: '#059669', fontWeight: 800, borderRadius: 6, py: 2.5, px: 2, fontSize: '0.8rem' }}
-              />
-
-              {/* Add Funds CTA */}
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => navigate('/partner/add-funds')}
+                label={`WALLET ₹${currentPartner.walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
                 sx={{
-                  bgcolor: '#16A34A',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
+                  bgcolor: "#ECFDF5",
+                  color: "#059669",
+                  fontWeight: 800,
+                  borderRadius: 6,
+                  py: 2.5,
                   px: 2,
-                  py: 0.9,
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(22,163,74,.3)',
-                  '&:hover': { bgcolor: '#15803D', boxShadow: '0 4px 12px rgba(22,163,74,.4)' },
-                  display: { xs: 'none', sm: 'flex' },
+                }}
+              />
+              <Box
+                sx={{
+                  textAlign: "right",
+                  display: { xs: "none", sm: "block" },
                 }}
               >
-                + Add Funds
-              </Button>
-
-              {/* Partner info */}
-              <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.2 }}>
-                  {user.name}
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  {currentPartner.name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-                  {user.partnerId || user.id || user._id} · Tier {user.tier || 2}
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {currentPartner.id} · Tier {currentPartner.tier}
                 </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  bgcolor: "secondary.main",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                }}
+              >
+                SF
               </Box>
 
               {/* Avatar with Dropdown */}
