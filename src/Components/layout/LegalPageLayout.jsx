@@ -117,8 +117,16 @@ const LegalPageLayout = ({ title, children, narrow = false }) => {
             mb: 4,
           }}
         >
-          <Typography component="span" variant="inherit">Website: www.verifyhub.in</Typography>
-          <Typography component="span" variant="inherit">Legal Entity: Optimystic Auxiliary Services Private Limited</Typography>
+          {title === "Contact Us" ? null : (
+            <>
+              <Typography component="span" variant="inherit">
+                Website: www.verifyhub.in
+              </Typography>
+              <Typography component="span" variant="inherit">
+                Legal Entity: Optimystic Auxiliary Services Private Limited
+              </Typography>
+            </>
+          )}
           {title === 'Privacy Policy' || title === 'Terms of Service' ? (
             <Typography component="span" variant="inherit">Email: info@verifyhub.in</Typography>
           ) : null}

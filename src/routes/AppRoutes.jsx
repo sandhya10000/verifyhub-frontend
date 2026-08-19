@@ -27,6 +27,7 @@ const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
 const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
 const Profile = lazy(() => import("../pages/partner/Profile"));
+const Support = lazy(() => import("../pages/partner/Support"));
 
 const PlaceholderPage = lazy(() => import("../pages/PlaceholderPage"));
 
@@ -107,12 +108,16 @@ const AppRoutes = () => {
             element={<Reports />}
           />
           <Route
-            path="account/transaction-history"
+            path="account/transactions"
             element={<TransactionHistory />}
           />
           <Route
             path="account/profile"
             element={<Profile />}
+          />
+          <Route
+            path="account/support"
+            element={<Support />}
           />
           <Route
             path="/partner/credit-reports/experian"

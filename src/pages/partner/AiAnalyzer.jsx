@@ -1,31 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  Box, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Button, 
-  Chip, 
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Chip,
   Grid,
   Stack,
   Alert
 } from '@mui/material';
-import { 
-  UploadCloud, 
-  Lock, 
+import {
+  UploadCloud,
+  Lock,
   Sparkles,
   ArrowDownToLine,
   Save
 } from 'lucide-react';
 
 const StatCard = ({ label, value }) => (
-  <Box 
-    sx={{ 
-      p: 2, 
-      bgcolor: '#F8FAFC', 
-      borderRadius: 2, 
-      border: '1px solid', 
+  <Box
+    sx={{
+      p: 2,
+      bgcolor: '#F8FAFC',
+      borderRadius: 2,
+      border: '1px solid',
       borderColor: 'divider',
       height: '100%',
       display: 'flex',
@@ -146,7 +146,7 @@ const AiAnalyzer = () => {
 
           if (response.data.success) {
             const { status, result, errorMessage, debugError, isChunked, chunkCount, chunksCompleted } = response.data;
-            
+
             if (isChunked && chunkCount > 0) {
               setChunkProgress({ completed: chunksCompleted || 0, total: chunkCount });
             }
@@ -216,7 +216,7 @@ const AiAnalyzer = () => {
         return;
       } catch (err) {
         const status = err.response?.status;
-        const body   = err.response?.data;
+        const body = err.response?.data;
 
         // 202 — generation in-flight, retry after delay
         if (status === 202) {
@@ -267,21 +267,35 @@ const AiAnalyzer = () => {
 
   return (
     <Box sx={{ pb: 6 }}>
+      {/* ── Page Header ── */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+          AI Credit Report Analyzer
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+          Turn any bureau report into a plain-language risk summary and lending recommendation.
+        </Typography>
+      </Box>
+
       {/* Two-Column Layout */}
       <Grid container spacing={2} sx={{ mb: 4, mt: 1 }}>
         {/* LEFT CARD */}
         <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
             <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%', gap: 2.5 }}>
+              {/* Left Card Title */}
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Upload a Credit Report
+              </Typography>
               {/* Upload Dropzone */}
-              <Box 
+              <Box
                 onClick={() => fileInputRef.current.click()}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
-                sx={{ 
-                  border: '1px dashed #CBD5E1', 
-                  borderRadius: 3, 
-                  p: 4, 
+                sx={{
+                  border: '1px dashed #CBD5E1',
+                  borderRadius: 3,
+                  p: 4,
                   textAlign: 'center',
                   bgcolor: '#F8FAFC',
                   cursor: 'pointer',
@@ -292,12 +306,12 @@ const AiAnalyzer = () => {
                   }
                 }}
               >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  accept=".pdf,.json" 
-                  onChange={handleFileChange} 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  accept=".pdf,.json"
+                  onChange={handleFileChange}
                 />
                 <UploadCloud size={32} color="#64748B" style={{ margin: '0 auto 12px' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
@@ -315,11 +329,11 @@ const AiAnalyzer = () => {
               )}
 
               {/* Warning Banner */}
-              <Box 
-                sx={{ 
-                  bgcolor: '#FEF3C7', 
-                  color: '#92400E', 
-                  p: 2, 
+              <Box
+                sx={{
+                  bgcolor: '#FEF3C7',
+                  color: '#92400E',
+                  p: 2,
                   borderRadius: 2,
                   display: 'flex',
                   gap: 1.5,
@@ -334,15 +348,15 @@ const AiAnalyzer = () => {
               </Box>
 
               {/* Action Button */}
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 fullWidth
                 size="large"
                 onClick={handleUpload}
                 disabled={isUploading || isAnalyzing || !selectedFile}
-                sx={{ 
+                sx={{
                   mt: 'auto',
-                  bgcolor: 'success.main', 
+                  bgcolor: 'success.main',
                   color: 'white',
                   '&:hover': {
                     bgcolor: 'success.dark',
@@ -350,12 +364,12 @@ const AiAnalyzer = () => {
                   boxShadow: 'none'
                 }}
               >
-                {isUploading ? 'Uploading...' : 
-                 isAnalyzing ? (
-                   chunkProgress 
-                     ? `Analyzing chunk ${chunkProgress.completed + 1} of ${chunkProgress.total}...` 
-                     : 'Analyzing with AI...'
-                 ) : '✦ Generate AI Analysis'}
+                {isUploading ? 'Uploading...' :
+                  isAnalyzing ? (
+                    chunkProgress
+                      ? `Analyzing chunk ${chunkProgress.completed + 1} of ${chunkProgress.total}...`
+                      : 'Analyzing with AI...'
+                  ) : '✦ Generate AI Analysis'}
               </Button>
             </CardContent>
           </Card>
@@ -365,22 +379,45 @@ const AiAnalyzer = () => {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ height: '100%', borderRadius: 2 }}>
             <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+              {/* Right Card Title */}
+              {analysisResult && (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Analysis{analysisResult.customerName ? ` — ${analysisResult.customerName}` : ''}
+                  </Typography>
+                  {analysisResult.riskLevel && (
+                    <Chip
+                      label={analysisResult.riskLevel}
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        bgcolor:
+                          analysisResult.riskLevel === 'Low Risk' ? '#DCFCE7' :
+                            analysisResult.riskLevel === 'Medium Risk' ? '#FEF3C7' : '#FEE2E2',
+                        color:
+                          analysisResult.riskLevel === 'Low Risk' ? '#15803D' :
+                            analysisResult.riskLevel === 'Medium Risk' ? '#92400E' : '#991B1B',
+                      }}
+                    />
+                  )}
+                </Box>
+              )}
               {/* Score Bar */}
               <Box sx={{ mb: 5, px: 1, mt: 1 }}>
                 <Box sx={{ position: 'relative', height: 12, borderRadius: 6, background: 'linear-gradient(to right, #EF4444, #F59E0B, #10B981)', mb: 1 }}>
                   {/* Marker for 780 score (approx 80% width since range is ~300-900) */}
-                  <Box 
-                    sx={{ 
-                      position: 'absolute', 
-                      left: '80%', 
-                      top: '50%', 
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: '80%',
+                      top: '50%',
                       transform: 'translate(-50%, -50%)',
-                      width: 4, 
-                      height: 24, 
+                      width: 4,
+                      height: 24,
                       bgcolor: '#0F1B2D',
                       borderRadius: 2,
                       boxShadow: '0 0 0 2px white'
-                    }} 
+                    }}
                   />
                 </Box>
                 {/* Axis Labels */}
@@ -417,11 +454,11 @@ const AiAnalyzer = () => {
 
               {/* Recommendation Banner */}
               {analysisResult && (
-                <Box 
-                  sx={{ 
-                    bgcolor: 'success.light', 
-                    color: 'success.dark', 
-                    p: 2.5, 
+                <Box
+                  sx={{
+                    bgcolor: 'success.light',
+                    color: 'success.dark',
+                    p: 2.5,
                     borderRadius: 2,
                     mb: 3
                   }}
@@ -498,42 +535,42 @@ const AiAnalyzer = () => {
       </Grid>
 
       {/* Bottom Promo Banner */}
-      <Box 
-        sx={{ 
-          bgcolor: 'secondary.main', 
-          borderRadius: 3, 
+      <Box
+        sx={{
+          bgcolor: 'secondary.main',
+          borderRadius: 3,
           overflow: 'hidden',
           position: 'relative'
         }}
       >
         {/* Top border gradient */}
-        <Box 
-          sx={{ 
-            height: 4, 
-            width: '100%', 
-            background: 'linear-gradient(to right, #EF4444, #F59E0B, #10B981)' 
-          }} 
+        <Box
+          sx={{
+            height: 4,
+            width: '100%',
+            background: 'linear-gradient(to right, #EF4444, #F59E0B, #10B981)'
+          }}
         />
-        
+
         <Box sx={{ p: { xs: 3, md: 4 } }}>
-          <Chip 
-            icon={<Sparkles size={14} color="#059669" />} 
-            label="COMING SOON" 
+          <Chip
+            icon={<Sparkles size={14} color="#1b22a7" />}
+            label="COMING SOON"
             size="small"
-            sx={{ 
-              bgcolor: 'rgba(5, 150, 105, 0.15)', 
+            sx={{
+              bgcolor: 'rgba(5, 150, 105, 0.15)',
               color: '#10B981',
               fontWeight: 700,
               mb: 2,
               borderRadius: 1.5,
               '& .MuiChip-icon': { ml: 1 }
-            }} 
+            }}
           />
-          
+
           <Typography variant="h5" sx={{ color: 'white', mb: 1, fontWeight: 700 }}>
             Get AI report analysis in your language
           </Typography>
-          
+
           <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mb: 4, maxWidth: 800 }}>
             Explain the credit report to your customer in the language they think in — the same summary, risk flags and recommendation, translated automatically.
           </Typography>
@@ -545,8 +582,8 @@ const AiAnalyzer = () => {
                 key={lang.english}
                 label={`${lang.native} ${lang.english}`}
                 variant="outlined"
-                sx={{ 
-                  borderColor: 'rgba(255,255,255,0.2)', 
+                sx={{
+                  borderColor: 'rgba(255,255,255,0.2)',
                   color: 'white',
                   borderRadius: 2,
                   px: 0.5,

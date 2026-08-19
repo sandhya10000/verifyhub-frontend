@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
-import DataTable from '../../components/shared/DataTable';
+import DataTable from '../../Components/shared/DataTable';
 
 const Reports = () => {
   const [reportsData, setReportsData] = useState([]); // Fetch from API later

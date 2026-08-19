@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImg from '../../assets/logo.jpg';
+import logoImg from '../../assets/logo.jpeg';
 
 /**
  * Shared VerifyHub logo component.

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, Chip, ButtonGroup, Button } from '@mui/material';
-import DataTable from '../../components/shared/DataTable';
+import DataTable from '../../Components/shared/DataTable';
 
 const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]); // Fetch from API later
@@ -28,7 +28,7 @@ const TransactionHistory = () => {
             fontWeight: 600,
             fontSize: '0.7rem',
             bgcolor: row.type === 'Credit' ? '#ECFDF5' : '#FEF2F2',
-            color: row.type === 'Credit' ? '#059669' : '#DC2626',
+            color: row.type === 'Credit' ? '#1b22a7' : '#DC2626',
           }}
         />
       ),
@@ -66,7 +66,7 @@ const TransactionHistory = () => {
       <Typography variant="h6" sx={{ fontWeight: 700 }}>
         {currentMonthYear}
       </Typography>
-      <ButtonGroup size="small" sx={{ 
+      <ButtonGroup size="small" sx={{
         bgcolor: 'background.default',
         p: 0.5,
         borderRadius: 2,
@@ -84,27 +84,27 @@ const TransactionHistory = () => {
           }
         }
       }}>
-        <Button 
+        <Button
           onClick={() => setFilter('All')}
-          sx={{ 
+          sx={{
             bgcolor: filter === 'All' ? '#111827 !important' : 'transparent',
             color: filter === 'All' ? '#fff !important' : 'text.secondary'
           }}
         >
           All
         </Button>
-        <Button 
+        <Button
           onClick={() => setFilter('Debits')}
-          sx={{ 
+          sx={{
             bgcolor: filter === 'Debits' ? '#111827 !important' : 'transparent',
             color: filter === 'Debits' ? '#fff !important' : 'text.secondary'
           }}
         >
           Debits
         </Button>
-        <Button 
+        <Button
           onClick={() => setFilter('Credits')}
-          sx={{ 
+          sx={{
             bgcolor: filter === 'Credits' ? '#111827 !important' : 'transparent',
             color: filter === 'Credits' ? '#fff !important' : 'text.secondary'
           }}

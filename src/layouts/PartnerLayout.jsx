@@ -16,6 +16,9 @@ import {
   Toolbar,
   Chip,
   Collapse,
+  Avatar,
+  Menu as MuiMenu,
+  MenuItem,
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -29,8 +32,9 @@ import {
   LogOut,
   ChevronRight,
 } from "lucide-react";
-import { currentPartner } from "../services/mockData";
 import Logo from "../Components/shared/Logo";
+import { FaWhatsapp, FaInstagram, FaFacebook, FaYoutube, FaTelegram, FaLinkedin } from 'react-icons/fa';
+import useAuth from '../context/useAuth';
 
 const DRAWER_WIDTH = 268;
 
@@ -47,6 +51,19 @@ const PartnerLayout = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [creditReportsOpen, setCreditReportsOpen] = useState(false);
+
+  const { user, logout } = useAuth();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const handleMenuClick = (e) => setAnchorEl(e.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+  const handleLogout = () => {
+    logout?.();
+    handleMenuClose();
+    navigate('/login');
+  };
+
+  if (!user) return null;
 
   const navItems = [
     {
@@ -81,11 +98,11 @@ const PartnerLayout = () => {
         },
       ],
     },
-    {
-      text: "Pricing",
-      icon: <IndianRupee size={20} />,
-      path: "/partner/pricing",
-    },
+    // {
+    //   text: "Pricing",
+    //   icon: <IndianRupee size={20} />,
+    //   path: "/partner/pricing",
+    // },
     {
       text: "AI Report Analyzer",
       icon: <Bot size={20} />,
@@ -102,12 +119,12 @@ const PartnerLayout = () => {
   ];
 
   const socialLinks = [
-    { icon: <FaWhatsapp size={15} />,   label: 'WhatsApp',  href: '#' },
-    { icon: <FaInstagram size={15} />,  label: 'Instagram', href: '#' },
-    { icon: <FaFacebook size={15} />,   label: 'Facebook',  href: '#' },
-    { icon: <FaYoutube size={15} />,    label: 'YouTube',   href: '#' },
-    { icon: <FaTelegram size={15} />,   label: 'Telegram',  href: '#' },
-    { icon: <FaLinkedin size={15} />,   label: 'LinkedIn',  href: '#' },
+    { icon: <FaWhatsapp size={15} />, label: 'WhatsApp', href: '#' },
+    { icon: <FaInstagram size={15} />, label: 'Instagram', href: '#' },
+    { icon: <FaFacebook size={15} />, label: 'Facebook', href: '#' },
+    { icon: <FaYoutube size={15} />, label: 'YouTube', href: '#' },
+    { icon: <FaTelegram size={15} />, label: 'Telegram', href: '#' },
+    { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: '#' },
   ];
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -174,8 +191,8 @@ const PartnerLayout = () => {
           const active = item.path
             ? location.pathname.startsWith(item.path)
             : item.children?.some((child) =>
-                location.pathname.startsWith(child.path),
-              );
+              location.pathname.startsWith(child.path),
+            );
 
           return (
             <React.Fragment key={item.text}>
@@ -349,7 +366,7 @@ const PartnerLayout = () => {
           variant="subtitle2"
           sx={{ color: "#fff", fontSize: "0.8rem" }}
         >
-          Tier {currentPartner.tier} · {currentPartner.tierName}
+          Tier {user?.tier || 1} · {user?.tierName || "Standard"}
         </Typography>
         <Typography
           variant="caption"
@@ -439,10 +456,10 @@ const PartnerLayout = () => {
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Chip
-                label={`WALLET ₹${currentPartner.walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+                label={`WALLET ₹${user?.walletBalance != null ? Number(user.walletBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : '0.00'}`}
                 sx={{
                   bgcolor: "#ECFDF5",
-                  color: "#059669",
+                  color: "#1b22a7",
                   fontWeight: 800,
                   borderRadius: 6,
                   py: 2.5,
@@ -456,27 +473,11 @@ const PartnerLayout = () => {
                 }}
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  {currentPartner.name}
+                  {user?.companyName || user?.name || "Partner"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {currentPartner.id} · Tier {currentPartner.tier}
+                  {user?.partnerId || user?.id || "N/A"} · Tier {user?.tier || 1}
                 </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  bgcolor: "secondary.main",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: "0.85rem",
-                }}
-              >
-                SF
               </Box>
 
               {/* Avatar with Dropdown */}

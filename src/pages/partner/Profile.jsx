@@ -16,7 +16,7 @@ const Profile = () => {
 
   // Form states
   const [passwords, setPasswords] = useState({ current: '', new: '' });
-  
+
   const [notifications, setNotifications] = useState({
     emailPDF: false,
     balanceAlert: false,
@@ -91,7 +91,7 @@ const Profile = () => {
             label={profile?.kycVerified ? "KYC Verified" : "KYC Pending"}
             sx={{
               bgcolor: profile?.kycVerified ? '#ECFDF5' : '#FFFBEB',
-              color: profile?.kycVerified ? '#059669' : '#D97706',
+              color: profile?.kycVerified ? '#1b22a7' : '#D97706',
               fontWeight: 800,
               borderRadius: 6,
               py: 2.5,
@@ -116,7 +116,7 @@ const Profile = () => {
             <Divider sx={{ my: 2 }} />
             <FieldRow label="Pricing Tier" value={user?.tierName ? `Tier ${user?.tier} - ${user?.tierName}` : '—'} />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <FieldRow label="Email" value={user?.email || profile?.email} />
             <Divider sx={{ my: 2 }} />
@@ -135,7 +135,7 @@ const Profile = () => {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
               Security
             </Typography>
-            
+
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Current password</Typography>
@@ -176,7 +176,7 @@ const Profile = () => {
               >
                 Update Password
               </Button>
-              
+
               <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', display: 'block' }}>
                 Two-factor login via OTP is always on for wallet actions.
               </Typography>
@@ -190,11 +190,11 @@ const Profile = () => {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
               Notifications
             </Typography>
-            
+
             <FormGroup sx={{ display: 'flex', gap: 2, mb: 4 }}>
               <FormControlLabel
                 control={
-                  <Checkbox 
+                  <Checkbox
                     checked={notifications.emailPDF}
                     onChange={(e) => setNotifications({ ...notifications, emailPDF: e.target.checked })}
                     sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
@@ -204,7 +204,7 @@ const Profile = () => {
               />
               <FormControlLabel
                 control={
-                  <Checkbox 
+                  <Checkbox
                     checked={notifications.balanceAlert}
                     onChange={(e) => setNotifications({ ...notifications, balanceAlert: e.target.checked })}
                     sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
@@ -214,7 +214,7 @@ const Profile = () => {
               />
               <FormControlLabel
                 control={
-                  <Checkbox 
+                  <Checkbox
                     checked={notifications.whatsappFailures}
                     onChange={(e) => setNotifications({ ...notifications, whatsappFailures: e.target.checked })}
                     sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
@@ -224,7 +224,7 @@ const Profile = () => {
               />
               <FormControlLabel
                 control={
-                  <Checkbox 
+                  <Checkbox
                     checked={notifications.pricingUpdates}
                     onChange={(e) => setNotifications({ ...notifications, pricingUpdates: e.target.checked })}
                     sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}

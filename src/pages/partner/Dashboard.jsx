@@ -3,7 +3,7 @@ import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemTex
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import StatCard from '../../components/shared/StatCard';
-import DataTable from '../../components/shared/DataTable';
+import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../components/shared/StatusBadge';
 import { CircleDot } from 'lucide-react';
 
