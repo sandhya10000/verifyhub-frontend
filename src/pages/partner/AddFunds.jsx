@@ -128,15 +128,15 @@ const AddFunds = () => {
                           fontSize: '1rem',
                           py: 1.5,
                           px: 1,
-                          borderColor: isSelected ? '#16A34A' : '#E2E8F0',
-                          color: isSelected ? '#16A34A' : 'text.secondary',
-                          bgcolor: isSelected ? '#F0FDF4' : '#fff',
+                          borderColor: isSelected ? '#3730A3' : '#E2E8F0',
+                          color: isSelected ? '#3730A3' : 'text.secondary',
+                          bgcolor: isSelected ? '#EEF2FF' : '#fff',
                           fontFamily: '"Inter", sans-serif',
                           transition: 'all 0.18s ease',
                           '&:hover': {
-                            borderColor: '#16A34A',
-                            color: '#16A34A',
-                            bgcolor: '#F0FDF4',
+                            borderColor: '#3730A3',
+                            color: '#3730A3',
+                            bgcolor: '#EEF2FF',
                           },
                         }}
                       >
@@ -205,14 +205,14 @@ const AddFunds = () => {
                           p: 2,
                           borderRadius: '10px',
                           border: '2px solid',
-                          borderColor: isActive ? '#16A34A' : '#E2E8F0',
-                          bgcolor: isActive ? '#F0FDF4' : '#FAFAFA',
+                          borderColor: isActive ? '#3730A3' : '#E2E8F0',
+                          bgcolor: isActive ? '#EEF2FF' : '#FAFAFA',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1.5,
                           transition: 'all 0.18s ease',
-                          '&:hover': { borderColor: '#16A34A', bgcolor: '#F0FDF4' },
+                          '&:hover': { borderColor: '#3730A3', bgcolor: '#EEF2FF' },
                         }}
                       >
                         <Box
@@ -220,12 +220,12 @@ const AddFunds = () => {
                             width: 38,
                             height: 38,
                             borderRadius: '8px',
-                            bgcolor: isActive ? '#DCFCE7' : '#F1F5F9',
+                            bgcolor: isActive ? '#C7D2FE' : '#F1F5F9',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            color: isActive ? '#16A34A' : '#64748B',
+                            color: isActive ? '#3730A3' : '#64748B',
                           }}
                         >
                           {method.icon}
@@ -238,7 +238,7 @@ const AddFunds = () => {
                             {method.sub}
                           </Typography>
                         </Box>
-                        {isActive && <CheckCircle sx={{ color: '#16A34A', fontSize: 18 }} />}
+                        {isActive && <CheckCircle sx={{ color: '#3730A3', fontSize: 18 }} />}
                       </Paper>
                     </Grid>
                   );
@@ -253,7 +253,7 @@ const AddFunds = () => {
                 sx={{
                   background:
                     parsedAmount >= MIN_AMOUNT
-                      ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)'
+                      ? '#3730A3'
                       : '#E2E8F0',
                   color: parsedAmount >= MIN_AMOUNT ? '#fff' : '#94A3B8',
                   py: 1.75,
@@ -263,19 +263,19 @@ const AddFunds = () => {
                   fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
                   boxShadow:
                     parsedAmount >= MIN_AMOUNT
-                      ? '0 4px 16px rgba(22,163,74,.35)'
+                      ? '0 4px 16px rgba(55,48,163,.35)'
                       : 'none',
                   transition: 'all 0.2s ease',
                   cursor: parsedAmount >= MIN_AMOUNT ? 'pointer' : 'not-allowed',
                   '&:hover': {
                     background:
                       parsedAmount >= MIN_AMOUNT
-                        ? 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)'
+                        ? '#312E81'
                         : '#E2E8F0',
                     transform: parsedAmount >= MIN_AMOUNT ? 'translateY(-1px)' : 'none',
                     boxShadow:
                       parsedAmount >= MIN_AMOUNT
-                        ? '0 6px 20px rgba(22,163,74,.45)'
+                        ? '0 6px 20px rgba(55,48,163,.45)'
                         : 'none',
                   },
                 }}
@@ -319,7 +319,7 @@ const AddFunds = () => {
                   mb: 2.5,
                   borderRadius: '12px',
                   border: '2px dashed',
-                  borderColor: qrReady ? '#16A34A' : '#CBD5E1',
+                  borderColor: qrReady ? '#3730A3' : '#CBD5E1',
                   overflow: 'hidden',
                   position: 'relative',
                   display: 'flex',
@@ -365,7 +365,7 @@ const AddFunds = () => {
                       ))}
                       {/* Green center logo circle */}
                       <circle cx="100" cy="100" r="14" fill="#fff" />
-                      <circle cx="100" cy="100" r="10" fill="#16A34A" />
+                      <circle cx="100" cy="100" r="10" fill="#3730A3" />
                       <text x="100" y="104" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">V</text>
                     </svg>
                     <Box
@@ -377,7 +377,7 @@ const AddFunds = () => {
                         textAlign: 'center',
                       }}
                     >
-                      <Typography variant="caption" sx={{ color: '#16A34A', fontWeight: 700, fontSize: '0.8rem' }}>
+                      <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700, fontSize: '0.8rem' }}>
                         ₹{formatINR(customAmount)}
                       </Typography>
                     </Box>
@@ -449,12 +449,12 @@ const AddFunds = () => {
                   size="small"
                   onClick={() => navigator.clipboard?.writeText(UPI_ID)}
                   sx={{
-                    bgcolor: '#ECFDF5',
-                    color: '#16A34A',
+                    bgcolor: '#EEF2FF',
+                    color: '#3730A3',
                     fontWeight: 700,
                     fontSize: '0.72rem',
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: '#DCFCE7' },
+                    '&:hover': { bgcolor: '#C7D2FE' },
                   }}
                 />
               </Box>

@@ -5,7 +5,7 @@ import useAuth from '../../context/useAuth';
 import StatCard from '../../components/shared/StatCard';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../components/shared/StatusBadge';
-import { CircleDot } from 'lucide-react';
+import { CircleDot, Wallet } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -93,12 +93,26 @@ const Dashboard = () => {
               value={String(statsToday.total)}
               trend={statsToday.trend > 0 ? String(statsToday.trend) : undefined}
               subtitle={`${statsToday.success} success / ${statsToday.failed} failed`}
+              decoration={
+                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
+                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
+                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                  </svg>
+                </Box>
+              }
             />
           ) : (
             <StatCard
               title="REPORTS DOWNLOADED · TODAY"
               value="—"
               subtitle="No reports pulled yet"
+              decoration={
+                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
+                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
+                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                  </svg>
+                </Box>
+              }
             />
           )}
         </Grid>
@@ -110,12 +124,26 @@ const Dashboard = () => {
               title="REPORTS DOWNLOADED · THIS MONTH"
               value={String(statsMonth.total)}
               subtitle={`${statsMonth.label} · success rate ${statsMonth.successRate}%`}
+              decoration={
+                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
+                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
+                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                  </svg>
+                </Box>
+              }
             />
           ) : (
             <StatCard
               title="REPORTS DOWNLOADED · THIS MONTH"
               value="—"
               subtitle="No reports this month yet"
+              decoration={
+                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
+                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
+                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                  </svg>
+                </Box>
+              }
             />
           )}
         </Grid>
@@ -128,6 +156,19 @@ const Dashboard = () => {
             value={walletBalance}
             subtitle="No recharge history yet"
             chipLabel=""
+            decoration={
+              <Box sx={{ transform: 'translate(5px, 5px)', opacity: 0.35 }}>
+                <svg width="90" height="90" viewBox="0 0 100 100" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))' }}>
+                  <path d="M 45 15 L 85 28 L 78 40 L 38 27 Z" strokeOpacity="0.5" fill="rgba(99, 102, 241, 0.1)" />
+                  <path d="M 35 25 L 75 38 L 70 50 L 30 37 Z" strokeOpacity="0.8" fill="rgba(99, 102, 241, 0.1)" />
+                  <path d="M 10 45 L 70 65 L 65 95 L 5 75 Z" fill="rgba(30, 41, 59, 0.8)" />
+                  <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
+                  <path d="M 10 45 L 70 65" strokeWidth="3" />
+                  <path d="M 55 60 L 65 63 L 63 78 L 53 75 Z" fill="rgba(99, 102, 241, 0.2)" />
+                  <path d="M 60 72 L 60.01 72" strokeWidth="4" />
+                </svg>
+              </Box>
+            }
           />
         </Grid>
       </Grid>

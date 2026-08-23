@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export const AuthContext = createContext(null);
 
@@ -7,7 +6,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Rehydrate on app load
@@ -31,10 +29,13 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Clear stale pre-login path so it doesn't interfere with future sessions
+    sessionStorage.removeItem('preLoginPath');
     setUser(null);
     setToken(null);
-    const returnPath = sessionStorage.getItem('preLoginPath') || '/';
-    navigate(returnPath);
+    // NOTE: Navigation after logout is intentionally handled by the calling
+    // component (e.g. PartnerLayout), NOT here. This keeps logout() reusable
+    // and prevents the auth context from fighting with component-level navigate() calls.
   };
 
   return (

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Container, Grid, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import Logo from '../shared/Logo';
+import FooterLogo from '../../assets/footer-logo.png';
 import { FOOTER_LINKS, CONTACT_INFO } from '../../data/navigation';
 
 const Footer = () => {
@@ -23,7 +24,7 @@ const Footer = () => {
           {/* Brand Column */}
           <Grid size={{ xs: 12, md: 3 }}>
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', textDecoration: 'none', mb: 2 }}>
-              {/* <Logo height={55} alt="VerifyHub" /> */}
+              <img src={FooterLogo} alt="VerifyHub" style={{ height: '60px', width: 'auto', display: 'block' }} />
             </Box>
             <Typography sx={{ fontSize: '14px', color: theme.palette.text.secondary, maxWidth: 290, mt: 1, lineHeight: 1.65 }}>
               API and technology infrastructure for India's lending ecosystem — credit data, verification and AI decisioning under one platform.

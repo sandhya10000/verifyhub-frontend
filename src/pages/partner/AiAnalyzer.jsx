@@ -16,7 +16,8 @@ import {
   Lock,
   Sparkles,
   ArrowDownToLine,
-  Save
+  Save,
+  BarChart2
 } from 'lucide-react';
 
 const StatCard = ({ label, value }) => (
@@ -268,13 +269,29 @@ const AiAnalyzer = () => {
   return (
     <Box sx={{ pb: 6 }}>
       {/* ── Page Header ── */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          AI Credit Report Analyzer
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Turn any bureau report into a plain-language risk summary and lending recommendation.
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#EEF2FF',
+            width: 48,
+            height: 48,
+            borderRadius: 3,
+            flexShrink: 0
+          }}
+        >
+          <Sparkles color="#3730A3" size={24} />
+        </Box>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+            <Box component="span" sx={{ color: '#3730A3' }}>AI</Box> Credit Report Analyzer
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            Turn any bureau report into a plain-language risk summary and lending recommendation.
+          </Typography>
+        </Box>
       </Box>
 
       {/* Two-Column Layout */}
@@ -356,10 +373,10 @@ const AiAnalyzer = () => {
                 disabled={isUploading || isAnalyzing || !selectedFile}
                 sx={{
                   mt: 'auto',
-                  bgcolor: 'success.main',
+                  bgcolor: '#3730A3',
                   color: 'white',
                   '&:hover': {
-                    bgcolor: 'success.dark',
+                    bgcolor: '#312E81',
                   },
                   boxShadow: 'none'
                 }}
@@ -402,6 +419,16 @@ const AiAnalyzer = () => {
                   )}
                 </Box>
               )}
+              {/* Credit Score Overview Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                 <Box sx={{ bgcolor: '#EEF2FF', p: 1, borderRadius: 2, display: 'flex' }}>
+                   <BarChart2 size={18} color="#3730A3" />
+                 </Box>
+                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                   Credit Score Overview
+                 </Typography>
+              </Box>
+
               {/* Score Bar */}
               <Box sx={{ mb: 5, px: 1, mt: 1 }}>
                 <Box sx={{ position: 'relative', height: 12, borderRadius: 6, background: 'linear-gradient(to right, #EF4444, #F59E0B, #10B981)', mb: 1 }}>
@@ -535,12 +562,16 @@ const AiAnalyzer = () => {
       </Grid>
 
       {/* Bottom Promo Banner */}
-      <Box
+      <Card
+        elevation={0}
         sx={{
-          bgcolor: 'secondary.main',
+          bgcolor: '#fff',
           borderRadius: 3,
           overflow: 'hidden',
-          position: 'relative'
+          position: 'relative',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 2px 12px rgba(15,27,45,.06)',
         }}
       >
         {/* Top border gradient */}
@@ -554,12 +585,12 @@ const AiAnalyzer = () => {
 
         <Box sx={{ p: { xs: 3, md: 4 } }}>
           <Chip
-            icon={<Sparkles size={14} color="#1b22a7" />}
+            icon={<Sparkles size={14} color="#3730A3" />}
             label="COMING SOON"
             size="small"
             sx={{
-              bgcolor: 'rgba(5, 150, 105, 0.15)',
-              color: '#10B981',
+              bgcolor: '#EEF2FF',
+              color: '#3730A3',
               fontWeight: 700,
               mb: 2,
               borderRadius: 1.5,
@@ -567,11 +598,11 @@ const AiAnalyzer = () => {
             }}
           />
 
-          <Typography variant="h5" sx={{ color: 'white', mb: 1, fontWeight: 700 }}>
+          <Typography variant="h5" sx={{ color: 'text.primary', mb: 1, fontWeight: 700 }}>
             Get AI report analysis in your language
           </Typography>
 
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mb: 4, maxWidth: 800 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 800 }}>
             Explain the credit report to your customer in the language they think in — the same summary, risk flags and recommendation, translated automatically.
           </Typography>
 
@@ -583,8 +614,9 @@ const AiAnalyzer = () => {
                 label={`${lang.native} ${lang.english}`}
                 variant="outlined"
                 sx={{
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  bgcolor: 'transparent',
                   borderRadius: 2,
                   px: 0.5,
                   py: 2
@@ -593,7 +625,7 @@ const AiAnalyzer = () => {
             ))}
           </Box>
         </Box>
-      </Box>
+      </Card>
     </Box>
   );
 };

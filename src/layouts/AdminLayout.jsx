@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu, ExternalLink } from 'lucide-react';
-import Logo from '../components/shared/Logo';
+import Logo from '../Components/shared/Logo';
 
 const DRAWER_WIDTH = 260;
 
@@ -45,7 +45,7 @@ const AdminLayout = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'secondary.main', color: 'primary.contrastText' }}>
       <Box sx={{ p: 2.5 }}>
         <Box sx={{ mb: 0.5 }}>
-          <Logo height={32} alt="VerifyHub" />
+          <Logo height={60} alt="VerifyHub" />
         </Box>
         <Typography variant="overline" sx={{ color: '#F59E0B', opacity: 0.9 }}>
           ADMIN CONSOLE

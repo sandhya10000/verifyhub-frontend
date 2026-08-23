@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImg from '../../assets/logo.jpeg';
+import logoImg from '../../assets/logo.png';
 
 /**
  * Shared VerifyHub logo component.
@@ -20,7 +20,6 @@ const Logo = ({ height = 36, style = {}, className = '', alt = 'VerifyHub' }) =>
       style={{
         width: 'auto',
         display: 'block',
-        borderRadius: Math.round(height * 0.25) + 'px', // keep pill corners proportional
         flexShrink: 0,
         ...style,
       }}

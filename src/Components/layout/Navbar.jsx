@@ -26,9 +26,8 @@ const Navbar = () => {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(14px)',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          background: '#000824',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         }}
       >
         <Container maxWidth="lg" sx={{ px: { xs: 3.5, md: 3.5 } }}>
@@ -41,8 +40,8 @@ const Navbar = () => {
               gap: 4,
             }}
           >
-            <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-              {/* <Logo height={55} alt="VerifyHub" /> */}
+            <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, textDecoration: 'none' }}>
+              <Logo height={60} alt="VerifyHub Icon" />
             </Box>
 
             {/* Desktop Links */}
@@ -64,12 +63,11 @@ const Navbar = () => {
                     borderRadius: 2,
                     fontSize: '14.5px',
                     fontWeight: 500,
-                    color: theme.palette.text.secondary,
+                    color: '#A9BAD6',
                     textDecoration: 'none',
                     transition: '0.15s',
                     '&:hover': {
-                      color: theme.palette.text.primary,
-                      backgroundColor: theme.palette.background.default,
+                      color: '#fff',
                     },
                   }}
                 >
@@ -93,14 +91,20 @@ const Navbar = () => {
                 sx={{
                   fontSize: '14.5px',
                   fontWeight: 500,
-                  color: theme.palette.text.secondary,
+                  color: '#fff',
                   textDecoration: 'none',
-                  px: 1.5,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  px: 2.5,
                   py: 1,
-                  '&:hover': { color: theme.palette.text.primary },
+                  transition: '0.2s',
+                  '&:hover': { 
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                  },
                 }}
               >
-                Sign in
+                Login
               </Box>
               {/* <Button
                 variant="outlined"
