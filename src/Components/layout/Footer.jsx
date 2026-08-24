@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Container, Grid, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import Logo from '../shared/Logo';
+import FooterLogo from '../../assets/footer-logo.png';
 import { FOOTER_LINKS, CONTACT_INFO } from '../../data/navigation';
 
 const Footer = () => {
@@ -21,9 +22,9 @@ const Footer = () => {
       <Container maxWidth="lg" sx={{ px: { xs: 3.5, md: 3.5 } }}>
         <Grid container spacing={5} sx={{ pb: 6, borderBottom: `1px solid ${theme.palette.divider}`, justifyContent: 'space-between' }}>
           {/* Brand Column */}
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', textDecoration: 'none', mb: 2 }}>
-              <Logo height={55} alt="VerifyHub" />
+              <img src={FooterLogo} alt="VerifyHub" style={{ height: '60px', width: 'auto', display: 'block' }} />
             </Box>
             <Typography sx={{ fontSize: '14px', color: theme.palette.text.secondary, maxWidth: 290, mt: 1, lineHeight: 1.65 }}>
               API and technology infrastructure for India's lending ecosystem — credit data, verification and AI decisioning under one platform.
@@ -31,7 +32,7 @@ const Footer = () => {
           </Grid>
 
           {/* Links Columns */}
-          <Grid item xs={12} md={9}>
+          <Grid size={{ xs: 12, md: 9 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
               {FOOTER_LINKS.map((column) => (
                 <Box key={column.title} sx={{ minWidth: 140 }}>

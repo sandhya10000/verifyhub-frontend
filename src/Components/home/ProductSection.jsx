@@ -144,7 +144,7 @@ const ProductSection = () => {
                     <Box
                       sx={{
                         bgcolor: "#E8FAF3",
-                        color: "#059669",
+                        color: "#1b22a7",
                         px: 2,
                         py: 0.8,
                         borderRadius: "30px",

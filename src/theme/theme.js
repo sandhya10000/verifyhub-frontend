@@ -22,7 +22,7 @@ const theme = createTheme({
       light: '#FDECEC',
     },
     success: {
-      main: '#059669',    // home page green
+      main: '#1b22a7',    // home page blue
       light: '#ECFDF5',   // home page green-bg
     },
     text: {
