@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { creditAPI } from "../../services/authService";
 import {
   Box,
   Typography,
@@ -25,6 +25,8 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
+import axios from "axios";
+
 const EquifaxReport = () => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -37,8 +39,8 @@ const EquifaxReport = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // API se ye values aayengi
   const totalGenerated = 0;
   const todayGenerated = 0;
 
@@ -55,6 +57,7 @@ const EquifaxReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ==========================================
@@ -68,6 +71,7 @@ const EquifaxReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ==========================================
@@ -77,8 +81,12 @@ const EquifaxReport = () => {
   const handleGenerateReport = async () => {
     try {
       setError("");
+      setSuccess("");
 
-      // Validation
+      // ==========================================
+      // VALIDATION
+      // ==========================================
+
       if (!formData.firstName.trim()) {
         setError("Please enter first name.");
         return;
@@ -89,13 +97,13 @@ const EquifaxReport = () => {
         return;
       }
 
-      if (formData.mobile.length !== 10) {
+      if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
         setError("Please enter a valid 10-digit mobile number.");
         return;
       }
 
-      if (!formData.pan.trim()) {
-        setError("Please enter PAN number.");
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(formData.pan)) {
+        setError("Please enter a valid PAN number.");
         return;
       }
 
@@ -112,38 +120,82 @@ const EquifaxReport = () => {
       setLoading(true);
 
       // ==========================================
-      // API INTEGRATION
+      // SUREPASS PAYLOAD
       // ==========================================
 
-      // Example:
-      //
-      // const response = await partnerAPI.generateEquifaxReport({
-      //   firstName: formData.firstName,
-      //   lastName: formData.lastName,
-      //   mobile: formData.mobile,
-      //   pan: formData.pan,
-      //   gender: formData.gender,
-      // });
+      const payload = {
+        name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
 
-      // API response ke according
-      // PDF/report handle karein.
+        panNumber: formData.pan.trim().toUpperCase(),
 
-      console.log("Equifax Report Request:", {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        mobile: formData.mobile,
-        pan: formData.pan,
-        gender: formData.gender,
+        mobile: formData.mobile.trim(),
+
+        gender: formData.gender.toLowerCase(),
+
+        consent: "Y",
+      };
+
+      console.log("Equifax Request:", {
+        ...payload,
+        panNumber: "********",
       });
 
-      // API call yahan add karna hai
+      // ==========================================
+      // API CALL
+      // ==========================================
+
+      const response = await creditAPI.generateEquifaxReport(payload);
+
+      console.log("Equifax Response:", response.data);
+
+      // ==========================================
+      // SUCCESS
+      // ==========================================
+
+      if (response.data?.success) {
+        setSuccess(
+          response.data?.message || "Equifax report generated successfully.",
+        );
+
+        // ==========================================
+        // CHECK PDF / REPORT DATA
+        // ==========================================
+
+        const apiData = response.data?.data;
+
+        console.log("Equifax API Data:", apiData);
+
+        /*
+          Surepass response ke actual structure ke
+          according yahan PDF URL handle kar sakte ho.
+
+          Example:
+
+          const pdfUrl =
+            apiData?.data?.pdf_url ||
+            apiData?.pdf_url ||
+            apiData?.result?.pdf_url;
+
+          if (pdfUrl) {
+            window.open(pdfUrl, "_blank");
+          }
+        */
+      } else {
+        setError(
+          response.data?.message || "Unable to generate Equifax report.",
+        );
+      }
     } catch (err) {
       console.error("Equifax Report Error:", err);
 
-      setError(
+      const apiError = err?.response?.data?.error;
+
+      const message =
         err?.response?.data?.message ||
-          "Unable to generate Equifax report. Please try again.",
-      );
+        apiError?.message ||
+        "Unable to generate Equifax report. Please try again.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -159,10 +211,6 @@ const EquifaxReport = () => {
         px: 2,
       }}
     >
-      {/* ==========================================
-          MAIN CONTAINER
-      ========================================== */}
-
       <Box
         sx={{
           maxWidth: 1000,
@@ -201,7 +249,6 @@ const EquifaxReport = () => {
               fontWeight: 700,
               lineHeight: 1.2,
               letterSpacing: "-0.5px",
-              color: "#fff",
             }}
           >
             Equifax Report
@@ -215,10 +262,9 @@ const EquifaxReport = () => {
                 xs: "0.85rem",
                 sm: "0.95rem",
               },
-              lineHeight: 1.2,
             }}
           >
-            Get your Equifax credit summary instantly – secure & hassle-free
+            Get your Equifax credit report securely and instantly
           </Typography>
         </Box>
 
@@ -241,15 +287,12 @@ const EquifaxReport = () => {
           ========================================== */}
 
           <Grid container spacing={2.5} mb={3}>
-            {/* TOTAL */}
-
             <Grid item xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
-                  backgroundColor: "#fff",
                 }}
               >
                 <CardContent sx={{ p: 2.5 }}>
@@ -257,7 +300,6 @@ const EquifaxReport = () => {
                     sx={{
                       color: "#64748b",
                       fontSize: "0.9rem",
-                      fontWeight: 500,
                     }}
                   >
                     Total Equifax Generated
@@ -268,7 +310,6 @@ const EquifaxReport = () => {
                       mt: 0.5,
                       color: "#2563eb",
                       fontSize: "2rem",
-                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -278,15 +319,12 @@ const EquifaxReport = () => {
               </Card>
             </Grid>
 
-            {/* TODAY */}
-
             <Grid item xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
-                  backgroundColor: "#fff",
                 }}
               >
                 <CardContent sx={{ p: 2.5 }}>
@@ -294,7 +332,6 @@ const EquifaxReport = () => {
                     sx={{
                       color: "#64748b",
                       fontSize: "0.9rem",
-                      fontWeight: 500,
                     }}
                   >
                     Today Generated
@@ -305,7 +342,6 @@ const EquifaxReport = () => {
                       mt: 0.5,
                       color: "#16a34a",
                       fontSize: "2rem",
-                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -317,7 +353,7 @@ const EquifaxReport = () => {
           </Grid>
 
           {/* ==========================================
-              MAIN FORM
+              FORM
           ========================================== */}
 
           <Card
@@ -325,7 +361,6 @@ const EquifaxReport = () => {
             sx={{
               borderRadius: 3,
               border: "1px solid #e5e7eb",
-              backgroundColor: "#fff",
             }}
           >
             <CardContent
@@ -337,8 +372,6 @@ const EquifaxReport = () => {
                 },
               }}
             >
-              {/* FORM TITLE */}
-
               <Box mb={3}>
                 <Typography
                   sx={{
@@ -375,10 +408,19 @@ const EquifaxReport = () => {
                 </Alert>
               )}
 
-              {/* ==========================================
-                  FORM FIELDS
-                  2 COLUMNS
-              ========================================== */}
+              {/* SUCCESS */}
+
+              {success && (
+                <Alert
+                  severity="success"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                  }}
+                >
+                  {success}
+                </Alert>
+              )}
 
               <Grid container spacing={2.5}>
                 {/* FIRST NAME */}
@@ -468,7 +510,6 @@ const EquifaxReport = () => {
                           </Typography>
                         </InputAdornment>
                       ),
-
                       endAdornment: (
                         <InputAdornment position="end">
                           <PhoneIcon
@@ -492,7 +533,10 @@ const EquifaxReport = () => {
                     name="pan"
                     value={formData.pan}
                     onChange={(e) => {
-                      const value = e.target.value.toUpperCase().slice(0, 10);
+                      const value = e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, "")
+                        .slice(0, 10);
 
                       setFormData((prev) => ({
                         ...prev,
@@ -532,12 +576,6 @@ const EquifaxReport = () => {
                     value={formData.gender}
                     onChange={handleChange}
                     required
-                    SelectProps={{
-                      displayEmpty: true,
-                    }}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -586,7 +624,7 @@ const EquifaxReport = () => {
               </Grid>
 
               {/* ==========================================
-                  CUSTOMER CONSENT
+                  CONSENT
               ========================================== */}
 
               <Box
@@ -636,8 +674,8 @@ const EquifaxReport = () => {
                         }}
                       >
                         I confirm that the customer has provided explicit
-                        consent to generate and access their credit report using
-                        the submitted PAN and mobile number.
+                        consent to generate and access their Equifax credit
+                        report using the submitted PAN and mobile number.
                       </Typography>
 
                       <Typography
@@ -665,7 +703,7 @@ const EquifaxReport = () => {
               </Box>
 
               {/* ==========================================
-                  DOWNLOAD BUTTON
+                  GENERATE BUTTON
               ========================================== */}
 
               <Button
@@ -706,9 +744,7 @@ const EquifaxReport = () => {
                   : "Download Equifax Report"}
               </Button>
 
-              {/* ==========================================
-                  SECURITY NOTE
-              ========================================== */}
+              {/* SECURITY */}
 
               <Box
                 sx={{

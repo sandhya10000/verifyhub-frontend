@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 
+import { creditAPI } from "../../services/authService";
+
 import {
   Box,
   Typography,
@@ -11,40 +13,82 @@ import {
   MenuItem,
   Checkbox,
   FormControlLabel,
-  Link,
-  InputAdornment,
   CircularProgress,
   Alert,
+  Divider,
+  Chip,
 } from "@mui/material";
 
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
-import WcIcon from "@mui/icons-material/Wc";
-import DescriptionIcon from "@mui/icons-material/Description";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import EmailIcon from "@mui/icons-material/Email";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import HomeIcon from "@mui/icons-material/Home";
+
+// ============================================================
+// API URL
+// ============================================================
+
+// Development
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// If your Vite env is:
+// VITE_API_URL=http://localhost:5000/api
+//
+// Then change the request URL below accordingly.
 
 const ExperianReport = () => {
+  // ============================================================
+  // FORM DATA
+  // ============================================================
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     mobile: "",
     pan: "",
     gender: "",
+
+    email: "",
+    dob: "",
+    pincode: "",
+    stateName: "",
+    cityName: "",
+    addressLine1: "",
+    addressLine2: "",
+
     consent: false,
   });
 
+  // ============================================================
+  // API STATES
+  // ============================================================
+
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
-  // API se ye values aayengi
-  const totalGenerated = 0;
-  const todayGenerated = 0;
+  const [success, setSuccess] = useState("");
 
-  // ==========================================
+  const [reportData, setReportData] = useState(null);
+
+  // ============================================================
+  // STATS
+  // ============================================================
+
+  const [totalGenerated, setTotalGenerated] = useState(0);
+
+  const [todayGenerated, setTodayGenerated] = useState(0);
+
+  // ============================================================
   // HANDLE INPUT CHANGE
-  // ==========================================
+  // ============================================================
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -54,11 +98,61 @@ const ExperianReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
-  // ==========================================
-  // HANDLE CONSENT
-  // ==========================================
+  // ============================================================
+  // MOBILE CHANGE
+  // ============================================================
+
+  const handleMobileChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      mobile: value,
+    }));
+
+    setError("");
+  };
+
+  // ============================================================
+  // PAN CHANGE
+  // ============================================================
+
+  const handlePanChange = (e) => {
+    const value = e.target.value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      pan: value,
+    }));
+
+    setError("");
+  };
+
+  // ============================================================
+  // PINCODE CHANGE
+  // ============================================================
+
+  const handlePincodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    setFormData((prev) => ({
+      ...prev,
+      pincode: value,
+    }));
+
+    setError("");
+  };
+
+  // ============================================================
+  // CONSENT
+  // ============================================================
+
   const handleConsentChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -68,81 +162,232 @@ const ExperianReport = () => {
     setError("");
   };
 
-  // ==========================================
+  // ============================================================
+  // VALIDATE FORM
+  // ============================================================
+
+  const validateForm = () => {
+    if (!formData.firstName.trim()) {
+      return "Please enter first name.";
+    }
+
+    if (!formData.lastName.trim()) {
+      return "Please enter last name.";
+    }
+
+    if (formData.mobile.length !== 10) {
+      return "Please enter a valid 10-digit mobile number.";
+    }
+
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+    if (!panRegex.test(formData.pan)) {
+      return "Please enter a valid PAN number.";
+    }
+
+    if (!formData.email.trim()) {
+      return "Please enter email address.";
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email)) {
+      return "Please enter a valid email address.";
+    }
+
+    if (!formData.dob) {
+      return "Please select date of birth.";
+    }
+
+    if (formData.pincode.length !== 6) {
+      return "Please enter a valid 6-digit pincode.";
+    }
+
+    if (!formData.stateName.trim()) {
+      return "Please enter state.";
+    }
+
+    if (!formData.cityName.trim()) {
+      return "Please enter city.";
+    }
+
+    if (!formData.addressLine1.trim()) {
+      return "Please enter address.";
+    }
+
+    if (!formData.addressLine2.trim()) {
+      return "Please enter address line 2.";
+    }
+
+    if (!formData.gender) {
+      return "Please select gender.";
+    }
+
+    if (!formData.consent) {
+      return "Please confirm customer consent.";
+    }
+
+    return null;
+  };
+
+  // ============================================================
   // GENERATE EXPERIAN REPORT
-  // ==========================================
+  // ============================================================
+
   const handleGenerateReport = async () => {
     try {
       setError("");
+      setSuccess("");
+      setReportData(null);
 
-      // Validation
-      if (!formData.firstName.trim()) {
-        setError("Please enter first name.");
-        return;
-      }
+      // --------------------------------------------------------
+      // VALIDATION
+      // --------------------------------------------------------
 
-      if (!formData.lastName.trim()) {
-        setError("Please enter last name.");
-        return;
-      }
+      const validationError = validateForm();
 
-      if (formData.mobile.length !== 10) {
-        setError("Please enter a valid 10-digit mobile number.");
-        return;
-      }
-
-      if (!formData.pan.trim()) {
-        setError("Please enter PAN number.");
-        return;
-      }
-
-      if (!formData.gender) {
-        setError("Please select gender.");
-        return;
-      }
-
-      if (!formData.consent) {
-        setError("Please confirm customer consent.");
+      if (validationError) {
+        setError(validationError);
         return;
       }
 
       setLoading(true);
 
-      // ==========================================
-      // API INTEGRATION
-      // ==========================================
-      //
-      // Example:
-      //
-      // const response = await partnerAPI.generateExperianReport({
-      //   firstName: formData.firstName,
-      //   lastName: formData.lastName,
-      //   mobile: formData.mobile,
-      //   pan: formData.pan,
-      //   gender: formData.gender,
-      // });
-      //
-      // API response ke according
-      // PDF/report handle karein.
+      // ========================================================
+      // BACKEND PAYLOAD
+      // ========================================================
 
-      console.log("Experian Report Request:", {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        mobile: formData.mobile,
-        pan: formData.pan,
-        gender: formData.gender,
+      const payload = {
+        panNumber: formData.pan.trim().toUpperCase(),
+
+        fullName:
+          `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+
+        mobileNumber: formData.mobile.trim(),
+
+        email: formData.email.trim(),
+
+        dob: formData.dob,
+
+        pincode: formData.pincode.trim(),
+
+        stateName: formData.stateName.trim(),
+
+        cityName: formData.cityName.trim(),
+
+        addressLine1: formData.addressLine1.trim(),
+
+        addressLine2: formData.addressLine2.trim(),
+
+        customerConsent: "Y",
+      };
+
+      console.log("[REACT] Experian Request:", {
+        ...payload,
+        panNumber: "********",
       });
-    } catch (err) {
-      console.error("Experian Report Error:", err);
 
-      setError(
-        err?.response?.data?.message ||
-          "Unable to generate Experian report. Please try again.",
-      );
+      // ========================================================
+      // API CALL
+      // ========================================================
+
+      // const response = await axios.post(
+      //   `${API_URL}/api/experian/report`,
+      //   payload,
+      // );
+      const response = await creditAPI.generateExperianReport(payload);
+      console.log("[REACT] Experian Response:", response.data);
+
+      // ========================================================
+      // SUCCESS
+      // ========================================================
+
+      if (response.data?.success) {
+        const data = response.data.data;
+
+        setReportData(data);
+
+        setSuccess(
+          response.data.message || "Experian report generated successfully.",
+        );
+
+        setTotalGenerated((prev) => prev + 1);
+
+        setTodayGenerated((prev) => prev + 1);
+
+        // Scroll to report result
+        setTimeout(() => {
+          document.getElementById("experian-report-result")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 200);
+      } else {
+        setError(
+          response.data?.message || "Unable to generate Experian report.",
+        );
+      }
+    } catch (err) {
+      console.error("[REACT] Experian Report Error:", err);
+
+      const backendError = err?.response?.data;
+
+      let message = "Unable to generate Experian report. Please try again.";
+
+      if (backendError?.message) {
+        message = backendError.message;
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
+
+  // ============================================================
+  // RESET FORM
+  // ============================================================
+
+  const handleReset = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      mobile: "",
+      pan: "",
+      gender: "",
+      email: "",
+      dob: "",
+      pincode: "",
+      stateName: "",
+      cityName: "",
+      addressLine1: "",
+      addressLine2: "",
+      consent: false,
+    });
+
+    setReportData(null);
+    setError("");
+    setSuccess("");
+  };
+
+  // ============================================================
+  // DOWNLOAD EXCEL REPORT
+  // ============================================================
+
+  const handleDownloadReport = () => {
+    const reportUrl = reportData?.excelExperianReport;
+
+    if (!reportUrl) {
+      setError("Experian report download link is not available.");
+      return;
+    }
+
+    window.open(reportUrl, "_blank", "noopener,noreferrer");
+  };
+
+  // ============================================================
+  // UI
+  // ============================================================
 
   return (
     <Box
@@ -154,13 +399,13 @@ const ExperianReport = () => {
         px: 2,
       }}
     >
-      {/* ==========================================
+      {/* ======================================================
           MAIN CONTAINER
-      ========================================== */}
+      ====================================================== */}
 
       <Box
         sx={{
-          maxWidth: 1000,
+          maxWidth: 1100,
           mx: "auto",
           backgroundColor: "#fff",
           borderRadius: 3,
@@ -168,9 +413,9 @@ const ExperianReport = () => {
           border: "1px solid #e5e7eb",
         }}
       >
-        {/* ==========================================
-            BLACK HEADER
-        ========================================== */}
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
 
         <Box
           sx={{
@@ -195,7 +440,6 @@ const ExperianReport = () => {
               },
               fontWeight: 700,
               lineHeight: 1.2,
-              letterSpacing: "-0.5px",
               color: "#fff",
             }}
           >
@@ -204,22 +448,21 @@ const ExperianReport = () => {
 
           <Typography
             sx={{
-              mt: 0.5,
+              mt: 0.7,
               color: "#d1d5db",
               fontSize: {
                 xs: "0.85rem",
                 sm: "0.95rem",
               },
-              lineHeight: 1.2,
             }}
           >
-            Get your Experian credit summary instantly – secure & hassle-free
+            Get your Experian credit summary securely and hassle-free.
           </Typography>
         </Box>
 
-        {/* ==========================================
+        {/* ====================================================
             CONTENT
-        ========================================== */}
+        ==================================================== */}
 
         <Box
           sx={{
@@ -231,20 +474,17 @@ const ExperianReport = () => {
             py: 3,
           }}
         >
-          {/* ==========================================
+          {/* ==================================================
               STAT CARDS
-          ========================================== */}
+          ================================================== */}
 
           <Grid container spacing={2.5} mb={3}>
-            {/* TOTAL */}
-
             <Grid item xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
-                  backgroundColor: "#fff",
                 }}
               >
                 <CardContent sx={{ p: 2.5 }}>
@@ -263,7 +503,6 @@ const ExperianReport = () => {
                       mt: 0.5,
                       color: "#2563eb",
                       fontSize: "2rem",
-                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -273,15 +512,12 @@ const ExperianReport = () => {
               </Card>
             </Grid>
 
-            {/* TODAY */}
-
             <Grid item xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
-                  backgroundColor: "#fff",
                 }}
               >
                 <CardContent sx={{ p: 2.5 }}>
@@ -300,7 +536,6 @@ const ExperianReport = () => {
                       mt: 0.5,
                       color: "#16a34a",
                       fontSize: "2rem",
-                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -311,16 +546,47 @@ const ExperianReport = () => {
             </Grid>
           </Grid>
 
-          {/* ==========================================
-              MAIN FORM
-          ========================================== */}
+          {/* ==================================================
+              SUCCESS
+          ================================================== */}
+
+          {success && (
+            <Alert
+              severity="success"
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+              }}
+            >
+              {success}
+            </Alert>
+          )}
+
+          {/* ==================================================
+              ERROR
+          ================================================== */}
+
+          {error && (
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {/* ==================================================
+              CUSTOMER FORM
+          ================================================== */}
 
           <Card
             elevation={0}
             sx={{
               borderRadius: 3,
               border: "1px solid #e5e7eb",
-              backgroundColor: "#fff",
             }}
           >
             <CardContent
@@ -332,8 +598,6 @@ const ExperianReport = () => {
                 },
               }}
             >
-              {/* FORM TITLE */}
-
               <Box mb={3}>
                 <Typography
                   sx={{
@@ -352,33 +616,26 @@ const ExperianReport = () => {
                     color: "#64748b",
                   }}
                 >
-                  Enter customer details to generate the Experian credit report.
+                  Enter the customer details required for Experian verification.
                 </Typography>
               </Box>
 
-              {/* ERROR */}
+              {/* =================================================
+                  BASIC DETAILS
+              ================================================= */}
 
-              {error && (
-                <Alert
-                  severity="error"
-                  sx={{
-                    mb: 3,
-                    borderRadius: 2,
-                  }}
-                >
-                  {error}
-                </Alert>
-              )}
-
-              {/* ==========================================
-                  FORM FIELDS
-                  2 COLUMNS
-              ========================================== */}
+              <Typography
+                sx={{
+                  mb: 2,
+                  fontWeight: 700,
+                  color: "#334155",
+                }}
+              >
+                Personal Information
+              </Typography>
 
               <Grid container spacing={2.5}>
-                {/* ==========================================
-                    FIRST NAME
-                ========================================== */}
+                {/* FIRST NAME */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -391,22 +648,19 @@ const ExperianReport = () => {
                     required
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
+                        <PersonIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
                       ),
                     }}
                   />
                 </Grid>
 
-                {/* ==========================================
-                    LAST NAME
-                ========================================== */}
+                {/* LAST NAME */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -419,22 +673,19 @@ const ExperianReport = () => {
                     required
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
+                        <PersonIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
                       ),
                     }}
                   />
                 </Grid>
 
-                {/* ==========================================
-                    MOBILE NUMBER
-                ========================================== */}
+                {/* MOBILE */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -442,50 +693,59 @@ const ExperianReport = () => {
                     label="Mobile Number"
                     name="mobile"
                     value={formData.mobile}
-                    onChange={(e) => {
-                      const value = e.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 10);
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        mobile: value,
-                      }));
-
-                      setError("");
-                    }}
-                    placeholder="Enter 10-digit mobile number"
+                    onChange={handleMobileChange}
+                    placeholder="10-digit mobile number"
                     required
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <Typography
-                            sx={{
-                              color: "#64748b",
-                              fontSize: "0.9rem",
-                            }}
-                          >
-                            +91
-                          </Typography>
-                        </InputAdornment>
+                        <Typography
+                          sx={{
+                            mr: 1,
+                            color: "#64748b",
+                          }}
+                        >
+                          +91
+                        </Typography>
                       ),
                       endAdornment: (
-                        <InputAdornment position="end">
-                          <PhoneIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
+                        <PhoneIcon
+                          sx={{
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
                       ),
                     }}
                   />
                 </Grid>
 
-                {/* ==========================================
-                    PAN NUMBER
-                ========================================== */}
+                {/* EMAIL */}
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="email"
+                    label="Email Address"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="customer@example.com"
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <EmailIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
+                      ),
+                    }}
+                  />
+                </Grid>
+
+                {/* PAN */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -493,39 +753,55 @@ const ExperianReport = () => {
                     label="PAN Number"
                     name="pan"
                     value={formData.pan}
-                    onChange={(e) => {
-                      const value = e.target.value.toUpperCase().slice(0, 10);
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        pan: value,
-                      }));
-
-                      setError("");
-                    }}
-                    placeholder="Enter PAN number"
+                    onChange={handlePanChange}
+                    placeholder="ABCDE1234F"
                     required
                     inputProps={{
                       maxLength: 10,
                     }}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <CreditCardIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
+                        <CreditCardIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
                       ),
                     }}
                   />
                 </Grid>
 
-                {/* ==========================================
-                    GENDER
-                ========================================== */}
+                {/* DOB */}
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Date of Birth"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    required
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <CalendarMonthIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
+                      ),
+                    }}
+                  />
+                </Grid>
+
+                {/* GENDER */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -536,29 +812,7 @@ const ExperianReport = () => {
                     value={formData.gender}
                     onChange={handleChange}
                     required
-                    SelectProps={{
-                      displayEmpty: true,
-                    }}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <WcIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
-                      ),
-                    }}
                   >
-                    <MenuItem value="" disabled>
-                      Select Gender
-                    </MenuItem>
-
                     <MenuItem value="Male">Male</MenuItem>
 
                     <MenuItem value="Female">Female</MenuItem>
@@ -566,44 +820,132 @@ const ExperianReport = () => {
                     <MenuItem value="Other">Other</MenuItem>
                   </TextField>
                 </Grid>
+              </Grid>
 
-                {/* ==========================================
-                    REPORT TYPE
-                ========================================== */}
+              <Divider sx={{ my: 4 }} />
+
+              {/* =================================================
+                  ADDRESS DETAILS
+              ================================================= */}
+
+              <Typography
+                sx={{
+                  mb: 2,
+                  fontWeight: 700,
+                  color: "#334155",
+                }}
+              >
+                Address Information
+              </Typography>
+
+              <Grid container spacing={2.5}>
+                {/* PINCODE */}
 
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Report Type"
-                    value="EXPERIAN"
-                    disabled
+                    label="Pincode"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handlePincodeChange}
+                    placeholder="6-digit pincode"
+                    required
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <DescriptionIcon
-                            sx={{
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        </InputAdornment>
+                        <LocationOnIcon
+                          sx={{
+                            mr: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
                       ),
                     }}
                   />
                 </Grid>
+
+                {/* STATE */}
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="State"
+                    name="stateName"
+                    value={formData.stateName}
+                    onChange={handleChange}
+                    placeholder="Enter state"
+                    required
+                  />
+                </Grid>
+
+                {/* CITY */}
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="City"
+                    name="cityName"
+                    value={formData.cityName}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    required
+                  />
+                </Grid>
+
+                {/* ADDRESS LINE 1 */}
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 1"
+                    name="addressLine1"
+                    value={formData.addressLine1}
+                    onChange={handleChange}
+                    placeholder="House / Flat / Street / Area"
+                    required
+                    multiline
+                    minRows={2}
+                    InputProps={{
+                      startAdornment: (
+                        <HomeIcon
+                          sx={{
+                            mr: 1,
+                            mt: 1,
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
+                      ),
+                    }}
+                  />
+                </Grid>
+
+                {/* ADDRESS LINE 2 */}
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 2"
+                    name="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleChange}
+                    placeholder="Landmark / Locality / Additional address"
+                    required
+                    multiline
+                    minRows={2}
+                  />
+                </Grid>
               </Grid>
 
-              {/* ==========================================
-                  CUSTOMER CONSENT
-              ========================================== */}
+              <Divider sx={{ my: 4 }} />
+
+              {/* =================================================
+                  CONSENT
+              ================================================= */}
 
               <Box
                 sx={{
-                  mt: 3,
-                  p: {
-                    xs: 1.5,
-                    sm: 2,
-                  },
+                  p: 2,
                   borderRadius: 2,
                   backgroundColor: "#eff6ff",
                   border: "1px solid #bfdbfe",
@@ -618,9 +960,6 @@ const ExperianReport = () => {
                     <Checkbox
                       checked={formData.consent}
                       onChange={handleConsentChange}
-                      sx={{
-                        pt: 0,
-                      }}
                     />
                   }
                   label={
@@ -644,79 +983,78 @@ const ExperianReport = () => {
                         }}
                       >
                         I confirm that the customer has provided explicit
-                        consent to generate and access their credit report using
-                        the submitted PAN and mobile number.
-                      </Typography>
-
-                      <Typography
-                        sx={{
-                          mt: 1,
-                          fontSize: "0.82rem",
-                          color: "#64748b",
-                        }}
-                      >
-                        By continuing, you agree to our{" "}
-                        <Link
-                          href="#"
-                          underline="hover"
-                          sx={{
-                            color: "#2563eb",
-                            fontWeight: 500,
-                          }}
-                        >
-                          Terms & Conditions
-                        </Link>
+                        consent to generate and access their Experian credit
+                        report using the submitted personal details, PAN and
+                        mobile number.
                       </Typography>
                     </Box>
                   }
                 />
               </Box>
 
-              {/* ==========================================
-                  DOWNLOAD BUTTON
-              ========================================== */}
+              {/* =================================================
+                  BUTTONS
+              ================================================= */}
 
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleGenerateReport}
-                disabled={loading || !formData.consent}
-                startIcon={
-                  loading ? (
-                    <CircularProgress size={18} color="inherit" />
-                  ) : (
-                    <DownloadIcon />
-                  )
-                }
-                sx={{
-                  mt: 3,
-                  py: 1.5,
-                  borderRadius: 2,
-                  backgroundColor: "#2563eb",
-                  fontSize: "0.95rem",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  boxShadow: "none",
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={8}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handleGenerateReport}
+                    disabled={loading || !formData.consent}
+                    startIcon={
+                      loading ? (
+                        <CircularProgress size={18} color="inherit" />
+                      ) : (
+                        <AssessmentIcon />
+                      )
+                    }
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: "#2563eb",
+                      fontSize: "0.95rem",
+                      fontWeight: 700,
+                      textTransform: "none",
+                      boxShadow: "none",
 
-                  "&:hover": {
-                    backgroundColor: "#1d4ed8",
-                    boxShadow: "none",
-                  },
+                      "&:hover": {
+                        backgroundColor: "#1d4ed8",
+                        boxShadow: "none",
+                      },
 
-                  "&.Mui-disabled": {
-                    backgroundColor: "#9ca3af",
-                    color: "#fff",
-                  },
-                }}
-              >
-                {loading
-                  ? "Generating Experian Report..."
-                  : "Download Experian Report"}
-              </Button>
+                      "&.Mui-disabled": {
+                        backgroundColor: "#9ca3af",
+                        color: "#fff",
+                      },
+                    }}
+                  >
+                    {loading
+                      ? "Generating Experian Report..."
+                      : "Generate Experian Report"}
+                  </Button>
+                </Grid>
 
-              {/* ==========================================
-                  SECURITY NOTE
-              ========================================== */}
+                <Grid item xs={12} sm={4}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={handleReset}
+                    disabled={loading}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </Grid>
+              </Grid>
+
+              {/* SECURITY */}
 
               <Box
                 sx={{
@@ -745,6 +1083,289 @@ const ExperianReport = () => {
               </Box>
             </CardContent>
           </Card>
+
+          {/* ====================================================
+              REPORT RESULT
+          ==================================================== */}
+
+          {reportData && (
+            <Card
+              id="experian-report-result"
+              elevation={0}
+              sx={{
+                mt: 3,
+                borderRadius: 3,
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <CardContent
+                sx={{
+                  p: {
+                    xs: 2,
+                    sm: 3,
+                    md: 4,
+                  },
+                }}
+              >
+                {/* RESULT HEADER */}
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: {
+                      xs: "flex-start",
+                      sm: "center",
+                    },
+                    flexDirection: {
+                      xs: "column",
+                      sm: "row",
+                    },
+                    gap: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontSize: "1.15rem",
+                        fontWeight: 700,
+                        color: "#172033",
+                      }}
+                    >
+                      Experian Report Result
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: 0.5,
+                        fontSize: "0.85rem",
+                        color: "#64748b",
+                      }}
+                    >
+                      Credit report generated successfully.
+                    </Typography>
+                  </Box>
+
+                  <Chip
+                    icon={<CheckCircleIcon />}
+                    label="Verified"
+                    color="success"
+                    variant="outlined"
+                  />
+                </Box>
+
+                {/* =================================================
+                    SCORE
+                ================================================= */}
+
+                <Box
+                  sx={{
+                    p: 3,
+                    borderRadius: 3,
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    textAlign: "center",
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#64748b",
+                      fontSize: "0.9rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Experian Credit Score
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 1,
+                      fontSize: {
+                        xs: "3rem",
+                        sm: "4rem",
+                      },
+                      lineHeight: 1,
+                      fontWeight: 800,
+                      color: "#2563eb",
+                    }}
+                  >
+                    {reportData.score ?? "N/A"}
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                    }}
+                  >
+                    <Chip
+                      label={
+                        reportData.exactMatch === "Y"
+                          ? "Exact Match"
+                          : "Match Not Confirmed"
+                      }
+                      color={
+                        reportData.exactMatch === "Y" ? "success" : "warning"
+                      }
+                    />
+                  </Box>
+                </Box>
+
+                {/* =================================================
+                    REPORT INFORMATION
+                ================================================= */}
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.78rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Report Number
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontWeight: 600,
+                          color: "#172033",
+                          wordBreak: "break-all",
+                        }}
+                      >
+                        {reportData.reportNumber ?? "N/A"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.78rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Report Version
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontWeight: 600,
+                          color: "#172033",
+                        }}
+                      >
+                        {reportData.version ?? "N/A"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.78rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Report Date
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontWeight: 600,
+                          color: "#172033",
+                        }}
+                      >
+                        {reportData.reportDate ?? "N/A"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.78rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Report Time
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontWeight: 600,
+                          color: "#172033",
+                        }}
+                      >
+                        {reportData.reportTime ?? "N/A"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                {/* =================================================
+                    DOWNLOAD
+                ================================================= */}
+
+                {reportData.excelExperianReport && (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadReport}
+                    sx={{
+                      mt: 3,
+                      py: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: "#16a34a",
+                      textTransform: "none",
+                      fontWeight: 700,
+                      boxShadow: "none",
+
+                      "&:hover": {
+                        backgroundColor: "#15803d",
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    Download Experian Report
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </Box>
       </Box>
     </Box>

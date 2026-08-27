@@ -118,8 +118,8 @@ export const creditAPI = {
   // ==========================================
   // GENERATE CRIF REPORT
   // ==========================================
-  generateCrifReport: async (payload) =>
-    await api.post("/credit/generate-crif-report", payload),
+  generateCrifReport: async (formData) =>
+    await api.post("/credit/generate-crif-report", formData),
 
   generateEquifaxReport: async (payload) =>
     await api.post("/credit/generate-equifax-report", payload),
