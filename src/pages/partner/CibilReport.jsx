@@ -966,33 +966,62 @@ const CibilReport = () => {
               </Grid>
 
               {/* GENDER */}
-              <Grid item xs={12} sm={6}>
-                <Box
+              <Grid item>
+                <TextField
+                  select
+                  fullWidth
+                  required
+                  label="Gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  placeholder="Select Gender"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   sx={{
-                    p: 2,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 2,
+                    "& .MuiInputBase-root": {
+                      height: 56,
+                    },
+
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: "unset !important",
+                      paddingTop: "16.5px",
+                      paddingBottom: "16.5px",
+                    },
+
+                    "& .MuiInputLabel-root": {
+                      backgroundColor: "#fff",
+                      padding: "0 4px",
+                    },
+
+                    "& .MuiInputAdornment-root": {
+                      marginRight: "8px",
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <WcIcon
+                          sx={{
+                            color: "#94a3b8",
+                            fontSize: 20,
+                          }}
+                        />
+                      </InputAdornment>
+                    ),
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Gender
-                  </Typography>
+                  <MenuItem value="" disabled>
+                    Select Gender
+                  </MenuItem>
 
-                  <Typography
-                    sx={{
-                      mt: 0.5,
-                      fontWeight: 600,
-                      color: "#172033",
-                    }}
-                  >
-                    {cibilResult.creditReport.gender}
-                  </Typography>
-                </Box>
+                  <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </TextField>
               </Grid>
 
               {/* REPORT TYPE */}
