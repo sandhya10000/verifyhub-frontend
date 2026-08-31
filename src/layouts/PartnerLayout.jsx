@@ -245,9 +245,11 @@ const PartnerLayout = () => {
                     primary: {
                       fontSize: "0.82rem",
                       fontWeight: active ? 600 : 500,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      style: {
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      },
                     },
                   }}
                 />
@@ -325,9 +327,11 @@ const PartnerLayout = () => {
                   fontSize: "0.82rem",
                   fontWeight: location.pathname === item.path ? 600 : 400,
                   fontFamily: '"Inter", sans-serif',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  style: {
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  },
                 },
               }}
             />
