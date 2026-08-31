@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import { creditAPI } from "../../services/authService";
 
@@ -17,6 +17,17 @@ import {
   Alert,
   Divider,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
 } from "@mui/material";
 
 import PersonIcon from "@mui/icons-material/Person";
@@ -29,18 +40,17 @@ import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import HomeIcon from "@mui/icons-material/Home";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 // ============================================================
 // API URL
 // ============================================================
 
-// Development
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// If your Vite env is:
-// VITE_API_URL=http://localhost:5000/api
-//
-// Then change the request URL below accordingly.
+// ============================================================
+// COMPONENT
+// ============================================================
 
 const ExperianReport = () => {
   // ============================================================
@@ -53,7 +63,6 @@ const ExperianReport = () => {
     mobile: "",
     pan: "",
     gender: "",
-
     email: "",
     dob: "",
     pincode: "",
@@ -61,7 +70,6 @@ const ExperianReport = () => {
     cityName: "",
     addressLine1: "",
     addressLine2: "",
-
     consent: false,
   });
 
@@ -70,19 +78,33 @@ const ExperianReport = () => {
   // ============================================================
 
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
-
   const [success, setSuccess] = useState("");
-
   const [reportData, setReportData] = useState(null);
+
+  // ============================================================
+  // RECENT REPORTS
+  // ============================================================
+
+  const [recentReportsOpen, setRecentReportsOpen] = useState(false);
+  const [recentReports, setRecentReports] = useState([]);
+  const [recentSearch, setRecentSearch] = useState("");
+  const [recentLoading, setRecentLoading] = useState(false);
+  const [recentError, setRecentError] = useState("");
+
+  // ============================================================
+  // VIEW REPORT
+  // ============================================================
+
+  const [selectedRecentReport, setSelectedRecentReport] = useState(null);
+
+  const [selectedReportOpen, setSelectedReportOpen] = useState(false);
 
   // ============================================================
   // STATS
   // ============================================================
 
   const [totalGenerated, setTotalGenerated] = useState(0);
-
   const [todayGenerated, setTodayGenerated] = useState(0);
 
   // ============================================================
@@ -114,6 +136,7 @@ const ExperianReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ============================================================
@@ -132,6 +155,7 @@ const ExperianReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ============================================================
@@ -147,6 +171,7 @@ const ExperianReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ============================================================
@@ -160,6 +185,7 @@ const ExperianReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
   // ============================================================
@@ -199,7 +225,7 @@ const ExperianReport = () => {
       return "Please select date of birth.";
     }
 
-    if (formData.pincode.length !== 6) {
+    if (!formData.pincode || formData.pincode.length !== 6) {
       return "Please enter a valid 6-digit pincode.";
     }
 
@@ -284,18 +310,15 @@ const ExperianReport = () => {
 
       console.log("[REACT] Experian Request:", {
         ...payload,
-        panNumber: "********",
+        panNumber: "**********",
       });
 
       // ========================================================
       // API CALL
       // ========================================================
 
-      // const response = await axios.post(
-      //   `${API_URL}/api/experian/report`,
-      //   payload,
-      // );
       const response = await creditAPI.generateExperianReport(payload);
+
       console.log("[REACT] Experian Response:", response.data);
 
       // ========================================================
@@ -303,19 +326,19 @@ const ExperianReport = () => {
       // ========================================================
 
       if (response.data?.success) {
-        const data = response.data.data;
+        const data = response.data?.data || {};
 
         setReportData(data);
 
         setSuccess(
-          response.data.message || "Experian report generated successfully.",
+          response.data?.message || "Experian report generated successfully.",
         );
 
         setTotalGenerated((prev) => prev + 1);
 
         setTodayGenerated((prev) => prev + 1);
 
-        // Scroll to report result
+        // Scroll to report
         setTimeout(() => {
           document.getElementById("experian-report-result")?.scrollIntoView({
             behavior: "smooth",
@@ -371,22 +394,226 @@ const ExperianReport = () => {
   };
 
   // ============================================================
-  // DOWNLOAD EXCEL REPORT
+  // GET ALL RECENT EXPERIAN REPORTS
   // ============================================================
 
-  const handleDownloadReport = () => {
-    const reportUrl = reportData?.excelExperianReport;
+  const handleOpenRecentReports = async () => {
+    try {
+      setRecentReportsOpen(true);
+      setRecentLoading(true);
+      setRecentError("");
 
-    if (!reportUrl) {
-      setError("Experian report download link is not available.");
-      return;
+      const response = await creditAPI.getAllCreditReports("Experian");
+
+      console.log("[REACT] Recent Experian Reports:", response.data);
+
+      if (response.data?.success) {
+        setRecentReports(
+          Array.isArray(response.data?.data) ? response.data.data : [],
+        );
+      } else {
+        setRecentReports([]);
+
+        setRecentError(
+          response.data?.message || "Unable to fetch Experian reports.",
+        );
+      }
+    } catch (err) {
+      console.error("[REACT] Recent Experian Reports Error:", err);
+
+      setRecentReports([]);
+
+      setRecentError(
+        err?.response?.data?.message ||
+          "Unable to fetch recent Experian reports.",
+      );
+    } finally {
+      setRecentLoading(false);
     }
-
-    window.open(reportUrl, "_blank", "noopener,noreferrer");
   };
 
   // ============================================================
-  // UI
+  // CLOSE RECENT REPORTS
+  // ============================================================
+
+  const handleCloseRecentReports = () => {
+    setRecentReportsOpen(false);
+    setRecentSearch("");
+    setRecentError("");
+  };
+
+  // ============================================================
+  // FILTER RECENT REPORTS
+  // ============================================================
+
+  const filteredRecentReports = useMemo(() => {
+    if (!recentSearch.trim()) {
+      return recentReports;
+    }
+
+    const search = recentSearch.trim().toLowerCase();
+
+    return recentReports.filter((report) => {
+      const reportId = report?._id || report?.id || report?.reportId || "";
+
+      const name =
+        report?.fullName ||
+        report?.name ||
+        `${report?.firstName || ""} ${report?.lastName || ""}`.trim();
+
+      const mobile = report?.mobileNumber || report?.mobile || "";
+
+      const pan = report?.panNumber || report?.pan || "";
+
+      const score =
+        report?.score !== null && report?.score !== undefined
+          ? String(report.score)
+          : "";
+
+      return [reportId, name, mobile, pan, score]
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [recentReports, recentSearch]);
+
+  // ============================================================
+  // OPEN SINGLE RECENT REPORT
+  // ============================================================
+
+  const handleOpenRecentReport = (report) => {
+    if (!report) {
+      return;
+    }
+
+    console.log("[REACT] Selected Experian Report:", report);
+
+    setSelectedRecentReport(report);
+    setSelectedReportOpen(true);
+  };
+
+  // ============================================================
+  // CLOSE SINGLE REPORT
+  // ============================================================
+
+  const handleCloseSelectedReport = () => {
+    setSelectedReportOpen(false);
+    setSelectedRecentReport(null);
+  };
+
+  // ============================================================
+  // DOWNLOAD PDF / REPORT
+  // ============================================================
+
+  const downloadBase64File = (
+    base64,
+    fileName = "Experian-Credit-Report.pdf",
+    mimeType = "application/pdf",
+  ) => {
+    if (!base64) {
+      throw new Error("Report data is empty.");
+    }
+
+    // Remove data URL prefix if present
+    const base64Data = base64.includes(",") ? base64.split(",")[1] : base64;
+
+    // Remove whitespace/newlines
+    const cleanBase64 = base64Data.replace(/\s/g, "");
+
+    const byteCharacters = atob(cleanBase64);
+
+    const byteNumbers = new Array(byteCharacters.length);
+
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+
+    const blob = new Blob([byteArray], {
+      type: mimeType,
+    });
+
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+    }, 1000);
+  };
+
+  // ============================================================
+  // DOWNLOAD CURRENT REPORT
+  // ============================================================
+
+  const handleDownloadReport = () => {
+    const reportBase64 =
+      reportData?.excelExperianReport ||
+      reportData?.experianReport ||
+      reportData?.reportBase64 ||
+      reportData?.pdfBase64;
+
+    if (!reportBase64) {
+      setError("Experian report file is not available.");
+
+      return;
+    }
+
+    try {
+      downloadBase64File(
+        reportBase64,
+        "Experian-Credit-Report.pdf",
+        "application/pdf",
+      );
+    } catch (err) {
+      console.error("[REACT] PDF conversion error:", err);
+
+      setError("Unable to convert Experian report into PDF.");
+    }
+  };
+
+  // ============================================================
+  // DOWNLOAD RECENT REPORT
+  // ============================================================
+
+  const handleDownloadRecentReport = (report) => {
+    const reportBase64 =
+      report?.excelExperianReport ||
+      report?.experianReport ||
+      report?.reportBase64 ||
+      report?.pdfBase64;
+
+    if (!reportBase64) {
+      setRecentError("Report file is not available for download.");
+
+      return;
+    }
+
+    try {
+      downloadBase64File(
+        reportBase64,
+        "Experian-Credit-Report.pdf",
+        "application/pdf",
+      );
+    } catch (err) {
+      console.error("[REACT] Recent report download error:", err);
+
+      setRecentError("Unable to download Experian report.");
+    }
+  };
+
+  // ============================================================
+  // RENDER
   // ============================================================
 
   return (
@@ -432,32 +659,70 @@ const ExperianReport = () => {
             },
           }}
         >
-          <Typography
+          <Box
             sx={{
-              fontSize: {
-                xs: "1.6rem",
-                sm: "2rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "flex-start",
+                sm: "center",
               },
-              fontWeight: 700,
-              lineHeight: 1.2,
-              color: "#fff",
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              gap: 2,
             }}
           >
-            Experian Report
-          </Typography>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: {
+                    xs: "1.6rem",
+                    sm: "2rem",
+                  },
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  color: "#fff",
+                }}
+              >
+                Experian Report
+              </Typography>
 
-          <Typography
-            sx={{
-              mt: 0.7,
-              color: "#d1d5db",
-              fontSize: {
-                xs: "0.85rem",
-                sm: "0.95rem",
-              },
-            }}
-          >
-            Get your Experian credit summary securely and hassle-free.
-          </Typography>
+              <Typography
+                sx={{
+                  mt: 0.7,
+                  color: "#d1d5db",
+                  fontSize: {
+                    xs: "0.85rem",
+                    sm: "0.95rem",
+                  },
+                }}
+              >
+                Get your Experian credit summary securely and hassle-free.
+              </Typography>
+            </Box>
+
+            {/* RECENT REPORT BUTTON */}
+
+            <Button
+              variant="outlined"
+              startIcon={<VisibilityIcon />}
+              onClick={handleOpenRecentReports}
+              sx={{
+                color: "#fff",
+                borderColor: "#64748b",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: "#fff",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Recent Reports
+            </Button>
+          </Box>
         </Box>
 
         {/* ====================================================
@@ -598,6 +863,8 @@ const ExperianReport = () => {
                 },
               }}
             >
+              {/* CUSTOMER DETAILS */}
+
               <Box mb={3}>
                 <Typography
                   sx={{
@@ -621,7 +888,7 @@ const ExperianReport = () => {
               </Box>
 
               {/* =================================================
-                  BASIC DETAILS
+                  PERSONAL INFORMATION
               ================================================= */}
 
               <Typography
@@ -696,6 +963,9 @@ const ExperianReport = () => {
                     onChange={handleMobileChange}
                     placeholder="10-digit mobile number"
                     required
+                    inputProps={{
+                      maxLength: 10,
+                    }}
                     InputProps={{
                       startAdornment: (
                         <Typography
@@ -825,7 +1095,7 @@ const ExperianReport = () => {
               <Divider sx={{ my: 4 }} />
 
               {/* =================================================
-                  ADDRESS DETAILS
+                  ADDRESS
               ================================================= */}
 
               <Typography
@@ -850,6 +1120,9 @@ const ExperianReport = () => {
                     onChange={handlePincodeChange}
                     placeholder="6-digit pincode"
                     required
+                    inputProps={{
+                      maxLength: 6,
+                    }}
                     InputProps={{
                       startAdornment: (
                         <LocationOnIcon
@@ -1018,12 +1291,10 @@ const ExperianReport = () => {
                       fontWeight: 700,
                       textTransform: "none",
                       boxShadow: "none",
-
                       "&:hover": {
                         backgroundColor: "#1d4ed8",
                         boxShadow: "none",
                       },
-
                       "&.Mui-disabled": {
                         backgroundColor: "#9ca3af",
                         color: "#fff",
@@ -1155,9 +1426,7 @@ const ExperianReport = () => {
                   />
                 </Box>
 
-                {/* =================================================
-                    SCORE
-                ================================================= */}
+                {/* SCORE */}
 
                 <Box
                   sx={{
@@ -1194,11 +1463,7 @@ const ExperianReport = () => {
                     {reportData.score ?? "N/A"}
                   </Typography>
 
-                  <Box
-                    sx={{
-                      mt: 1.5,
-                    }}
-                  >
+                  <Box sx={{ mt: 1.5 }}>
                     <Chip
                       label={
                         reportData.exactMatch === "Y"
@@ -1212,9 +1477,7 @@ const ExperianReport = () => {
                   </Box>
                 </Box>
 
-                {/* =================================================
-                    REPORT INFORMATION
-                ================================================= */}
+                {/* REPORT INFORMATION */}
 
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
@@ -1335,11 +1598,12 @@ const ExperianReport = () => {
                   </Grid>
                 </Grid>
 
-                {/* =================================================
-                    DOWNLOAD
-                ================================================= */}
+                {/* DOWNLOAD */}
 
-                {reportData.excelExperianReport && (
+                {(reportData?.excelExperianReport ||
+                  reportData?.experianReport ||
+                  reportData?.reportBase64 ||
+                  reportData?.pdfBase64) && (
                   <Button
                     fullWidth
                     variant="contained"
@@ -1353,7 +1617,6 @@ const ExperianReport = () => {
                       textTransform: "none",
                       fontWeight: 700,
                       boxShadow: "none",
-
                       "&:hover": {
                         backgroundColor: "#15803d",
                         boxShadow: "none",
@@ -1368,6 +1631,438 @@ const ExperianReport = () => {
           )}
         </Box>
       </Box>
+
+      {/* ========================================================
+          RECENT REPORTS DIALOG
+      ======================================================== */}
+
+      <Dialog
+        open={recentReportsOpen}
+        onClose={handleCloseRecentReports}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle>Recent Experian Reports</DialogTitle>
+
+        <DialogContent>
+          {/* SEARCH */}
+
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search by name, PAN, mobile or report ID..."
+            value={recentSearch}
+            onChange={(e) => setRecentSearch(e.target.value)}
+            sx={{
+              mb: 2,
+              mt: 1,
+            }}
+          />
+
+          {/* ERROR */}
+
+          {recentError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {recentError}
+            </Alert>
+          )}
+
+          {/* LOADING */}
+
+          {recentLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                py: 5,
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : filteredRecentReports.length === 0 ? (
+            <Alert severity="info">No Experian reports found.</Alert>
+          ) : (
+            <TableContainer
+              component={Paper}
+              sx={{
+                maxHeight: 500,
+              }}
+            >
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+
+                    <TableCell>Mobile</TableCell>
+
+                    <TableCell>PAN</TableCell>
+
+                    <TableCell>Bureau</TableCell>
+
+                    <TableCell>Credit Score</TableCell>
+
+                    <TableCell>Date</TableCell>
+
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+
+                <TableBody>
+                  {filteredRecentReports.map((report, index) => {
+                    const reportId =
+                      report?._id ||
+                      report?.id ||
+                      report?.reportId ||
+                      `report-${index}`;
+
+                    const name =
+                      report?.fullName ||
+                      report?.name ||
+                      `${report?.firstName || ""} ${
+                        report?.lastName || ""
+                      }`.trim() ||
+                      "-";
+
+                    const mobile =
+                      report?.mobileNumber || report?.mobile || "-";
+
+                    const pan = report?.panNumber || report?.pan || "-";
+
+                    return (
+                      <TableRow key={reportId} hover>
+                        <TableCell>{name}</TableCell>
+
+                        <TableCell>{mobile}</TableCell>
+
+                        <TableCell>{pan}</TableCell>
+
+                        <TableCell>
+                          <Chip
+                            label="Experian"
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          {report?.score !== null &&
+                          report?.score !== undefined ? (
+                            <Chip
+                              label={report.score}
+                              size="small"
+                              color="primary"
+                            />
+                          ) : (
+                            <Chip label="N/A" size="small" variant="outlined" />
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {report?.createdAt
+                            ? new Date(report.createdAt).toLocaleDateString(
+                                "en-IN",
+                              )
+                            : "-"}
+                        </TableCell>
+
+                        <TableCell>
+                          <Button
+                            size="small"
+                            startIcon={<VisibilityIcon />}
+                            onClick={() => handleOpenRecentReport(report)}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCloseRecentReports} disabled={recentLoading}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ========================================================
+          SELECTED REPORT DIALOG
+      ======================================================== */}
+
+      <Dialog
+        open={selectedReportOpen}
+        onClose={handleCloseSelectedReport}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Experian Report Details</DialogTitle>
+
+        <DialogContent>
+          {selectedRecentReport && (
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              {/* NAME */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Customer Name
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedRecentReport?.fullName ||
+                      selectedRecentReport?.name ||
+                      `${selectedRecentReport?.firstName || ""} ${
+                        selectedRecentReport?.lastName || ""
+                      }`.trim() ||
+                      "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* MOBILE */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Mobile
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedRecentReport?.mobileNumber ||
+                      selectedRecentReport?.mobile ||
+                      "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* PAN */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    PAN
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedRecentReport?.panNumber ||
+                      selectedRecentReport?.pan ||
+                      "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* SCORE */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Credit Score
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 700,
+                      fontSize: "1.4rem",
+                      color: "#2563eb",
+                    }}
+                  >
+                    {selectedRecentReport?.score ?? "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* REPORT ID */}
+
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Report ID
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {selectedRecentReport?._id ||
+                      selectedRecentReport?.id ||
+                      selectedRecentReport?.reportId ||
+                      "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* REPORT DATE */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Report Date
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedRecentReport?.createdAt
+                      ? new Date(
+                          selectedRecentReport.createdAt,
+                        ).toLocaleDateString("en-IN")
+                      : selectedRecentReport?.reportDate || "N/A"}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* MATCH */}
+
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Match Status
+                  </Typography>
+
+                  <Box sx={{ mt: 0.7 }}>
+                    <Chip
+                      label={
+                        selectedRecentReport?.exactMatch === "Y"
+                          ? "Exact Match"
+                          : "Not Confirmed"
+                      }
+                      color={
+                        selectedRecentReport?.exactMatch === "Y"
+                          ? "success"
+                          : "warning"
+                      }
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          {selectedRecentReport &&
+            (selectedRecentReport?.excelExperianReport ||
+              selectedRecentReport?.experianReport ||
+              selectedRecentReport?.reportBase64 ||
+              selectedRecentReport?.pdfBase64) && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<DownloadIcon />}
+                onClick={() => handleDownloadRecentReport(selectedRecentReport)}
+              >
+                Download Report
+              </Button>
+            )}
+
+          <Button onClick={handleCloseSelectedReport}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
