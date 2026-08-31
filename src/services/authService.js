@@ -120,10 +120,24 @@ export const creditAPI = {
   // ==========================================
   generateCrifReport: async (formData) =>
     await api.post("/credit/generate-crif-report", formData),
-
+  // ==========================================
+  // SUBMIT CRIF ANSWER
+  // ==========================================
+  submitCrifAnswer: async (payload) =>
+    await api.post("/credit/generate-crif-report", payload),
   generateEquifaxReport: async (payload) =>
     await api.post("/credit/generate-equifax-report", payload),
 
   generateExperianReport: async (payload) =>
     await api.post("/credit/generate-experian-report", payload),
+
+  getAllCreditReports: async (bureau) => {
+    const url = bureau
+      ? `/credit/get-credit-rpt?bureau=${encodeURIComponent(bureau)}`
+      : `/credit/get-credit-rpt`;
+
+    const response = await api.get(url);
+
+    return response.data;
+  },
 };
