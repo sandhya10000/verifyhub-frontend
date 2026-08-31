@@ -116,7 +116,7 @@ const PartnerLayout = () => {
     //   path: "/partner/pricing",
     // },
     {
-      text: "AI Report Analyzer",
+      text: "AI Credit Report Analyzer",
       icon: <Bot size={20} />,
       path: "/partner/ai-analyzer",
     },
