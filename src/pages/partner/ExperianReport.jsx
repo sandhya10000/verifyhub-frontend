@@ -326,7 +326,7 @@ const ExperianReport = () => {
       // ========================================================
 
       if (response.data?.success) {
-        const data = response.data?.data || {};
+        const data = response.data || {};
 
         setReportData(data);
 
@@ -405,17 +405,17 @@ const ExperianReport = () => {
 
       const response = await creditAPI.getAllCreditReports("Experian");
 
-      console.log("[REACT] Recent Experian Reports:", response.data);
+      console.log("[REACT] Recent Experian Reports:", response);
 
-      if (response.data?.success) {
+      if (response?.success) {
         setRecentReports(
-          Array.isArray(response.data?.data) ? response.data.data : [],
+          Array.isArray(response?.data) ? response.data : [],
         );
       } else {
         setRecentReports([]);
 
         setRecentError(
-          response.data?.message || "Unable to fetch Experian reports.",
+          response?.message || "Unable to fetch Experian reports.",
         );
       }
     } catch (err) {
@@ -708,7 +708,7 @@ const ExperianReport = () => {
             <Button
               variant="outlined"
               startIcon={<VisibilityIcon />}
-              onClick={handleOpenRecentReports}
+              onClick={(e) => { e.currentTarget.blur(); handleOpenRecentReports(); }}
               sx={{
                 color: "#fff",
                 borderColor: "#64748b",
@@ -744,7 +744,7 @@ const ExperianReport = () => {
           ================================================== */}
 
           <Grid container spacing={2.5} mb={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
@@ -777,7 +777,7 @@ const ExperianReport = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <Card
                 elevation={0}
                 sx={{
@@ -904,7 +904,7 @@ const ExperianReport = () => {
               <Grid container spacing={2.5}>
                 {/* FIRST NAME */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="First Name"
@@ -913,23 +913,25 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter first name"
                     required
-                    InputProps={{
-                      startAdornment: (
-                        <PersonIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <PersonIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* LAST NAME */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Last Name"
@@ -938,23 +940,25 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter last name"
                     required
-                    InputProps={{
-                      startAdornment: (
-                        <PersonIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <PersonIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* MOBILE */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Mobile Number"
@@ -963,35 +967,37 @@ const ExperianReport = () => {
                     onChange={handleMobileChange}
                     placeholder="10-digit mobile number"
                     required
-                    inputProps={{
-                      maxLength: 10,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <Typography
-                          sx={{
-                            mr: 1,
-                            color: "#64748b",
-                          }}
-                        >
-                          +91
-                        </Typography>
-                      ),
-                      endAdornment: (
-                        <PhoneIcon
-                          sx={{
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 10,
+                      },
+                      input: {
+                        startAdornment: (
+                          <Typography
+                            sx={{
+                              mr: 1,
+                              color: "#64748b",
+                            }}
+                          >
+                            +91
+                          </Typography>
+                        ),
+                        endAdornment: (
+                          <PhoneIcon
+                            sx={{
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* EMAIL */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     type="email"
@@ -1001,23 +1007,25 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="customer@example.com"
                     required
-                    InputProps={{
-                      startAdornment: (
-                        <EmailIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <EmailIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* PAN */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="PAN Number"
@@ -1026,26 +1034,28 @@ const ExperianReport = () => {
                     onChange={handlePanChange}
                     placeholder="ABCDE1234F"
                     required
-                    inputProps={{
-                      maxLength: 10,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <CreditCardIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 10,
+                      },
+                      input: {
+                        startAdornment: (
+                          <CreditCardIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* DOB */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     type="date"
@@ -1054,26 +1064,28 @@ const ExperianReport = () => {
                     value={formData.dob}
                     onChange={handleChange}
                     required
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <CalendarMonthIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      inputLabel: {
+                        shrink: true,
+                      },
+                      input: {
+                        startAdornment: (
+                          <CalendarMonthIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* GENDER */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     select
                     fullWidth
@@ -1111,7 +1123,7 @@ const ExperianReport = () => {
               <Grid container spacing={2.5}>
                 {/* PINCODE */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Pincode"
@@ -1120,26 +1132,28 @@ const ExperianReport = () => {
                     onChange={handlePincodeChange}
                     placeholder="6-digit pincode"
                     required
-                    inputProps={{
-                      maxLength: 6,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <LocationOnIcon
-                          sx={{
-                            mr: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 6,
+                      },
+                      input: {
+                        startAdornment: (
+                          <LocationOnIcon
+                            sx={{
+                              mr: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* STATE */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="State"
@@ -1153,7 +1167,7 @@ const ExperianReport = () => {
 
                 {/* CITY */}
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="City"
@@ -1167,7 +1181,7 @@ const ExperianReport = () => {
 
                 {/* ADDRESS LINE 1 */}
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     label="Address Line 1"
@@ -1178,24 +1192,26 @@ const ExperianReport = () => {
                     required
                     multiline
                     minRows={2}
-                    InputProps={{
-                      startAdornment: (
-                        <HomeIcon
-                          sx={{
-                            mr: 1,
-                            mt: 1,
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <HomeIcon
+                            sx={{
+                              mr: 1,
+                              mt: 1,
+                              color: "#94a3b8",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                      },
                     }}
                   />
                 </Grid>
 
                 {/* ADDRESS LINE 2 */}
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     label="Address Line 2"
@@ -1270,7 +1286,7 @@ const ExperianReport = () => {
               ================================================= */}
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={8}>
+                <Grid xs={12} sm={8}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -1307,7 +1323,7 @@ const ExperianReport = () => {
                   </Button>
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid xs={12} sm={4}>
                   <Button
                     fullWidth
                     variant="outlined"
@@ -1480,7 +1496,7 @@ const ExperianReport = () => {
                 {/* REPORT INFORMATION */}
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid xs={12} sm={6}>
                     <Box
                       sx={{
                         p: 2,
@@ -1510,7 +1526,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid item xs={12} sm={6}>
+                  <Grid xs={12} sm={6}>
                     <Box
                       sx={{
                         p: 2,
@@ -1539,7 +1555,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid item xs={12} sm={6}>
+                  <Grid xs={12} sm={6}>
                     <Box
                       sx={{
                         p: 2,
@@ -1568,7 +1584,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid item xs={12} sm={6}>
+                  <Grid xs={12} sm={6}>
                     <Box
                       sx={{
                         p: 2,
