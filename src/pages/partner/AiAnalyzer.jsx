@@ -9,7 +9,8 @@ import {
   Chip,
   Grid,
   Stack,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import {
   UploadCloud,
@@ -53,6 +54,7 @@ const AiAnalyzer = () => {
   // Download-specific states — separate from the main upload error so
   // a download failure doesn't reset the on-screen result cards.
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isGeneratingHtml, setIsGeneratingHtml] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
   const [chunkProgress, setChunkProgress] = useState(null);
   const fileInputRef = useRef(null);
@@ -130,6 +132,28 @@ const AiAnalyzer = () => {
     }
   };
 
+  // ── beforeunload guard ──────────────────────────────────────────────────
+  // Intercepts tab close / browser back / hard-refresh while analysing.
+  // Must be removed once analysis finishes so it doesn't linger.
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      // Modern browsers show their own generic message; setting returnValue
+      // is required to trigger the native dialog in older Chrome/Firefox.
+      e.returnValue = '';
+    };
+
+    if (isAnalyzing) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    } else {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAnalyzing]);
+
   useEffect(() => {
     let intervalId;
 
@@ -184,27 +208,102 @@ const AiAnalyzer = () => {
     };
   }, [isAnalyzing, analysisId]);
 
+  useEffect(() => {
+    let intervalId;
+
+    if (isGeneratingHtml && analysisId) {
+      console.log('[AiAnalyzer] Starting HTML generation poll for analysisId:', analysisId);
+      let attempts = 0;
+      const MAX_ATTEMPTS = 100;
+
+      intervalId = setInterval(async () => {
+        attempts++;
+        console.log(`[AiAnalyzer] Polling HTML status (${attempts}/${MAX_ATTEMPTS})`);
+
+        if (attempts > MAX_ATTEMPTS) {
+          console.error('[AiAnalyzer] Max polling attempts reached for HTML generation');
+          setDownloadError('Report generation took too long. Please try again.');
+          setIsGeneratingHtml(false);
+          setIsDownloading(false);
+          clearInterval(intervalId);
+          return;
+        }
+
+        try {
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`http://localhost:5000/api/ai-analyzer/${analysisId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          if (response.data.success) {
+            const { htmlStatus } = response.data;
+
+            if (htmlStatus === 'completed') {
+              console.log('[AiAnalyzer] HTML generation COMPLETED, fetching file...');
+              clearInterval(intervalId);
+
+              try {
+                const pdfResponse = await axios.get(
+                  `http://localhost:5000/api/ai-analyzer/${analysisId}/download-pdf`,
+                  { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' }
+                );
+
+                const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'text/html' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `credit-analysis-${analysisId}.html`);
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                setIsGeneratingHtml(false);
+                setIsDownloading(false);
+              } catch (downloadErr) {
+                console.error('[AiAnalyzer] Failed to download completed HTML:', downloadErr);
+                setDownloadError('Failed to download the generated report.');
+                setIsGeneratingHtml(false);
+                setIsDownloading(false);
+              }
+            } else if (htmlStatus === 'failed') {
+              console.error('[AiAnalyzer] HTML generation FAILED on backend');
+              setDownloadError('Failed to generate the full HTML report. Please try again.');
+              setIsGeneratingHtml(false);
+              setIsDownloading(false);
+              clearInterval(intervalId);
+            } else {
+              console.log('[AiAnalyzer] HTML still generating, status:', htmlStatus);
+            }
+          }
+        } catch (err) {
+          console.error('[AiAnalyzer] HTML polling request error:', err.message);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isGeneratingHtml, analysisId]);
+
   const handleDownloadPdf = async () => {
     if (!analysisId) return;
     setIsDownloading(true);
+    setIsGeneratingHtml(true);
     setDownloadError(null);
 
     const token = localStorage.getItem('token');
 
-    // Retry loop — if the server returns 202 (htmlGenerating in-flight from
-    // a concurrent request), wait 4 s and try again, up to 15 attempts (~60 s).
-    const MAX_RETRIES = 15;
-    const RETRY_DELAY_MS = 4000;
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/ai-analyzer/${analysisId}/download-pdf`,
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 } // Omit blob to allow 202 JSON parsing cleanly; 60s safety timeout
+      );
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        console.log(`[AiAnalyzer] Download attempt ${attempt}/${MAX_RETRIES} for analysisId:`, analysisId);
-        const response = await axios.get(
-          `http://localhost:5000/api/ai-analyzer/${analysisId}/download-pdf`,
-          { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' }
-        );
-
-        // Success — trigger browser download
+      // If it returned 200, the HTML is ready (cached path A)
+      if (response.status === 200) {
+        console.log('[AiAnalyzer] Download endpoint returned HTML directly');
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/html' }));
         const link = document.createElement('a');
         link.href = url;
@@ -214,40 +313,22 @@ const AiAnalyzer = () => {
         link.parentNode.removeChild(link);
         window.URL.revokeObjectURL(url);
         setIsDownloading(false);
-        return;
-      } catch (err) {
-        const status = err.response?.status;
-        const body = err.response?.data;
-
-        // 202 — generation in-flight, retry after delay
-        if (status === 202) {
-          console.log(`[AiAnalyzer] 202 received (generation in-flight) — retrying in ${RETRY_DELAY_MS}ms...`);
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-          continue;
-        }
-
-        // Any other error — surface to user and stop
-        let message = 'Failed to generate PDF report.';
-        if (status === 500 && body) {
-          // body may be a Blob (responseType: 'blob') — try to read it as text
-          try {
-            const text = typeof body === 'string'
-              ? body
-              : await new Response(body).text();
-            const parsed = JSON.parse(text);
-            if (parsed.message) message = parsed.message;
-          } catch (_) { /* leave default message */ }
-        }
-        console.error(`[AiAnalyzer] Download FAILED (status ${status}):`, message);
-        setDownloadError(message);
-        setIsDownloading(false);
-        return;
+        setIsGeneratingHtml(false);
+      } else if (response.status === 202) {
+        console.log('[AiAnalyzer] Backend returned 202 Accepted, starting polling...');
+        // The useEffect will pick up isGeneratingHtml = true and start polling
       }
+    } catch (err) {
+      const status = err.response?.status;
+      
+      if (status === 429) {
+        setDownloadError('Report generation failed recently. Please wait a moment before trying again.');
+      } else {
+        setDownloadError('Failed to initiate report generation.');
+      }
+      setIsDownloading(false);
+      setIsGeneratingHtml(false);
     }
-
-    // Exhausted retries
-    setDownloadError('Report generation is taking too long. Please try again in a moment.');
-    setIsDownloading(false);
   };
 
 
@@ -268,6 +349,52 @@ const AiAnalyzer = () => {
 
   return (
     <Box sx={{ pb: 6 }}>
+      {/* ── Analysis-in-progress warning banner (fixed, top of viewport) ── */}
+      {isAnalyzing && (
+        <Box
+          role="alert"
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            bgcolor: '#FFFBEB',
+            borderBottom: '2px solid #F59E0B',
+            color: '#78350F',
+            px: 3,
+            py: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1.5,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            boxShadow: '0 2px 8px rgba(245,158,11,.18)',
+          }}
+        >
+          {/* Amber pulsing dot */}
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: '#F59E0B',
+              flexShrink: 0,
+              '@keyframes pulse': {
+                '0%,100%': { opacity: 1 },
+                '50%': { opacity: 0.4 },
+              },
+              animation: 'pulse 1.4s ease-in-out infinite',
+            }}
+          />
+          <Box component="span">
+            <Box component="span" sx={{ fontWeight: 700 }}>Analysis in progress — </Box>
+            don't refresh or navigate away, or your report progress will be lost.
+          </Box>
+        </Box>
+      )}
+
       {/* ── Page Header ── */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box
@@ -370,7 +497,7 @@ const AiAnalyzer = () => {
                 fullWidth
                 size="large"
                 onClick={handleUpload}
-                disabled={isUploading || isAnalyzing || !selectedFile}
+                disabled={isUploading || isAnalyzing || !selectedFile || !!analysisResult}
                 sx={{
                   mt: 'auto',
                   bgcolor: '#3730A3',
@@ -496,7 +623,6 @@ const AiAnalyzer = () => {
                   </Typography>
                 </Box>
               )}
-
               {/* Download error alert — separate from main upload error */}
               {downloadError && (
                 <Alert
@@ -510,51 +636,65 @@ const AiAnalyzer = () => {
 
               {/* Action Buttons */}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={isDownloading ? null : <ArrowDownToLine size={18} />}
-                  onClick={handleDownloadPdf}
-                  disabled={!analysisResult || isDownloading}
-                  sx={{
-                    borderColor: 'divider',
-                    color: isDownloading ? 'text.secondary' : 'text.primary',
-                    minWidth: 200,
-                    position: 'relative',
-                  }}
-                >
-                  {isDownloading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        component="span"
-                        sx={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          border: '2px solid currentColor',
-                          borderTopColor: 'transparent',
-                          animation: 'spin 0.8s linear infinite',
-                          display: 'inline-block',
-                          '@keyframes spin': { to: { transform: 'rotate(360deg)' } },
-                        }}
-                      />
-                      Generating report…
-                    </Box>
-                  ) : (
-                    'Download Analysis Report'
-                  )}
-                </Button>
+                {isAnalyzing ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: '#EEF2FF', borderRadius: 2, color: '#3730A3', width: '100%' }}>
+                    <CircularProgress size={24} sx={{ color: '#3730A3' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Your report is being analyzed... this may take up to a minute.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={isDownloading || isGeneratingHtml ? null : <ArrowDownToLine size={18} />}
+                    onClick={handleDownloadPdf}
+                    disabled={!analysisResult || isDownloading || isGeneratingHtml}
+                    sx={{
+                      borderColor: 'divider',
+                      color: isDownloading ? 'text.secondary' : 'text.primary',
+                      minWidth: 200,
+                      position: 'relative',
+                    }}
+                  >
+                    {isDownloading || isGeneratingHtml ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            border: '2px solid currentColor',
+                            borderTopColor: 'transparent',
+                            animation: 'spin 0.8s linear infinite',
+                            display: 'inline-block',
+                            '@keyframes spin': { to: { transform: 'rotate(360deg)' } },
+                          }}
+                        />
+                        {isGeneratingHtml ? 'Generating report…' : 'Downloading...'}
+                      </Box>
+                    ) : (
+                      'Download Analysis Report'
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<Save size={18} />}
                   disabled
-                  title="Save to Reports — coming soon"
+                  title="Saved automatically to Reports"
                   sx={{ borderColor: 'divider', color: 'text.disabled', cursor: 'not-allowed' }}
                 >
                   Save to Reports
                 </Button>
               </Stack>
+              {isGeneratingHtml && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  Generating your report, this can take a minute or two for detailed profiles...
+                </Typography>
+              )}
 
             </CardContent>
           </Card>

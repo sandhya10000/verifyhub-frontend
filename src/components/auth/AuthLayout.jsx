@@ -18,7 +18,7 @@ const AuthLayout = ({ children, variant = 'split' }) => {
         }}
       >
         <Box sx={{ mb: 4, textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-          <Logo height={60} alt="VerifyHub" />
+          <Logo height={80} alt="VerifyHub" />
         </Box>
         {children}
       </Box>
