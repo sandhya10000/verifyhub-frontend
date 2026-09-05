@@ -132,6 +132,28 @@ const AiAnalyzer = () => {
     }
   };
 
+  // ── beforeunload guard ──────────────────────────────────────────────────
+  // Intercepts tab close / browser back / hard-refresh while analysing.
+  // Must be removed once analysis finishes so it doesn't linger.
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      // Modern browsers show their own generic message; setting returnValue
+      // is required to trigger the native dialog in older Chrome/Firefox.
+      e.returnValue = '';
+    };
+
+    if (isAnalyzing) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    } else {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAnalyzing]);
+
   useEffect(() => {
     let intervalId;
 
@@ -327,6 +349,52 @@ const AiAnalyzer = () => {
 
   return (
     <Box sx={{ pb: 6 }}>
+      {/* ── Analysis-in-progress warning banner (fixed, top of viewport) ── */}
+      {isAnalyzing && (
+        <Box
+          role="alert"
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            bgcolor: '#FFFBEB',
+            borderBottom: '2px solid #F59E0B',
+            color: '#78350F',
+            px: 3,
+            py: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1.5,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            boxShadow: '0 2px 8px rgba(245,158,11,.18)',
+          }}
+        >
+          {/* Amber pulsing dot */}
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: '#F59E0B',
+              flexShrink: 0,
+              '@keyframes pulse': {
+                '0%,100%': { opacity: 1 },
+                '50%': { opacity: 0.4 },
+              },
+              animation: 'pulse 1.4s ease-in-out infinite',
+            }}
+          />
+          <Box component="span">
+            <Box component="span" sx={{ fontWeight: 700 }}>Analysis in progress — </Box>
+            don't refresh or navigate away, or your report progress will be lost.
+          </Box>
+        </Box>
+      )}
+
       {/* ── Page Header ── */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box
@@ -616,7 +684,7 @@ const AiAnalyzer = () => {
                   color="inherit"
                   startIcon={<Save size={18} />}
                   disabled
-                  title="Save to Reports — coming soon"
+                  title="Saved automatically to Reports"
                   sx={{ borderColor: 'divider', color: 'text.disabled', cursor: 'not-allowed' }}
                 >
                   Save to Reports

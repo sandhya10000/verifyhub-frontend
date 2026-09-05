@@ -121,7 +121,7 @@ const Reports = () => {
             '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }
           }}
         >
-          {downloadingId === row.id ? 'Downloading...' : 'PDF \u2193'}
+          {downloadingId === row.id ? 'Downloading...' : 'HTML \u2193'}
         </Box>
       )
     }
@@ -155,8 +155,6 @@ const Reports = () => {
       ) : (
         <DataTable
           title="All Reports"
-          actionLabel="Export to Excel \u2193"
-          onAction={handleExport}
           columns={columns}
           data={reportsData}
           emptyMessage="No reports available yet"
