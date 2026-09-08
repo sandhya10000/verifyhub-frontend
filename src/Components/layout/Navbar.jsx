@@ -41,7 +41,7 @@ const Navbar = () => {
             }}
           >
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, textDecoration: 'none' }}>
-              <Logo height={60} alt="VerifyHub Icon" />
+              <Logo height={80} alt="VerifyHub Icon" />
             </Box>
 
             {/* Desktop Links */}

@@ -116,7 +116,7 @@ const PartnerLayout = () => {
     //   path: "/partner/pricing",
     // },
     {
-      text: "AI Report Analyzer",
+      text: "AI Credit Report Analyzer",
       icon: <Bot size={20} />,
       path: "/partner/ai-analyzer",
     },
@@ -154,7 +154,7 @@ const PartnerLayout = () => {
       <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         {/* Logo */}
         <Box sx={{ flexShrink: 0 }}>
-          <Logo height={50} alt="VerifyHub" style={{ boxShadow: 'none', filter: 'none', display: 'block' }} />
+          <Logo height={80} alt="VerifyHub" style={{ boxShadow: 'none', filter: 'none', display: 'block' }} />
         </Box>
 
         {/* Vertical divider */}

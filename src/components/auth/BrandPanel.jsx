@@ -43,7 +43,7 @@ const BrandPanel = () => {
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-          <Logo height={60} alt="VerifyHub" />
+          <Logo height={80} alt="VerifyHub" />
         </Box>
 
         <Typography

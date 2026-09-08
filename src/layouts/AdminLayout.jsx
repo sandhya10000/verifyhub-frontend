@@ -45,7 +45,7 @@ const AdminLayout = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'secondary.main', color: 'primary.contrastText' }}>
       <Box sx={{ p: 2.5 }}>
         <Box sx={{ mb: 0.5 }}>
-          <Logo height={60} alt="VerifyHub" />
+          <Logo height={80} alt="VerifyHub" />
         </Box>
         <Typography variant="overline" sx={{ color: '#F59E0B', opacity: 0.9 }}>
           ADMIN CONSOLE

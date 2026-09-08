@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container, Grid, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import Logo from '../shared/Logo';
-import FooterLogo from '../../assets/footer-logo.png';
+import FooterLogo from '../../assets/LOGO_1.png';
 import { FOOTER_LINKS, CONTACT_INFO } from '../../data/navigation';
 
 const Footer = () => {
