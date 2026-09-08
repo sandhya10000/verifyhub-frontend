@@ -28,6 +28,7 @@ import {
   TableCell,
   TableContainer,
   Paper,
+  Link,
 } from "@mui/material";
 
 import PersonIcon from "@mui/icons-material/Person";
@@ -46,7 +47,21 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 // API URL
 // ============================================================
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const getReportUrl = (report) => {
+  if (report?.localPath) {
+    const baseUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
+      : "http://localhost:5000/api";
+
+    const localPath = report.localPath.startsWith("/")
+      ? report.localPath
+      : `/${report.localPath}`;
+
+    return `${baseUrl}${localPath}`;
+  }
+
+  return report?.reportUrl || null;
+};
 
 // ============================================================
 // COMPONENT
@@ -408,9 +423,7 @@ const ExperianReport = () => {
       console.log("[REACT] Recent Experian Reports:", response);
 
       if (response?.success) {
-        setRecentReports(
-          Array.isArray(response?.data) ? response.data : [],
-        );
+        setRecentReports(Array.isArray(response?.data) ? response.data : []);
       } else {
         setRecentReports([]);
 
@@ -708,7 +721,10 @@ const ExperianReport = () => {
             <Button
               variant="outlined"
               startIcon={<VisibilityIcon />}
-              onClick={(e) => { e.currentTarget.blur(); handleOpenRecentReports(); }}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                handleOpenRecentReports();
+              }}
               sx={{
                 color: "#fff",
                 borderColor: "#64748b",
@@ -1782,13 +1798,22 @@ const ExperianReport = () => {
                         </TableCell>
 
                         <TableCell>
-                          <Button
-                            size="small"
-                            startIcon={<VisibilityIcon />}
-                            onClick={() => handleOpenRecentReport(report)}
-                          >
-                            View
-                          </Button>
+                          {getReportUrl(report) ? (
+                            <Button
+                              size="small"
+                              startIcon={<VisibilityIcon />}
+                              component={Link}
+                              href={getReportUrl(report)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Report
+                            </Button>
+                          ) : (
+                            <Typography variant="caption" color="textSecondary">
+                              No PDF
+                            </Typography>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

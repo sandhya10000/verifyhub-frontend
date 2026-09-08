@@ -34,6 +34,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Link,
+  MenuItem,
 } from "@mui/material";
 
 import {
@@ -56,6 +58,7 @@ import {
   VerifiedUser,
   Visibility,
 } from "@mui/icons-material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { creditAPI } from "../../services/authService";
 
@@ -178,17 +181,6 @@ const CrifReport = () => {
     } catch {
       return dateValue;
     }
-  };
-  const getReportUrl = (report) => {
-    // Use local path if available, otherwise use the original report URL
-    if (report.localPath) {
-      // For local paths, use the base server URL without /api prefix
-      const baseUrl = import.meta.env.VITE_REACT_APP_API_URL
-        ? import.meta.env.VITE_REACT_APP_API_URL.replace("/api", "")
-        : "https://reactbackend.creditdost.co.in";
-      return `${baseUrl}${report.localPath}`;
-    }
-    return report.reportUrl;
   };
 
   // ============================================================
@@ -314,6 +306,33 @@ const CrifReport = () => {
     } finally {
       setRecentLoading(false);
     }
+  };
+  const getReportUrl = (report) => {
+    // 1. If backend already provides reportUrl, use it
+    if (report?.reportUrl) {
+      return report.reportUrl;
+    }
+
+    // 2. Convert local filesystem path to public URL
+    if (report?.localPath) {
+      const baseUrl = import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
+        : "http://localhost:5000";
+
+      // Windows "\" -> "/"
+      const normalizedPath = report.localPath.replace(/\\/g, "/");
+
+      // Find /uploads/ part
+      const uploadsIndex = normalizedPath.indexOf("/uploads/");
+
+      if (uploadsIndex !== -1) {
+        const publicPath = normalizedPath.substring(uploadsIndex);
+
+        return `${baseUrl}${publicPath}`;
+      }
+    }
+
+    return null;
   };
 
   // ============================================================
@@ -1140,6 +1159,29 @@ const CrifReport = () => {
                       }}
                       sx={inputSx}
                     />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      required
+                      select
+                      label="Gender"
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      sx={inputSx}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <VerifiedUser fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    >
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </TextField>
                   </Grid>
 
                   <Grid item xs={12} md={6}>
@@ -2316,14 +2358,22 @@ const CrifReport = () => {
                         </TableCell>
 
                         <TableCell>
-                          <Button
-                            size="small"
-                            startIcon={<Visibility />}
-                            onClick={() => handleOpenRecentReport(report)}
-                            disabled={!reportId || loading}
-                          >
-                            View Report
-                          </Button>
+                          {getReportUrl(report) ? (
+                            <Button
+                              size="small"
+                              startIcon={<VisibilityIcon />}
+                              component={Link}
+                              href={getReportUrl(report)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Report
+                            </Button>
+                          ) : (
+                            <Typography variant="caption" color="textSecondary">
+                              No PDF
+                            </Typography>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
