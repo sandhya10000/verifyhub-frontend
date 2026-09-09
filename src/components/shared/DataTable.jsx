@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -23,6 +23,11 @@ import {
  *   emptyMessage – string shown when data is empty
  *   headerContent- custom React node for the entire header (overrides title/actionLabel)
  */
+/**
+ * Additional prop:
+ *   pageSize  – number. When provided, enables client-side pagination and
+ *               shows controls only when total rows > pageSize.
+ */
 const DataTable = ({
   columns,
   data,
@@ -31,8 +36,25 @@ const DataTable = ({
   onAction,
   emptyMessage = 'No data available',
   headerContent,
+  pageSize,
 }) => {
+  const [page, setPage] = useState(1);
+
+  // Reset to first page whenever the underlying data changes
+  // (re-fetch, filter change, etc.) so we never land on an out-of-range page.
+  useEffect(() => {
+    setPage(1);
+  }, [data]);
+
+  const paginate = Number.isFinite(pageSize) && pageSize > 0;
+  const totalPages = paginate ? Math.ceil(data.length / pageSize) : 1;
+  const showPagination = paginate && data.length > pageSize;
+
+  const visibleRows = paginate
+    ? data.slice((page - 1) * pageSize, page * pageSize)
+    : data;
   const showHeader = title || actionLabel || headerContent;
+
 
   return (
     // Outer Paper — never scrolls; header lives here, safely outside any
@@ -123,7 +145,7 @@ const DataTable = ({
           </TableHead>
 
           <TableBody>
-            {data.map((row, rowIdx) => (
+            {visibleRows.map((row, rowIdx) => (
               <TableRow
                 key={rowIdx}
                 sx={{
@@ -155,6 +177,96 @@ const DataTable = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* ── Pagination footer ──────────────────────────────────────────── */}
+      {showPagination && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 1,
+            px: 2.5,
+            py: 1.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          {/* Prev button */}
+          <Box
+            component="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            aria-label="Previous page"
+            sx={{
+              all: 'unset',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: page === 1 ? 'divider' : 'divider',
+              color: page === 1 ? 'text.disabled' : 'text.secondary',
+              cursor: page === 1 ? 'default' : 'pointer',
+              fontSize: '1rem',
+              lineHeight: 1,
+              transition: 'background 0.15s, color 0.15s',
+              '&:not(:disabled):hover': {
+                bgcolor: 'action.hover',
+                color: 'text.primary',
+              },
+            }}
+          >
+            &#8249;
+          </Box>
+
+          {/* Page counter */}
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 500,
+              minWidth: 80,
+              textAlign: 'center',
+              userSelect: 'none',
+            }}
+          >
+            Page {page} of {totalPages}
+          </Typography>
+
+          {/* Next button */}
+          <Box
+            component="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            aria-label="Next page"
+            sx={{
+              all: 'unset',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: 'divider',
+              color: page === totalPages ? 'text.disabled' : 'text.secondary',
+              cursor: page === totalPages ? 'default' : 'pointer',
+              fontSize: '1rem',
+              lineHeight: 1,
+              transition: 'background 0.15s, color 0.15s',
+              '&:not(:disabled):hover': {
+                bgcolor: 'action.hover',
+                color: 'text.primary',
+              },
+            }}
+          >
+            &#8250;
+          </Box>
+        </Box>
+      )}
     </Paper>
   );
 };

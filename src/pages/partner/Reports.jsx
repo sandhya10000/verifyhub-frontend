@@ -158,6 +158,7 @@ const Reports = () => {
           columns={columns}
           data={reportsData}
           emptyMessage="No reports available yet"
+          pageSize={10}
         />
       )}
     </Box>

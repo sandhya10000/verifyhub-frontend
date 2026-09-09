@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, Skeleton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import useAuth from '../../context/useAuth';
 import StatCard from '../../Components/shared/StatCard';
 import DataTable from '../../Components/shared/DataTable';
@@ -16,18 +17,65 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
+/**
+ * Converts a 7-element trend array [{ date, count }] into an SVG <path> d string
+ * that fits a 120×32 viewBox. Missing / all-zero data falls back to a flat line.
+ */
+const buildSparklinePath = (trend) => {
+  if (!trend || trend.length === 0) {
+    return 'M 0,26 L 112,26'; // flat line fallback
+  }
+  const counts = trend.map((t) => t.count);
+  const max = Math.max(...counts, 1); // avoid div/0
+  const W = 112, H = 28, PAD = 4; // drawable area
+  const points = counts.map((c, i) => {
+    const x = (i / (counts.length - 1)) * W;
+    const y = PAD + (1 - c / max) * H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return `M ${points.join(' L ')}`;
+};
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // ── Report stats fetched from /api/ai-analyzer/stats ────────────────────
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [todayCount, setTodayCount]     = useState(null);
+  const [monthCount, setMonthCount]     = useState(null);
+  const [todayTrend, setTodayTrend]     = useState([]);
+  const [monthTrend, setMonthTrend]     = useState([]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:5000/api/ai-analyzer/stats', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.success) {
+          setTodayCount(res.data.todayCount);
+          setMonthCount(res.data.monthCount);
+          setTodayTrend(res.data.todayTrend || []);
+          setMonthTrend(res.data.monthTrend || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch report stats:', err);
+        // Leave counts as null — empty states will render
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   // These will be replaced with real API responses when the backend is ready.
   // Pass empty arrays / null so the UI renders its empty states immediately.
   const recentPulls  = [];   // TODO: fetch from /api/partner/pulls?limit=5
   const activityFeed = [];   // TODO: fetch from /api/partner/activity?limit=10
-  const statsToday   = null; // TODO: fetch from /api/partner/stats/today
-  const statsMonth   = null; // TODO: fetch from /api/partner/stats/month
 
   const walletBalance =
     user?.walletBalance != null
@@ -87,21 +135,29 @@ const Dashboard = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Reports Today */}
         <Grid size={{ xs: 12, md: 4 }}>
-          {statsToday ? (
+          {statsLoading ? (
+            // ── Loading skeleton ──
+            <Box sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
+              <Skeleton variant="text" width="60%" height={16} sx={{ mb: 1.5 }} />
+              <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
+              <Skeleton variant="text" width="50%" height={14} />
+            </Box>
+          ) : todayCount > 0 ? (
+            // ── Data state ──
             <StatCard
               title="REPORTS DOWNLOADED · TODAY"
-              value={String(statsToday.total)}
-              trend={statsToday.trend > 0 ? String(statsToday.trend) : undefined}
-              subtitle={`${statsToday.success} success / ${statsToday.failed} failed`}
+              value={String(todayCount)}
+              subtitle="AI analyses completed"
               decoration={
                 <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                    <path d={buildSparklinePath(todayTrend)} />
                   </svg>
                 </Box>
               }
             />
           ) : (
+            // ── Empty state ──
             <StatCard
               title="REPORTS DOWNLOADED · TODAY"
               value="—"
@@ -119,20 +175,29 @@ const Dashboard = () => {
 
         {/* Reports This Month */}
         <Grid size={{ xs: 12, md: 4 }}>
-          {statsMonth ? (
+          {statsLoading ? (
+            // ── Loading skeleton ──
+            <Box sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
+              <Skeleton variant="text" width="65%" height={16} sx={{ mb: 1.5 }} />
+              <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
+              <Skeleton variant="text" width="55%" height={14} />
+            </Box>
+          ) : monthCount > 0 ? (
+            // ── Data state ──
             <StatCard
               title="REPORTS DOWNLOADED · THIS MONTH"
-              value={String(statsMonth.total)}
-              subtitle={`${statsMonth.label} · success rate ${statsMonth.successRate}%`}
+              value={String(monthCount)}
+              subtitle="AI analyses this calendar month"
               decoration={
                 <Box sx={{ color: '#10B981', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
+                    <path d={buildSparklinePath(monthTrend)} />
                   </svg>
                 </Box>
               }
             />
           ) : (
+            // ── Empty state ──
             <StatCard
               title="REPORTS DOWNLOADED · THIS MONTH"
               value="—"

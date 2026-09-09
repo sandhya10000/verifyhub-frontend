@@ -24,7 +24,7 @@ const Footer = () => {
           {/* Brand Column */}
           <Grid size={{ xs: 12, md: 3 }}>
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex', textDecoration: 'none', mb: 2 }}>
-              <img src={FooterLogo} alt="VerifyHub" style={{ height: '60px', width: 'auto', display: 'block' }} />
+              <img src={FooterLogo} alt="VerifyHub" style={{ height: '50px', width: 'auto', display: 'block' }} />
             </Box>
             <Typography sx={{ fontSize: '14px', color: theme.palette.text.secondary, maxWidth: 290, mt: 1, lineHeight: 1.65 }}>
               API and technology infrastructure for India's lending ecosystem — credit data, verification and AI decisioning under one platform.

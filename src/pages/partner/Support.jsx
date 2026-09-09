@@ -144,16 +144,16 @@ const Support = () => {
                 Mon–Sat · 9:30 AM – 7:00 PM IST
               </Typography>
             </Box>
-            <Divider />
+            {/* <Divider /> */}
 
-            <Box sx={{ py: 2, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 2, alignItems: 'center' }}>
+            {/* <Box sx={{ py: 2, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 2, alignItems: 'center' }}>
               <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}>
                 ESCALATION
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 partners@verifyhub.in
               </Typography>
-            </Box>
+            </Box> */}
           </Box>
         </Paper>
 
