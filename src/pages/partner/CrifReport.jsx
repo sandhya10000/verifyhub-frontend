@@ -1164,26 +1164,96 @@ const CrifReport = () => {
                   </Grid>
 
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      required
-                      type="date"
-                      label="Date of Birth"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleChange}
-                      InputLabelProps={{
-                        shrink: true,
+                    {/* DOB uses a custom floating label because native
+                        Chrome/Edge date controls can overlap MUI labels. */}
+                    <Box
+                      sx={{
+                        position: "relative",
+                        width: "100%",
                       }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <CalendarMonth fontSize="small" />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={inputSx}
-                    />
+                    >
+                      <Typography
+                        component="span"
+                        sx={{
+                          position: "absolute",
+                          zIndex: 2,
+                          top: -7,
+                          left: 12,
+                          px: 0.6,
+                          backgroundColor: "#fff",
+                          color: "text.secondary",
+                          fontSize: "0.75rem",
+                          fontWeight: 500,
+                          lineHeight: 1.2,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        Date of Birth *
+                      </Typography>
+
+                      <TextField
+                        fullWidth
+                        required
+                        type="date"
+                        name="dob"
+                        value={formData.dob}
+                        onChange={handleChange}
+                        inputProps={{
+                          "aria-label": "Date of Birth",
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CalendarMonth
+                                fontSize="small"
+                                sx={{
+                                  color: "#94a3b8",
+                                }}
+                              />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          ...inputSx,
+
+                          "& .MuiOutlinedInput-root": {
+                            ...inputSx["& .MuiOutlinedInput-root"],
+                            minHeight: 50,
+                            borderRadius: "8px !important",
+                            backgroundColor: "#fff",
+                          },
+
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderRadius: "8px !important",
+                          },
+
+                          "& input[type='date']": {
+                            boxSizing: "border-box",
+                            minHeight: 48,
+                            paddingTop: "14px",
+                            paddingBottom: "14px",
+                            lineHeight: 1.4,
+                            minWidth: 0,
+                          },
+
+                          "& input[type='date']::-webkit-datetime-edit": {
+                            padding: 0,
+                          },
+
+                          "& input[type='date']::-webkit-datetime-edit-fields-wrapper": {
+                            padding: 0,
+                          },
+
+                          "& input[type='date']::-webkit-calendar-picker-indicator": {
+                            cursor: "pointer",
+                            opacity: 0.75,
+                            width: 18,
+                            height: 18,
+                            marginLeft: 6,
+                          },
+                        }}
+                      />
+                    </Box>
                   </Grid>
                 </Grid>
 

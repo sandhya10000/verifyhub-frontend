@@ -128,45 +128,40 @@ const CibilReport = () => {
         reportType: "cibil",
         consent: formData.consent ? "Y" : "N",
       };
+
       console.log("CIBIL API Payload:", payload);
 
       /*
         ==========================================
         API INTEGRATION
         ==========================================
+      */
 
-        
- */
       const response = await creditAPI.generateCibilReport(payload);
 
-      //   if (response.data?.reportUrl) {
-      //     window.open(response.data.reportUrl, "_blank");
-      //   }
       console.log("FULL RESPONSE:", response);
       console.log("RESPONSE DATA:", response.data);
       console.log("SUCCESS:", response.data?.success);
       console.log("CIBIL RESULT:", response.data?.creditReport);
 
-      //   // Temporary API simulation
-      //   await new Promise((resolve) => setTimeout(resolve, 1000));
       if (response.data?.success) {
         setCibilResult(response.data);
 
-        // Optional: automatically open report
-        // Don't use this if you only want the user to click "View CIBIL Report"
         /*
-      if (response.data?.creditReport?.reportUrl) {
-        window.open(
-          response.data.creditReport.reportUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
-      }
-      */
+        // Optional: automatically open report
+
+        if (response.data?.creditReport?.reportUrl) {
+          window.open(
+            response.data.creditReport.reportUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        }
+        */
       } else {
         setError(
           response.data?.message ||
-            "Unable to generate CIBIL report. Please try again.",
+          "Unable to generate CIBIL report. Please try again."
         );
       }
     } catch (err) {
@@ -174,13 +169,24 @@ const CibilReport = () => {
 
       setError(
         err?.response?.data?.message ||
-          "Unable to generate CIBIL report. Please try again.",
+        "Unable to generate CIBIL report. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
-  useEffect(() => {}, []);
+
+  // ==========================================
+  // FETCH EXISTING CIBIL REPORT
+  // ==========================================
+  useEffect(() => {
+    if (id) {
+      fetchCibilReport();
+    } else {
+      setReportLoading(false);
+    }
+  }, [id]);
+
   const fetchCibilReport = async () => {
     try {
       setReportLoading(true);
@@ -195,13 +201,16 @@ const CibilReport = () => {
       if (result?.success) {
         setCibilResult(result);
       } else {
-        setReportError(result?.message || "Unable to fetch CIBIL report.");
+        setReportError(
+          result?.message || "Unable to fetch CIBIL report."
+        );
       }
     } catch (error) {
       console.error("GET CIBIL REPORT ERROR:", error);
 
       setReportError(
-        error?.response?.data?.message || "Unable to fetch CIBIL report.",
+        error?.response?.data?.message ||
+        "Unable to fetch CIBIL report."
       );
     } finally {
       setReportLoading(false);
@@ -220,11 +229,12 @@ const CibilReport = () => {
       }}
     >
       {/* ==========================================
-    HEADER
-========================================== */}
+          HEADER
+      ========================================== */}
+
       <Box
         sx={{
-          background: "#121212",
+          background: "#3730a3",
           color: "#fff",
           px: {
             xs: 2.5,
@@ -272,6 +282,7 @@ const CibilReport = () => {
       {/* ==========================================
           CONTENT
       ========================================== */}
+
       <Box
         sx={{
           maxWidth: 1000,
@@ -286,9 +297,12 @@ const CibilReport = () => {
         {/* ==========================================
             STAT CARDS
         ========================================== */}
+
         <Grid container spacing={2.5} mb={3}>
+
           {/* TOTAL */}
-          <Grid item xs={12} sm={6}>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Card
               elevation={0}
               sx={{
@@ -324,7 +338,8 @@ const CibilReport = () => {
           </Grid>
 
           {/* TODAY */}
-          <Grid item xs={12} sm={6}>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Card
               elevation={0}
               sx={{
@@ -363,9 +378,11 @@ const CibilReport = () => {
         {/* ==========================================
             MAIN FORM
         ========================================== */}
+
         <Card
           elevation={0}
           sx={{
+            marginTop: "5px",
             borderRadius: 3,
             border: "1px solid #e5e7eb",
             backgroundColor: "#fff",
@@ -381,6 +398,7 @@ const CibilReport = () => {
             }}
           >
             {/* FORM TITLE */}
+
             <Box mb={3}>
               <Typography
                 sx={{
@@ -404,6 +422,7 @@ const CibilReport = () => {
             </Box>
 
             {/* ERROR */}
+
             {error && (
               <Alert
                 severity="error"
@@ -417,11 +436,12 @@ const CibilReport = () => {
             )}
 
             <Grid container spacing={2.5}>
-              {/* ==========================================
-      ROW 1 - FIRST NAME + LAST NAME
-  ========================================== */}
 
-              <Grid item xs={12} md={6}>
+              {/* ==========================================
+                  ROW 1 - FIRST NAME + LAST NAME + MOBILE
+              ========================================== */}
+
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="First Name"
@@ -445,7 +465,7 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="Last Name"
@@ -469,11 +489,7 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              {/* ==========================================
-      ROW 2 - MOBILE + PAN
-  ========================================== */}
-
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="Mobile Number"
@@ -521,7 +537,11 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              {/* ==========================================
+                  ROW 2 - PAN + GENDER + REPORT TYPE
+              ========================================== */}
+
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="PAN Number"
@@ -549,10 +569,10 @@ const CibilReport = () => {
               </Grid>
 
               {/* ==========================================
-      ROW 3 - GENDER + REPORT TYPE
-  ========================================== */}
+                  GENDER
+              ========================================== */}
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   select
                   fullWidth
@@ -591,7 +611,12 @@ const CibilReport = () => {
                   <MenuItem value="Other">Other</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}>
+
+              {/* ==========================================
+                  REPORT TYPE
+              ========================================== */}
+
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="Report Type"
@@ -616,6 +641,7 @@ const CibilReport = () => {
             {/* ==========================================
                 CUSTOMER CONSENT
             ========================================== */}
+
             <Box
               sx={{
                 mt: 3,
@@ -694,6 +720,7 @@ const CibilReport = () => {
             {/* ==========================================
                 DOWNLOAD BUTTON
             ========================================== */}
+
             <Button
               fullWidth
               variant="contained"
@@ -727,12 +754,15 @@ const CibilReport = () => {
                 },
               }}
             >
-              {loading ? "Generating CIBIL Report..." : "Download CIBIL Report"}
+              {loading
+                ? "Generating CIBIL Report..."
+                : "Download CIBIL Report"}
             </Button>
 
             {/* ==========================================
                 SECURITY NOTE
             ========================================== */}
+
             <Box
               sx={{
                 mt: 2,
@@ -762,11 +792,19 @@ const CibilReport = () => {
         </Card>
       </Box>
 
+      {/* ==========================================
+          REPORT ERROR
+      ========================================== */}
+
       {reportError && (
         <Alert severity="error" sx={{ mt: 3 }}>
           {reportError}
         </Alert>
       )}
+
+      {/* ==========================================
+          CIBIL RESULT
+      ========================================== */}
 
       {cibilResult?.success && cibilResult?.creditReport && (
         <Card
@@ -778,8 +816,17 @@ const CibilReport = () => {
             backgroundColor: "#fff",
           }}
         >
-          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+          <CardContent
+            sx={{
+              p: {
+                xs: 2,
+                sm: 3,
+                md: 4,
+              },
+            }}
+          >
             {/* SUCCESS HEADER */}
+
             <Box
               sx={{
                 display: "flex",
@@ -818,7 +865,10 @@ const CibilReport = () => {
               </Box>
             </Box>
 
-            {/* CIBIL SCORE */}
+            {/* ==========================================
+                CIBIL SCORE
+            ========================================== */}
+
             <Box
               sx={{
                 p: 3,
@@ -862,7 +912,10 @@ const CibilReport = () => {
               </Typography>
             </Box>
 
-            {/* CUSTOMER DETAILS */}
+            {/* ==========================================
+                CUSTOMER DETAILS
+            ========================================== */}
+
             <Typography
               sx={{
                 fontSize: "1rem",
@@ -875,8 +928,10 @@ const CibilReport = () => {
             </Typography>
 
             <Grid container spacing={2}>
+
               {/* NAME */}
-              <Grid item xs={12} sm={6}>
+
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -906,7 +961,8 @@ const CibilReport = () => {
               </Grid>
 
               {/* MOBILE */}
-              <Grid item xs={12} sm={6}>
+
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -936,7 +992,8 @@ const CibilReport = () => {
               </Grid>
 
               {/* PAN */}
-              <Grid item xs={12} sm={6}>
+
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -966,66 +1023,41 @@ const CibilReport = () => {
               </Grid>
 
               {/* GENDER */}
-              <Grid item>
-                <TextField
-                  select
-                  fullWidth
-                  required
-                  label="Gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  placeholder="Select Gender"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
+
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
                   sx={{
-                    "& .MuiInputBase-root": {
-                      height: 56,
-                    },
-
-                    "& .MuiSelect-select": {
-                      display: "flex",
-                      alignItems: "center",
-                      minHeight: "unset !important",
-                      paddingTop: "16.5px",
-                      paddingBottom: "16.5px",
-                    },
-
-                    "& .MuiInputLabel-root": {
-                      backgroundColor: "#fff",
-                      padding: "0 4px",
-                    },
-
-                    "& .MuiInputAdornment-root": {
-                      marginRight: "8px",
-                    },
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <WcIcon
-                          sx={{
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      </InputAdornment>
-                    ),
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
                   }}
                 >
-                  <MenuItem value="" disabled>
-                    Select Gender
-                  </MenuItem>
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Gender
+                  </Typography>
 
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
-                </TextField>
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                    }}
+                  >
+                    {cibilResult.creditReport.gender ||
+                      formData.gender ||
+                      "—"}
+                  </Typography>
+                </Box>
               </Grid>
 
               {/* REPORT TYPE */}
-              <Grid item xs={12} sm={6}>
+
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1056,7 +1088,8 @@ const CibilReport = () => {
               </Grid>
 
               {/* REQUEST ID */}
-              <Grid item xs={12} sm={6}>
+
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1088,7 +1121,10 @@ const CibilReport = () => {
               </Grid>
             </Grid>
 
-            {/* VIEW REPORT */}
+            {/* ==========================================
+                VIEW REPORT
+            ========================================== */}
+
             <Box
               sx={{
                 mt: 3,
@@ -1116,7 +1152,7 @@ const CibilReport = () => {
                   window.open(
                     cibilResult.creditReport.reportUrl,
                     "_blank",
-                    "noopener,noreferrer",
+                    "noopener,noreferrer"
                   )
                 }
                 sx={{
@@ -1137,7 +1173,10 @@ const CibilReport = () => {
               </Button>
             </Box>
 
-            {/* CREATED DATE */}
+            {/* ==========================================
+                CREATED DATE
+            ========================================== */}
+
             <Typography
               sx={{
                 mt: 2,
@@ -1147,9 +1186,9 @@ const CibilReport = () => {
               }}
             >
               Generated on{" "}
-              {new Date(cibilResult.creditReport.createdAt).toLocaleString(
-                "en-IN",
-              )}
+              {new Date(
+                cibilResult.creditReport.createdAt
+              ).toLocaleString("en-IN")}
             </Typography>
           </CardContent>
         </Card>

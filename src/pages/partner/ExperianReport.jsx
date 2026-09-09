@@ -52,6 +52,36 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 // COMPONENT
 // ============================================================
 
+const fieldSx = {
+  width: "100%",
+  "& .MuiOutlinedInput-root": {
+    width: "100%",
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: "8px !important",
+    backgroundColor: "#fff",
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderRadius: "8px !important",
+  },
+  "& .MuiInputBase-input": {
+    boxSizing: "border-box",
+  },
+  "& .MuiSelect-select": {
+    width: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+  },
+};
+
+const selectFieldSx = {
+  ...fieldSx,
+  "& .MuiOutlinedInput-root": {
+    ...fieldSx["& .MuiOutlinedInput-root"],
+    cursor: "pointer",
+  },
+};
+
 const ExperianReport = () => {
   // ============================================================
   // FORM DATA
@@ -646,7 +676,7 @@ const ExperianReport = () => {
 
         <Box
           sx={{
-            background: "#121212",
+            background: "#3730a3",
             color: "#fff",
             px: {
               xs: 2.5,
@@ -744,7 +774,7 @@ const ExperianReport = () => {
           ================================================== */}
 
           <Grid container spacing={2.5} mb={3}>
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Card
                 elevation={0}
                 sx={{
@@ -777,7 +807,7 @@ const ExperianReport = () => {
               </Card>
             </Grid>
 
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Card
                 elevation={0}
                 sx={{
@@ -904,7 +934,7 @@ const ExperianReport = () => {
               <Grid container spacing={2.5}>
                 {/* FIRST NAME */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="First Name"
@@ -913,6 +943,7 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter first name"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       input: {
                         startAdornment: (
@@ -931,7 +962,7 @@ const ExperianReport = () => {
 
                 {/* LAST NAME */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Last Name"
@@ -940,6 +971,7 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter last name"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       input: {
                         startAdornment: (
@@ -958,7 +990,7 @@ const ExperianReport = () => {
 
                 {/* MOBILE */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Mobile Number"
@@ -967,6 +999,7 @@ const ExperianReport = () => {
                     onChange={handleMobileChange}
                     placeholder="10-digit mobile number"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       htmlInput: {
                         maxLength: 10,
@@ -997,7 +1030,7 @@ const ExperianReport = () => {
 
                 {/* EMAIL */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     type="email"
@@ -1007,6 +1040,7 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="customer@example.com"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       input: {
                         startAdornment: (
@@ -1025,7 +1059,7 @@ const ExperianReport = () => {
 
                 {/* PAN */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="PAN Number"
@@ -1034,6 +1068,7 @@ const ExperianReport = () => {
                     onChange={handlePanChange}
                     placeholder="ABCDE1234F"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       htmlInput: {
                         maxLength: 10,
@@ -1055,7 +1090,7 @@ const ExperianReport = () => {
 
                 {/* DOB */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     type="date"
@@ -1064,6 +1099,7 @@ const ExperianReport = () => {
                     value={formData.dob}
                     onChange={handleChange}
                     required
+                    sx={fieldSx}
                     slotProps={{
                       inputLabel: {
                         shrink: true,
@@ -1085,7 +1121,7 @@ const ExperianReport = () => {
 
                 {/* GENDER */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     select
                     fullWidth
@@ -1094,6 +1130,7 @@ const ExperianReport = () => {
                     value={formData.gender}
                     onChange={handleChange}
                     required
+                    sx={selectFieldSx}
                   >
                     <MenuItem value="Male">Male</MenuItem>
 
@@ -1123,7 +1160,7 @@ const ExperianReport = () => {
               <Grid container spacing={2.5}>
                 {/* PINCODE */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Pincode"
@@ -1132,6 +1169,7 @@ const ExperianReport = () => {
                     onChange={handlePincodeChange}
                     placeholder="6-digit pincode"
                     required
+                    sx={fieldSx}
                     slotProps={{
                       htmlInput: {
                         maxLength: 6,
@@ -1153,7 +1191,7 @@ const ExperianReport = () => {
 
                 {/* STATE */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="State"
@@ -1162,12 +1200,13 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter state"
                     required
+                    sx={fieldSx}
                   />
                 </Grid>
 
                 {/* CITY */}
 
-                <Grid xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="City"
@@ -1176,12 +1215,13 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Enter city"
                     required
+                    sx={fieldSx}
                   />
                 </Grid>
 
                 {/* ADDRESS LINE 1 */}
 
-                <Grid xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Address Line 1"
@@ -1190,6 +1230,7 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="House / Flat / Street / Area"
                     required
+                    sx={fieldSx}
                     multiline
                     minRows={2}
                     slotProps={{
@@ -1211,7 +1252,7 @@ const ExperianReport = () => {
 
                 {/* ADDRESS LINE 2 */}
 
-                <Grid xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Address Line 2"
@@ -1220,6 +1261,7 @@ const ExperianReport = () => {
                     onChange={handleChange}
                     placeholder="Landmark / Locality / Additional address"
                     required
+                    sx={fieldSx}
                     multiline
                     minRows={2}
                   />
@@ -1496,7 +1538,7 @@ const ExperianReport = () => {
                 {/* REPORT INFORMATION */}
 
                 <Grid container spacing={2}>
-                  <Grid xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
                         p: 2,
@@ -1526,7 +1568,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
                         p: 2,
@@ -1555,7 +1597,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
                         p: 2,
@@ -1584,7 +1626,7 @@ const ExperianReport = () => {
                     </Box>
                   </Grid>
 
-                  <Grid xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
                         p: 2,
@@ -1669,6 +1711,7 @@ const ExperianReport = () => {
             placeholder="Search by name, PAN, mobile or report ID..."
             value={recentSearch}
             onChange={(e) => setRecentSearch(e.target.value)}
+            // sx={fieldSx}
             sx={{
               mb: 2,
               mt: 1,
@@ -1823,7 +1866,7 @@ const ExperianReport = () => {
             <Grid container spacing={2} sx={{ mt: 0.5 }}>
               {/* NAME */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1858,7 +1901,7 @@ const ExperianReport = () => {
 
               {/* MOBILE */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1890,7 +1933,7 @@ const ExperianReport = () => {
 
               {/* PAN */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1922,7 +1965,7 @@ const ExperianReport = () => {
 
               {/* SCORE */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1954,7 +1997,7 @@ const ExperianReport = () => {
 
               {/* REPORT ID */}
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -1988,7 +2031,7 @@ const ExperianReport = () => {
 
               {/* REPORT DATE */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,
@@ -2022,7 +2065,7 @@ const ExperianReport = () => {
 
               {/* MATCH */}
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
                   sx={{
                     p: 2,

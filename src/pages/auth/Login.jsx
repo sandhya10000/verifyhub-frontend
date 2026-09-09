@@ -18,10 +18,14 @@ import AuthCard from '../../components/auth/AuthCard';
 import PasswordField from '../../components/auth/PasswordField';
 import { loginSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
+import LoginLoadingOverlay from '../../components/auth/LoginLoadingOverlay';
 
 const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  // Separate loading state so the overlay stays up until the route transition
+  // completes, not just until the API call resolves.
+  const [loading, setLoading] = useState(false);
   
   const {
     register,
@@ -34,15 +38,28 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       setError(null);
-      await authService.login(data);
-      navigate('/partner/dashboard');
+      // Show the full-screen overlay immediately — before the API call
+      setLoading(true);
+      const res = await authService.login(data);
+      // Keep the overlay visible during route transition; it unmounts with this component
+      if (res.user?.role === 'admin') {
+        navigate('/admin/overview');
+      } else {
+        navigate('/partner/dashboard');
+      }
     } catch (err) {
+      // Dismiss overlay first, then surface the error
+      setLoading(false);
       setError(err.message || 'Failed to login');
     }
   };
 
   return (
-    <AuthLayout variant="split">
+    <>
+      {/* Full-viewport overlay — rendered into document.body via a portal */}
+      <LoginLoadingOverlay visible={loading} />
+
+      <AuthLayout variant="split">
       <AuthCard>
         <Typography variant="h4" sx={{ mb: 1 }}>Welcome back</Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
@@ -63,6 +80,7 @@ const Login = () => {
               {...register('email')}
               error={!!errors.email}
               helperText={errors.email?.message}
+              disabled={loading}
             />
           </Box>
 
@@ -72,12 +90,13 @@ const Login = () => {
               {...register('password')}
               error={!!errors.password}
               helperText={errors.password?.message}
+              disabled={loading}
             />
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <FormControlLabel
-              control={<Checkbox {...register('rememberMe')} color="primary" />}
+              control={<Checkbox {...register('rememberMe')} color="primary" disabled={loading} />}
               label={<Typography variant="body2" color="text.secondary">Remember me</Typography>}
             />
             <Link
@@ -96,10 +115,10 @@ const Login = () => {
             variant="contained"
             color="primary"
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || loading}
             sx={{ mb: 3 }}
           >
-            {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
+            {(isSubmitting || loading) ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
           </Button>
 
           <Typography variant="body2" align="center" color="text.secondary">
@@ -115,6 +134,7 @@ const Login = () => {
         </Box>
       </AuthCard>
     </AuthLayout>
+    </>
   );
 };
 

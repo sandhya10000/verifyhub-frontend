@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { creditAPI } from "../../services/authService";
+
 import {
   Box,
   Typography,
@@ -24,8 +25,6 @@ import WcIcon from "@mui/icons-material/Wc";
 import DescriptionIcon from "@mui/icons-material/Description";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-import axios from "axios";
 
 const EquifaxReport = () => {
   const [formData, setFormData] = useState({
@@ -125,13 +124,9 @@ const EquifaxReport = () => {
 
       const payload = {
         name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
-
         panNumber: formData.pan.trim().toUpperCase(),
-
         mobile: formData.mobile.trim(),
-
         gender: formData.gender.toLowerCase(),
-
         consent: "Y",
       };
 
@@ -154,7 +149,8 @@ const EquifaxReport = () => {
 
       if (response.data?.success) {
         setSuccess(
-          response.data?.message || "Equifax report generated successfully.",
+          response.data?.message ||
+            "Equifax report generated successfully."
         );
 
         // ==========================================
@@ -182,7 +178,8 @@ const EquifaxReport = () => {
         */
       } else {
         setError(
-          response.data?.message || "Unable to generate Equifax report.",
+          response.data?.message ||
+            "Unable to generate Equifax report."
         );
       }
     } catch (err) {
@@ -208,17 +205,30 @@ const EquifaxReport = () => {
         backgroundColor: "#f7f8fa",
         pb: 5,
         pt: 3,
-        px: 2,
+        px: {
+          xs: 1.5,
+          sm: 2,
+          md: 3,
+        },
       }}
     >
+      {/* ==========================================
+          MAIN CONTAINER
+      ========================================== */}
+
       <Box
         sx={{
-          maxWidth: 1000,
+          width: "100%",
+          maxWidth: 1100,
           mx: "auto",
           backgroundColor: "#fff",
-          borderRadius: 3,
+          borderRadius: {
+            xs: 2,
+            sm: 3,
+          },
           overflow: "hidden",
           border: "1px solid #e5e7eb",
+          boxShadow: "0 8px 30px rgba(15, 23, 42, 0.04)",
         }}
       >
         {/* ==========================================
@@ -227,7 +237,7 @@ const EquifaxReport = () => {
 
         <Box
           sx={{
-            background: "#121212",
+            background: "#3730a3",
             color: "#fff",
             px: {
               xs: 2.5,
@@ -236,19 +246,22 @@ const EquifaxReport = () => {
             },
             py: {
               xs: 2.5,
-              md: 3,
+              sm: 3,
+              md: 3.5,
             },
           }}
         >
           <Typography
             sx={{
               fontSize: {
-                xs: "1.6rem",
-                sm: "2rem",
+                xs: "1.55rem",
+                sm: "1.9rem",
+                md: "2.1rem",
               },
               fontWeight: 700,
               lineHeight: 1.2,
               letterSpacing: "-0.5px",
+              color: "#fff",
             }}
           >
             Equifax Report
@@ -256,12 +269,13 @@ const EquifaxReport = () => {
 
           <Typography
             sx={{
-              mt: 0.5,
+              mt: 0.6,
               color: "#d1d5db",
               fontSize: {
-                xs: "0.85rem",
-                sm: "0.95rem",
+                xs: "0.82rem",
+                sm: "0.92rem",
               },
+              lineHeight: 1.5,
             }}
           >
             Get your Equifax credit report securely and instantly
@@ -275,31 +289,59 @@ const EquifaxReport = () => {
         <Box
           sx={{
             px: {
-              xs: 2,
+              xs: 1.5,
               sm: 3,
               md: 4,
             },
-            py: 3,
+            py: {
+              xs: 2.5,
+              sm: 3,
+              md: 4,
+            },
           }}
         >
           {/* ==========================================
               STAT CARDS
           ========================================== */}
 
-          <Grid container spacing={2.5} mb={3}>
-            <Grid item xs={12} sm={6}>
+          <Grid
+            container
+            spacing={2.5}
+            sx={{
+              mb: 3,
+            }}
+          >
+            {/* TOTAL */}
+
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Card
                 elevation={0}
                 sx={{
+                  height: "100%",
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
+                  backgroundColor: "#fff",
                 }}
               >
-                <CardContent sx={{ p: 2.5 }}>
+                <CardContent
+                  sx={{
+                    p: {
+                      xs: 2,
+                      sm: 2.5,
+                    },
+                    "&:last-child": {
+                      pb: {
+                        xs: 2,
+                        sm: 2.5,
+                      },
+                    },
+                  }}
+                >
                   <Typography
                     sx={{
                       color: "#64748b",
                       fontSize: "0.9rem",
+                      fontWeight: 500,
                     }}
                   >
                     Total Equifax Generated
@@ -310,6 +352,7 @@ const EquifaxReport = () => {
                       mt: 0.5,
                       color: "#2563eb",
                       fontSize: "2rem",
+                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -319,19 +362,37 @@ const EquifaxReport = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            {/* TODAY */}
+
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Card
                 elevation={0}
                 sx={{
+                  height: "100%",
                   borderRadius: 3,
                   border: "1px solid #e5e7eb",
+                  backgroundColor: "#fff",
                 }}
               >
-                <CardContent sx={{ p: 2.5 }}>
+                <CardContent
+                  sx={{
+                    p: {
+                      xs: 2,
+                      sm: 2.5,
+                    },
+                    "&:last-child": {
+                      pb: {
+                        xs: 2,
+                        sm: 2.5,
+                      },
+                    },
+                  }}
+                >
                   <Typography
                     sx={{
                       color: "#64748b",
                       fontSize: "0.9rem",
+                      fontWeight: 500,
                     }}
                   >
                     Today Generated
@@ -342,6 +403,7 @@ const EquifaxReport = () => {
                       mt: 0.5,
                       color: "#16a34a",
                       fontSize: "2rem",
+                      lineHeight: 1.2,
                       fontWeight: 700,
                     }}
                   >
@@ -353,7 +415,7 @@ const EquifaxReport = () => {
           </Grid>
 
           {/* ==========================================
-              FORM
+              FORM CARD
           ========================================== */}
 
           <Card
@@ -361,6 +423,7 @@ const EquifaxReport = () => {
             sx={{
               borderRadius: 3,
               border: "1px solid #e5e7eb",
+              backgroundColor: "#fff",
             }}
           >
             <CardContent
@@ -370,12 +433,26 @@ const EquifaxReport = () => {
                   sm: 3,
                   md: 4,
                 },
+                "&:last-child": {
+                  pb: {
+                    xs: 2,
+                    sm: 3,
+                    md: 4,
+                  },
+                },
               }}
             >
+              {/* ==========================================
+                  FORM HEADER
+              ========================================== */}
+
               <Box mb={3}>
                 <Typography
                   sx={{
-                    fontSize: "1.1rem",
+                    fontSize: {
+                      xs: "1rem",
+                      sm: "1.1rem",
+                    },
                     fontWeight: 700,
                     color: "#172033",
                   }}
@@ -387,14 +464,18 @@ const EquifaxReport = () => {
                   sx={{
                     mt: 0.5,
                     fontSize: "0.85rem",
+                    lineHeight: 1.5,
                     color: "#64748b",
                   }}
                 >
-                  Enter customer details to generate the Equifax credit report.
+                  Enter customer details to generate the Equifax credit
+                  report.
                 </Typography>
               </Box>
 
-              {/* ERROR */}
+              {/* ==========================================
+                  ERROR
+              ========================================== */}
 
               {error && (
                 <Alert
@@ -408,7 +489,9 @@ const EquifaxReport = () => {
                 </Alert>
               )}
 
-              {/* SUCCESS */}
+              {/* ==========================================
+                  SUCCESS
+              ========================================== */}
 
               {success && (
                 <Alert
@@ -422,10 +505,22 @@ const EquifaxReport = () => {
                 </Alert>
               )}
 
-              <Grid container spacing={2.5}>
-                {/* FIRST NAME */}
+              {/* ==========================================
+                  FORM FIELDS
+              ========================================== */}
 
-                <Grid item xs={12} md={6}>
+              <Grid
+                container
+                spacing={{
+                  xs: 2,
+                  sm: 2.5,
+                }}
+              >
+                {/* ==========================================
+                    FIRST NAME
+                ========================================== */}
+
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="First Name"
@@ -434,6 +529,12 @@ const EquifaxReport = () => {
                     onChange={handleChange}
                     placeholder="Enter first name"
                     required
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -449,9 +550,11 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                {/* LAST NAME */}
+                {/* ==========================================
+                    LAST NAME
+                ========================================== */}
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Last Name"
@@ -460,6 +563,12 @@ const EquifaxReport = () => {
                     onChange={handleChange}
                     placeholder="Enter last name"
                     required
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -475,9 +584,11 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                {/* MOBILE */}
+                {/* ==========================================
+                    MOBILE NUMBER
+                ========================================== */}
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Mobile Number"
@@ -494,9 +605,16 @@ const EquifaxReport = () => {
                       }));
 
                       setError("");
+                      setSuccess("");
                     }}
                     placeholder="Enter 10-digit mobile number"
                     required
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -510,6 +628,7 @@ const EquifaxReport = () => {
                           </Typography>
                         </InputAdornment>
                       ),
+
                       endAdornment: (
                         <InputAdornment position="end">
                           <PhoneIcon
@@ -524,9 +643,11 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                {/* PAN */}
+                {/* ==========================================
+                    PAN NUMBER
+                ========================================== */}
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="PAN Number"
@@ -544,11 +665,18 @@ const EquifaxReport = () => {
                       }));
 
                       setError("");
+                      setSuccess("");
                     }}
                     placeholder="Enter PAN number"
                     required
                     inputProps={{
                       maxLength: 10,
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                      },
                     }}
                     InputProps={{
                       startAdornment: (
@@ -565,9 +693,11 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                {/* GENDER */}
+                {/* ==========================================
+                    GENDER
+                ========================================== */}
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     select
                     fullWidth
@@ -576,6 +706,27 @@ const EquifaxReport = () => {
                     value={formData.gender}
                     onChange={handleChange}
                     required
+                    SelectProps={{
+                      displayEmpty: true,
+                    }}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    sx={{
+                      width: "100%",
+
+                      "& .MuiOutlinedInput-root": {
+                        width: "100%",
+                        minWidth: 0,
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                      },
+
+                      "& .MuiSelect-select": {
+                        width: "100%",
+                        minWidth: 0,
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -599,14 +750,22 @@ const EquifaxReport = () => {
                   </TextField>
                 </Grid>
 
-                {/* REPORT TYPE */}
+                {/* ==========================================
+                    REPORT TYPE
+                ========================================== */}
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Report Type"
                     value="EQUIFAX"
                     disabled
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "#f8fafc",
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -624,7 +783,7 @@ const EquifaxReport = () => {
               </Grid>
 
               {/* ==========================================
-                  CONSENT
+                  CUSTOMER CONSENT
               ========================================== */}
 
               <Box
@@ -643,6 +802,7 @@ const EquifaxReport = () => {
                   sx={{
                     alignItems: "flex-start",
                     m: 0,
+                    width: "100%",
                   }}
                   control={
                     <Checkbox
@@ -654,7 +814,11 @@ const EquifaxReport = () => {
                     />
                   }
                   label={
-                    <Box>
+                    <Box
+                      sx={{
+                        pr: 1,
+                      }}
+                    >
                       <Typography
                         sx={{
                           fontSize: "0.9rem",
@@ -703,7 +867,7 @@ const EquifaxReport = () => {
               </Box>
 
               {/* ==========================================
-                  GENERATE BUTTON
+                  GENERATE / DOWNLOAD BUTTON
               ========================================== */}
 
               <Button
@@ -713,7 +877,10 @@ const EquifaxReport = () => {
                 disabled={loading || !formData.consent}
                 startIcon={
                   loading ? (
-                    <CircularProgress size={18} color="inherit" />
+                    <CircularProgress
+                      size={18}
+                      color="inherit"
+                    />
                   ) : (
                     <DownloadIcon />
                   )
@@ -744,7 +911,9 @@ const EquifaxReport = () => {
                   : "Download Equifax Report"}
               </Button>
 
-              {/* SECURITY */}
+              {/* ==========================================
+                  SECURITY NOTE
+              ========================================== */}
 
               <Box
                 sx={{
