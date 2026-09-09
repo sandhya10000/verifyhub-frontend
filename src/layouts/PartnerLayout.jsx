@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import Logo from "../Components/shared/Logo";
 import wordmarkImg from "../assets/wordmark.png";
-import { FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaLinkedin, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { FaThreads } from 'react-icons/fa6';
 import useAuth from '../context/useAuth';
 
@@ -156,6 +156,7 @@ const PartnerLayout = () => {
     { icon: <FaThreads size={15} />, label: 'Threads', href: 'https://www.threads.com/@info.verifyhub?invite=0', color: '#000000' },
     { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=m93h8jz', color: '#E1306C' },
     { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },
+    { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com/@info.verifyhub?si=KMG9lv2oPEuIvdud', color: '#FF0033' },
   ];
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
