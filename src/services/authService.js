@@ -140,4 +140,8 @@ export const creditAPI = {
 
     return response.data;
   },
+  getCreditBureauDetails: async () => {
+    const response = await api.get("/credit/user/details");
+    return response.data;
+  },
 };

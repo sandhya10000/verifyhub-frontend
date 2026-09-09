@@ -1,256 +1,541 @@
-import React, { useState } from 'react';
-import { Box, Typography, Paper, Grid, Avatar, Chip, Divider, TextField, Button, Checkbox, FormControlLabel, FormGroup } from '@mui/material';
-import useAuth from '../../context/useAuth';
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  Avatar,
+  Chip,
+  Divider,
+  CircularProgress,
+} from "@mui/material";
+
+import { creditAPI } from "../../services/authService";
 
 const getInitials = (name) => {
-  if (!name) return '';
-  const parts = name.trim().split(' ');
-  return parts.length === 1
-    ? parts[0][0].toUpperCase()
-    : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (!name) return "U";
+
+  const parts = String(name).trim().split(/\s+/);
+
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
 const Profile = () => {
-  const { user } = useAuth();
-  const profile = user?.profile || {};
+  // ==========================================
+  // STATE
+  // ==========================================
 
-  // Form states
-  const [passwords, setPasswords] = useState({ current: '', new: '' });
+  const [userDetails, setUserDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [notifications, setNotifications] = useState({
-    emailPDF: false,
-    balanceAlert: false,
-    whatsappFailures: false,
-    pricingUpdates: false,
-  });
+  // ==========================================
+  // FIELD ROW
+  // ==========================================
 
-  const handlePasswordUpdate = () => {
-    if (passwords.new.length > 0 && passwords.new.length < 8) {
-      alert('New password must be at least 8 characters.');
-      return;
-    }
-    // TODO: Wire up actual password update API call here
-    console.log('Update password clicked', passwords);
+  const FieldRow = ({ label, value }) => {
+    const displayValue =
+      value !== null && value !== undefined && String(value).trim() !== ""
+        ? String(value)
+        : "—";
+
+    return (
+      <Box sx={{ mb: 2.5 }}>
+        <Typography
+          variant="overline"
+          sx={{
+            color: "text.secondary",
+            display: "block",
+            lineHeight: 1,
+            mb: 0.7,
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </Typography>
+
+        <Typography
+          variant="body1"
+          sx={{
+            fontWeight: 600,
+            color: "text.primary",
+            wordBreak: "break-word",
+          }}
+        >
+          {displayValue}
+        </Typography>
+      </Box>
+    );
   };
 
-  const handleSavePreferences = () => {
-    // TODO: Wire up actual preferences save API call here
-    console.log('Save preferences clicked', notifications);
-  };
+  // ==========================================
+  // GET CREDIT BUREAU DETAILS
+  // ==========================================
 
-  const FieldRow = ({ label, value }) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1, mb: 0.5 }}>
-        {label}
-      </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-        {value || '—'}
-      </Typography>
-    </Box>
-  );
+  useEffect(() => {
+    const getUserDetails = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await creditAPI.getCreditBureauDetails();
+
+        console.log("Credit Bureau Details:", response);
+
+        // API response directly returned from authService
+        if (response?.success && response?.data) {
+          const data = response.data;
+
+          setUserDetails({
+            userId: String(data.userId || ""),
+            name: String(data.name || ""),
+            mobile: String(data.mobile || ""),
+            email: String(data.email || ""),
+            pan: String(data.pan || ""),
+
+            // partnerId null hai,
+            // isliye userId ko Partner ID ke liye use kar rahe hain
+            partnerId: String(data.userId || ""),
+          });
+        } else {
+          setError(response?.message || "Failed to fetch profile details");
+        }
+      } catch (error) {
+        console.error("Failed to fetch credit bureau details:", error);
+
+        setError(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to load profile details.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUserDetails();
+  }, []);
+
+  // ==========================================
+  // DISPLAY VALUES
+  // ==========================================
+
+  const displayName = userDetails?.name || "User";
+
+  const displayPartnerId = userDetails?.userId || "—";
+
+  // ==========================================
+  // UI
+  // ==========================================
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-      {/* Header */}
+    <Box
+      sx={{
+        maxWidth: 1200,
+        mx: "auto",
+        px: { xs: 1, sm: 2 },
+        py: { xs: 2, sm: 3 },
+      }}
+    >
+      {/* ==========================================
+          HEADER
+      ========================================== */}
+
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 800,
+            mb: 1,
+          }}
+        >
           Profile
         </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Your partner account, KYC and payout details. Contact support to change locked fields.
+
+        <Typography
+          variant="body1"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
+          Your personal information and credit bureau account details.
         </Typography>
       </Box>
 
-      {/* Top Info Card */}
-      <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none', mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+      {/* ==========================================
+          PROFILE CARD
+      ========================================== */}
+
+      <Paper
+        sx={{
+          p: { xs: 2.5, sm: 4 },
+          borderRadius: 4,
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: "none",
+          mb: 4,
+        }}
+      >
+        {/* ==========================================
+            PROFILE HEADER
+        ========================================== */}
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: {
+              xs: "flex-start",
+              sm: "center",
+            },
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: 2,
+            mb: 4,
+          }}
+        >
+          {/* USER */}
+
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2.5,
+              alignItems: "center",
+            }}
+          >
             <Avatar
               sx={{
                 width: 72,
                 height: 72,
-                bgcolor: 'secondary.main',
-                color: '#fff',
+                bgcolor: "secondary.main",
+                color: "#fff",
                 fontWeight: 700,
-                fontSize: '1.75rem',
+                fontSize: "1.75rem",
               }}
             >
-              {getInitials(user?.name)}
+              {getInitials(displayName)}
             </Avatar>
+
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-                {user?.name || '—'}
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 800,
+                  mb: 0.5,
+                }}
+              >
+                {displayName}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Partner ID {user?.partnerId || user?.id || '—'} · Member since {profile?.memberSince || '—'}
+
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                }}
+              >
+                Partner ID: <strong>{displayPartnerId}</strong>
               </Typography>
             </Box>
           </Box>
 
+          {/* ACCOUNT STATUS */}
+
           <Chip
-            label={profile?.kycVerified ? "KYC Verified" : "KYC Pending"}
+            label="Credit Bureau Account"
             sx={{
-              bgcolor: profile?.kycVerified ? '#ECFDF5' : '#FFFBEB',
-              color: profile?.kycVerified ? '#1b22a7' : '#D97706',
-              fontWeight: 800,
+              bgcolor: "#EEF2FF",
+              color: "#4338CA",
+              fontWeight: 700,
               borderRadius: 6,
-              py: 2.5,
               px: 1,
-              fontSize: '0.8rem',
+              py: 2.5,
+              fontSize: "0.8rem",
             }}
           />
         </Box>
 
         <Divider sx={{ mb: 4 }} />
 
-        {/* Info Grid */}
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <FieldRow label="Contact Person" value={profile?.contactPerson} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="Mobile (Registered)" value={profile?.mobile} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="Business Type" value={profile?.businessType} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="GSTIN" value={profile?.gstin} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="Pricing Tier" value={user?.tierName ? `Tier ${user?.tier} - ${user?.tierName}` : '—'} />
+        {/* ==========================================
+            PERSONAL DETAILS
+        ========================================== */}
+
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            mb: 3,
+          }}
+        >
+          Personal Details
+        </Typography>
+
+        {/* LOADING */}
+
+        {loading ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 5,
+            }}
+          >
+            <CircularProgress size={30} />
+          </Box>
+        ) : error ? (
+          /* ERROR */
+
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 5,
+            }}
+          >
+            <Typography
+              color="error"
+              sx={{
+                fontWeight: 600,
+              }}
+            >
+              {error}
+            </Typography>
+          </Box>
+        ) : userDetails ? (
+          /* DATA */
+
+          <Grid container spacing={4}>
+            {/* LEFT COLUMN */}
+
+            <Grid item xs={12} md={6}>
+              <FieldRow label="Full Name" value={userDetails.name} />
+
+              <Divider sx={{ my: 2 }} />
+
+              <FieldRow label="PAN Number" value={userDetails.pan} />
+
+              <Divider sx={{ my: 2 }} />
+
+              <FieldRow label="Mobile Number" value={userDetails.mobile} />
+            </Grid>
+
+            {/* RIGHT COLUMN */}
+
+            <Grid item xs={12} md={6}>
+              <FieldRow label="Email Address" value={userDetails.email} />
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* USER ID AS PARTNER ID */}
+
+              <FieldRow label="Partner ID" value={userDetails.userId} />
+
+              <Divider sx={{ my: 2 }} />
+
+              <FieldRow label="User ID" value={userDetails.userId} />
+            </Grid>
+          </Grid>
+        ) : (
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 5,
+            }}
+          >
+            <Typography color="text.secondary">
+              Unable to load profile details.
+            </Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ==========================================
+          CREDIT BUREAU CARD
+      ========================================== */}
+
+      <Paper
+        sx={{
+          p: { xs: 2.5, sm: 4 },
+          borderRadius: 4,
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: "none",
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            mb: 1,
+          }}
+        >
+          Credit Bureau Details
+        </Typography>
+
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 3,
+          }}
+        >
+          Credit bureau services available for your account.
+        </Typography>
+
+        <Grid container spacing={2}>
+          {/* CIBIL */}
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                height: "100%",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: 2,
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                CIBIL
+              </Typography>
+
+              <Chip
+                label="Coming Soon"
+                size="small"
+                sx={{
+                  mt: 1.5,
+                  fontWeight: 600,
+                }}
+              />
+            </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <FieldRow label="Email" value={user?.email || profile?.email} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="PAN (Business)" value={profile?.pan} />
-            <Divider sx={{ my: 2 }} />
-            <FieldRow label="City/State" value={profile?.cityState} />
+          {/* EXPERIAN */}
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                height: "100%",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: 2,
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                Experian
+              </Typography>
+
+              <Chip
+                label="Available"
+                size="small"
+                color="success"
+                sx={{
+                  mt: 1.5,
+                  fontWeight: 600,
+                }}
+              />
+            </Paper>
+          </Grid>
+
+          {/* CRIF */}
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                height: "100%",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: 2,
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                CRIF
+              </Typography>
+
+              <Chip
+                label="Available"
+                size="small"
+                color="success"
+                sx={{
+                  mt: 1.5,
+                  fontWeight: 600,
+                }}
+              />
+            </Paper>
+          </Grid>
+
+          {/* EQUIFAX */}
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                height: "100%",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: 2,
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                Equifax
+              </Typography>
+
+              <Chip
+                label="Coming Soon"
+                size="small"
+                sx={{
+                  mt: 1.5,
+                  fontWeight: 600,
+                }}
+              />
+            </Paper>
           </Grid>
         </Grid>
       </Paper>
-
-      {/* Bottom Cards */}
-      <Grid container spacing={4}>
-        {/* Security Card */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-              Security
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Current password</Typography>
-                <TextField
-                  fullWidth
-                  type="password"
-                  size="small"
-                  placeholder="Enter current password"
-                  value={passwords.current}
-                  onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                />
-              </Box>
-
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>New password</Typography>
-                <TextField
-                  fullWidth
-                  type="password"
-                  size="small"
-                  placeholder="Minimum 8 characters"
-                  value={passwords.new}
-                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                />
-              </Box>
-
-              <Button
-                variant="contained"
-                onClick={handlePasswordUpdate}
-                sx={{
-                  bgcolor: '#16A34A',
-                  color: '#fff',
-                  fontWeight: 700,
-                  py: 1.5,
-                  mt: 1,
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: '#15803D', boxShadow: 'none' },
-                }}
-              >
-                Update Password
-              </Button>
-
-              <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', display: 'block' }}>
-                Two-factor login via OTP is always on for wallet actions.
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Notifications Card */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-              Notifications
-            </Typography>
-
-            <FormGroup sx={{ display: 'flex', gap: 2, mb: 4 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={notifications.emailPDF}
-                    onChange={(e) => setNotifications({ ...notifications, emailPDF: e.target.checked })}
-                    sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
-                  />
-                }
-                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Email me every report PDF automatically</Typography>}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={notifications.balanceAlert}
-                    onChange={(e) => setNotifications({ ...notifications, balanceAlert: e.target.checked })}
-                    sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
-                  />
-                }
-                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Alert when wallet balance drops below ₹1,000</Typography>}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={notifications.whatsappFailures}
-                    onChange={(e) => setNotifications({ ...notifications, whatsappFailures: e.target.checked })}
-                    sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
-                  />
-                }
-                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>WhatsApp alerts for failed fetches</Typography>}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={notifications.pricingUpdates}
-                    onChange={(e) => setNotifications({ ...notifications, pricingUpdates: e.target.checked })}
-                    sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#16A34A' } }}
-                  />
-                }
-                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Notify me when pricing or my tier changes</Typography>}
-              />
-            </FormGroup>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={handleSavePreferences}
-              sx={{
-                color: 'text.primary',
-                borderColor: 'divider',
-                fontWeight: 600,
-                py: 1.5,
-                '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-              }}
-            >
-              Save Preferences
-            </Button>
-          </Paper>
-        </Grid>
-      </Grid>
     </Box>
   );
 };
