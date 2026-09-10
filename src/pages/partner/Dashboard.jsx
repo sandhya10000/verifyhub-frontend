@@ -241,7 +241,7 @@ const Dashboard = () => {
       {/* ── Main Content: Table + Activity ── */}
       <Grid container spacing={3}>
         {/* Recent Report Pulls */}
-        <Grid size={{ xs: 12, md: 8 }}>
+        {/* <Grid size={{ xs: 12, md: 8 }}>
           <DataTable
             title="Recent Report Pulls"
             actionLabel="All reports"
@@ -250,10 +250,10 @@ const Dashboard = () => {
             data={recentPulls}
             emptyMessage="No reports are available yet"
           />
-        </Grid>
+        </Grid> */}
 
         {/* Activity Feed */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        {/* <Grid size={{ xs: 12, md: 4 }}>
           <Paper
             sx={{
               borderRadius: 4,
@@ -263,7 +263,7 @@ const Dashboard = () => {
               height: '100%',
             }}
           >
-            {/* Activity header */}
+            
             <Box
               sx={{
                 p: 2.5,
@@ -290,7 +290,7 @@ const Dashboard = () => {
               </Typography>
             </Box>
 
-            {/* Activity list — or empty state */}
+           
             {activityFeed.length === 0 ? (
               <Box
                 sx={{
@@ -361,7 +361,7 @@ const Dashboard = () => {
               </List>
             )}
           </Paper>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );
