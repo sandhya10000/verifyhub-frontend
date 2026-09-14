@@ -4,6 +4,12 @@ import axios from 'axios';
 import DataTable from '../../Components/shared/DataTable';
 
 const Reports = () => {
+  const formatName = (name = "") => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,12 +21,17 @@ const Reports = () => {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/ai-analyzer', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        
+        const [aiRes, creditRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/ai-analyzer', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
+          axios.get('http://localhost:5000/api/credit/get-credit-rpt', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
+        ]);
 
-        if (res.data.success && Array.isArray(res.data.data)) {
-          const mapped = res.data.data
+        let aiMapped = [];
+        let creditMapped = [];
+
+        if (aiRes.data.success && Array.isArray(aiRes.data.data)) {
+          aiMapped = aiRes.data.data
             .filter(r => r.status === 'completed')
             .map(r => ({
               id: r._id,
@@ -29,13 +40,91 @@ const Reports = () => {
                 month: 'short',
                 year: 'numeric'
               }),
-              customer: r.mergedData?.client_name || r.result?.customerName || r.fileName.replace(/\.[^/.]+$/, ''),
-              type: 'AI Credit Analysis',
+              customer: formatName(r.mergedData?.client_name || r.result?.customerName || r.fileName.replace(/\.[^/.]+$/, '')),
+              type: 'AI Credit Analysis Report',
               bureau: 'CIBIL',
               score: r.result?.score || '—',
+              rawType: 'ai-analyzer',
+              rawReport: r
             }));
-          setReportsData(mapped);
         }
+
+        if (creditRes.data.success && Array.isArray(creditRes.data.data)) {
+          creditMapped = creditRes.data.data.map(r => ({
+            id: r._id,
+            date: new Date(r.createdAt).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            }),
+            customer: formatName(r.fullName || r.name || `${r.firstName || ''} ${r.lastName || ''}`.trim() || '-'),
+            type: 'Credit Report',
+            bureau: r.bureau ? r.bureau.charAt(0).toUpperCase() + r.bureau.slice(1).toLowerCase() : '—',
+            score: r.score !== null && r.score !== undefined ? r.score : '—',
+            rawType: 'credit-report',
+            rawReport: r
+          }));
+        }
+
+        // ── Deduplication ──────────────────────────────────────────────────────
+        // When an AI Credit Analysis was run on a raw CIBIL credit-report pull,
+        // both appear as separate rows. We keep only the AI analysis row (richer)
+        // and suppress the underlying credit-report row.
+        //
+        // Strategy (in priority order):
+        //  1. Hard reference: AIAnalysis.creditReportId === CreditReport._id
+        //     (set on newly created analyses going forward).
+        //  2. Heuristic for legacy records (no creditReportId stored yet):
+        //     match CIBIL bureau + same numeric score + same calendar date.
+        //     Only CIBIL rows are ever suppressed this way — Experian / CRIF /
+        //     Equifax rows are always kept regardless.
+
+        // Build the set of credit-report IDs consumed by an AI analysis.
+        const suppressedCreditReportIds = new Set();
+
+        for (const ai of aiMapped) {
+          const raw = ai.rawReport;
+
+          // 1. Explicit reference (new records)
+          if (raw.creditReportId) {
+            suppressedCreditReportIds.add(String(raw.creditReportId));
+            continue;
+          }
+
+          // 2. Heuristic: same CIBIL score + same calendar day
+          const aiScore = typeof raw.result?.score === 'number' ? raw.result.score : null;
+          const aiDay = raw.createdAt ? new Date(raw.createdAt).toDateString() : null;
+
+          if (aiScore !== null && aiDay) {
+            for (const cr of creditMapped) {
+              const crBureau = cr.rawReport.bureau?.toUpperCase();
+              if (crBureau !== 'CIBIL') continue; // only dedupe CIBIL rows
+
+              const crScore = typeof cr.rawReport.score === 'number' ? cr.rawReport.score : null;
+              const crDay = cr.rawReport.createdAt ? new Date(cr.rawReport.createdAt).toDateString() : null;
+
+              if (crScore !== null && crScore === aiScore && crDay === aiDay) {
+                suppressedCreditReportIds.add(String(cr.rawReport._id));
+              }
+            }
+          }
+        }
+
+        // Filter out suppressed credit-report rows; keep everything else.
+        const filteredCreditMapped = creditMapped.filter(
+          cr => !suppressedCreditReportIds.has(String(cr.rawReport._id))
+        );
+
+        let mapped = [...aiMapped, ...filteredCreditMapped];
+
+        // Sort mapped by date descending
+        mapped.sort((a, b) => {
+           const timeA = new Date(a.rawReport.createdAt || 0).getTime();
+           const timeB = new Date(b.rawReport.createdAt || 0).getTime();
+           return timeB - timeA;
+        });
+
+        setReportsData(mapped);
       } catch (err) {
         console.error('Failed to fetch reports:', err);
         setError('Failed to load reports. Please try again.');
@@ -47,12 +136,54 @@ const Reports = () => {
     fetchReports();
   }, []);
 
-  const handleDownload = async (analysisId) => {
+  const downloadBase64File = (base64, fileName = 'Credit-Report.pdf', mimeType = 'application/pdf') => {
+    if (!base64) throw new Error('Report data is empty.');
+    const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+    const cleanBase64 = base64Data.replace(/\s/g, '');
+    const byteCharacters = atob(cleanBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => { window.URL.revokeObjectURL(url); }, 1000);
+  };
+
+  const handleDownload = async (row) => {
+    if (row.rawType === 'credit-report') {
+       const report = row.rawReport;
+       const reportBase64 = report?.excelExperianReport || report?.experianReport || report?.reportBase64 || report?.pdfBase64;
+       
+       if (reportBase64) {
+          try {
+             downloadBase64File(reportBase64, `${row.bureau}-Credit-Report.pdf`, 'application/pdf');
+          } catch(err) {
+             console.error('PDF conversion error:', err);
+          }
+       } else if (report?.reportUrl || report?.localPath) {
+          const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : 'http://localhost:5000/api';
+          const localPath = report.localPath ? (report.localPath.startsWith('/') ? report.localPath : `/${report.localPath}`) : null;
+          const finalUrl = localPath ? `${baseUrl}${localPath}` : report.reportUrl;
+          window.open(finalUrl, '_blank');
+       } else {
+          console.error('Report file is not available.');
+       }
+       return;
+    }
+
     try {
-      setDownloadingId(analysisId);
+      setDownloadingId(row.id);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/ai-analyzer/${analysisId}/download-pdf`,
+        `http://localhost:5000/api/ai-analyzer/${row.id}/download-pdf`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -60,7 +191,7 @@ const Reports = () => {
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/html' }));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `credit-analysis-${analysisId}.html`);
+        link.setAttribute('download', `credit-analysis-${row.id}.html`);
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
@@ -101,7 +232,7 @@ const Reports = () => {
       render: (row) => (
         <Box
           component="button"
-          onClick={() => handleDownload(row.id)}
+          onClick={() => handleDownload(row)}
           disabled={downloadingId === row.id}
           sx={{
             all: 'unset',
@@ -121,7 +252,7 @@ const Reports = () => {
             '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }
           }}
         >
-          {downloadingId === row.id ? 'Downloading...' : 'HTML \u2193'}
+          {downloadingId === row.id ? 'Downloading...' : (row.rawType === 'credit-report' ? 'PDF \u2193' : 'HTML \u2193')}
         </Box>
       )
     }

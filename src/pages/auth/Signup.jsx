@@ -13,9 +13,9 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import AuthLayout from '../../components/auth/AuthLayout';
-import AuthCard from '../../components/auth/AuthCard';
-import PasswordField from '../../components/auth/PasswordField';
+import AuthLayout from '../../Components/auth/AuthLayout';
+import AuthCard from '../../Components/auth/AuthCard';
+import PasswordField from '../../Components/auth/PasswordField';
 import { signupSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
 

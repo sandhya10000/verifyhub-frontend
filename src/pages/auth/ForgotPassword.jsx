@@ -12,8 +12,8 @@ import {
   CircularProgress
 } from '@mui/material';
 import { CheckCircle2 } from 'lucide-react';
-import AuthLayout from '../../components/auth/AuthLayout';
-import AuthCard from '../../components/auth/AuthCard';
+import AuthLayout from '../../Components/auth/AuthLayout';
+import AuthCard from '../../Components/auth/AuthCard';
 import { forgotPasswordSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
 

@@ -13,12 +13,12 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import AuthLayout from '../../components/auth/AuthLayout';
-import AuthCard from '../../components/auth/AuthCard';
-import PasswordField from '../../components/auth/PasswordField';
+import AuthLayout from '../../Components/auth/AuthLayout';
+import AuthCard from '../../Components/auth/AuthCard';
+import PasswordField from '../../Components/auth/PasswordField';
 import { loginSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
-import LoginLoadingOverlay from '../../components/auth/LoginLoadingOverlay';
+import LoginLoadingOverlay from '../../Components/auth/LoginLoadingOverlay';
 
 const Login = () => {
   const navigate = useNavigate();
