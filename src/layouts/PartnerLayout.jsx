@@ -84,11 +84,10 @@ const PartnerLayout = () => {
   };
   const handleLogout = () => {
     handleMenuClose();
-    // Navigate FIRST so React Router leaves the /partner/* tree before
-    // logout() sets user=null. This prevents ProtectedRoute from firing
-    // its own <Navigate to="/login"> redirect on the stale route.
-    navigate('/', { replace: true });
     logout?.();
+    // Hard redirect: wipes all in-memory React state, ensures route guards
+    // re-evaluate from a clean slate against the now-empty localStorage
+    window.location.href = '/';
   };
 
   if (!user) return null;

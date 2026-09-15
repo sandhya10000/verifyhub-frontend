@@ -1,10 +1,10 @@
-import React from 'react';
-import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, CircularProgress, Skeleton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import StatCard from '../../Components/shared/StatCard';
 import DataTable from '../../Components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
+import StatusBadge from '../../Components/shared/StatusBadge';
 import { CircleDot, Wallet } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -22,16 +22,42 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // These will be replaced with real API responses when the backend is ready.
-  // Pass empty arrays / null so the UI renders its empty states immediately.
-  const recentPulls  = [];   // TODO: fetch from /api/partner/pulls?limit=5
-  const activityFeed = [];   // TODO: fetch from /api/partner/activity?limit=10
-  const statsToday   = null; // TODO: fetch from /api/partner/stats/today
-  const statsMonth   = null; // TODO: fetch from /api/partner/stats/month
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState(false);
 
-  const walletBalance =
-    user?.walletBalance != null
-      ? `₹${Number(user.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        setSummaryLoading(true);
+        setSummaryError(false);
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/admin/overview/summary', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSummary(data.data);
+        } else {
+          setSummaryError(true);
+        }
+      } catch (err) {
+        console.error('Failed to fetch overview summary:', err);
+        setSummaryError(true);
+      } finally {
+        setSummaryLoading(false);
+      }
+    };
+    fetchSummary();
+  }, []);
+
+  const recentPulls  = [];
+  const activityFeed = [];
+
+  const walletBalance = summary != null
+    ? `₹${Number(summary.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+    : summaryLoading
+      ? null
       : '₹0.00';
 
   const columns = [
@@ -87,25 +113,19 @@ const Dashboard = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Reports Today */}
         <Grid size={{ xs: 12, md: 4 }}>
-          {statsToday ? (
-            <StatCard
-              title="REPORTS DOWNLOADED · TODAY"
-              value={String(statsToday.total)}
-              trend={statsToday.trend > 0 ? String(statsToday.trend) : undefined}
-              subtitle={`${statsToday.success} success / ${statsToday.failed} failed`}
-              decoration={
-                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
+          {summaryLoading ? (
+            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
           ) : (
             <StatCard
               title="REPORTS DOWNLOADED · TODAY"
-              value="—"
-              subtitle="No reports pulled yet"
+              value={summaryError ? '—' : String(summary?.reportsToday ?? 0)}
+              subtitle={
+                summaryError
+                  ? 'Could not load data'
+                  : summary?.reportsToday > 0
+                    ? `${summary.reportsToday} report${summary.reportsToday !== 1 ? 's' : ''} pulled today`
+                    : 'No reports pulled yet'
+              }
               decoration={
                 <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
@@ -119,24 +139,19 @@ const Dashboard = () => {
 
         {/* Reports This Month */}
         <Grid size={{ xs: 12, md: 4 }}>
-          {statsMonth ? (
-            <StatCard
-              title="REPORTS DOWNLOADED · THIS MONTH"
-              value={String(statsMonth.total)}
-              subtitle={`${statsMonth.label} · success rate ${statsMonth.successRate}%`}
-              decoration={
-                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
+          {summaryLoading ? (
+            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
           ) : (
             <StatCard
               title="REPORTS DOWNLOADED · THIS MONTH"
-              value="—"
-              subtitle="No reports this month yet"
+              value={summaryError ? '—' : String(summary?.reportsThisMonth ?? 0)}
+              subtitle={
+                summaryError
+                  ? 'Could not load data'
+                  : summary?.reportsThisMonth > 0
+                    ? `${summary.reportsThisMonth} report${summary.reportsThisMonth !== 1 ? 's' : ''} this month`
+                    : 'No reports this month yet'
+              }
               decoration={
                 <Box sx={{ color: '#10B981', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
@@ -150,32 +165,42 @@ const Dashboard = () => {
 
         {/* Wallet Balance */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <StatCard
-            variant="dark"
-            title="WALLET BALANCE AVAILABLE"
-            value={walletBalance}
-            subtitle="No recharge history yet"
-            chipLabel=""
-            decoration={
-              <Box sx={{ transform: 'translate(5px, 5px)', opacity: 0.35 }}>
-                <svg width="90" height="90" viewBox="0 0 100 100" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))' }}>
-                  <path d="M 45 15 L 85 28 L 78 40 L 38 27 Z" strokeOpacity="0.5" fill="rgba(99, 102, 241, 0.1)" />
-                  <path d="M 35 25 L 75 38 L 70 50 L 30 37 Z" strokeOpacity="0.8" fill="rgba(99, 102, 241, 0.1)" />
-                  <path d="M 10 45 L 70 65 L 65 95 L 5 75 Z" fill="rgba(30, 41, 59, 0.8)" />
-                  <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
-                  <path d="M 10 45 L 70 65" strokeWidth="3" />
-                  <path d="M 55 60 L 65 63 L 63 78 L 53 75 Z" fill="rgba(99, 102, 241, 0.2)" />
-                  <path d="M 60 72 L 60.01 72" strokeWidth="4" />
-                </svg>
-              </Box>
-            }
-          />
+          {summaryLoading ? (
+            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
+          ) : (
+            <StatCard
+              variant="dark"
+              title="WALLET BALANCE AVAILABLE"
+              value={summaryError ? '—' : (walletBalance ?? '₹0.00')}
+              subtitle={
+                summaryError
+                  ? 'Could not load data'
+                  : summary?.hasRecentRecharge
+                    ? 'Recharged this month'
+                    : 'No recharge history yet'
+              }
+              chipLabel=""
+              decoration={
+                <Box sx={{ transform: 'translate(5px, 5px)', opacity: 0.35 }}>
+                  <svg width="90" height="90" viewBox="0 0 100 100" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))' }}>
+                    <path d="M 45 15 L 85 28 L 78 40 L 38 27 Z" strokeOpacity="0.5" fill="rgba(99, 102, 241, 0.1)" />
+                    <path d="M 35 25 L 75 38 L 70 50 L 30 37 Z" strokeOpacity="0.8" fill="rgba(99, 102, 241, 0.1)" />
+                    <path d="M 10 45 L 70 65 L 65 95 L 5 75 Z" fill="rgba(30, 41, 59, 0.8)" />
+                    <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
+                    <path d="M 10 45 L 70 65" strokeWidth="3" />
+                    <path d="M 55 60 L 65 63 L 63 78 L 53 75 Z" fill="rgba(99, 102, 241, 0.2)" />
+                    <path d="M 60 72 L 60.01 72" strokeWidth="4" />
+                  </svg>
+                </Box>
+              }
+            />
+          )}
         </Grid>
       </Grid>
 
       {/* ── Main Content: Table + Activity ── */}
-      <Grid container spacing={3}>
-        {/* Recent Report Pulls */}
+      {/* <Grid container spacing={3}>
+       
         <Grid size={{ xs: 12, md: 8 }}>
           <DataTable
             title="Recent Report Pulls"
@@ -187,7 +212,7 @@ const Dashboard = () => {
           />
         </Grid>
 
-        {/* Activity Feed */}
+        
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper
             sx={{
@@ -198,7 +223,7 @@ const Dashboard = () => {
               height: '100%',
             }}
           >
-            {/* Activity header */}
+
             <Box
               sx={{
                 p: 2.5,
@@ -225,7 +250,7 @@ const Dashboard = () => {
               </Typography>
             </Box>
 
-            {/* Activity list — or empty state */}
+
             {activityFeed.length === 0 ? (
               <Box
                 sx={{
@@ -297,7 +322,7 @@ const Dashboard = () => {
             )}
           </Paper>
         </Grid>
-      </Grid>
+      </Grid> */}
     </Box>
   );
 };

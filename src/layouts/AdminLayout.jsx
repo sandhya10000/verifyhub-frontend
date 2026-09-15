@@ -1,19 +1,44 @@
 import React, { useState } from 'react';
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider, Menu as MuiMenu, MenuItem } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu as MenuIcon, ExternalLink, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import Logo from '../Components/shared/Logo';
 import wordmarkImg from '../assets/wordmark.png';
-import { FaLinkedin, FaTwitter, FaYoutube, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaLinkedin, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
+import { FaThreads } from 'react-icons/fa6';
+import useAuth from '../context/useAuth';
 
 const DRAWER_WIDTH = 280;
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [unreadTickets, setUnreadTickets] = useState(0);
+  const [avatarAnchorEl, setAvatarAnchorEl] = useState(null);
   const currentDrawerWidth = isCollapsed ? 88 : DRAWER_WIDTH;
+
+  React.useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/admin/tickets/unread-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) setUnreadTickets(data.count);
+      } catch (error) {
+        console.error('Failed to fetch unread tickets:', error);
+      }
+    };
+    fetchUnread();
+
+    // Listen for ticket updates to refresh count
+    window.addEventListener('ticketUpdated', fetchUnread);
+    return () => window.removeEventListener('ticketUpdated', fetchUnread);
+  }, []);
 
   const navGroups = [
     {
@@ -27,7 +52,7 @@ const AdminLayout = () => {
     {
       label: 'MONEY',
       items: [
-        { text: 'Wallets & Recharges', icon: <Wallet size={20} />, path: '/admin/wallets', badge: 3 },
+        { text: 'Wallets & Recharges', icon: <Wallet size={20} />, path: '/admin/wallets' },
         { text: 'Transactions', icon: <RefreshCcw size={20} />, path: '/admin/transactions' },
       ]
     },
@@ -35,7 +60,7 @@ const AdminLayout = () => {
       label: 'INSIGHTS',
       items: [
         { text: 'Reports & Export', icon: <Activity size={20} />, path: '/admin/reports' },
-        { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support', badge: 2 },
+        { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support' },
         { text: 'Settings', icon: <Settings size={20} />, path: '/admin/settings' },
       ]
     }
@@ -45,20 +70,42 @@ const AdminLayout = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleAvatarClick = (e) => setAvatarAnchorEl(e.currentTarget);
+  const handleAvatarClose = () => setAvatarAnchorEl(null);
+
+  const handleLogout = async () => {
+    handleAvatarClose();
+    try {
+      const token = localStorage.getItem('token');
+      // Call server-side logout to clear the httpOnly cookie
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (_) {
+      // Non-critical — proceed even if server call fails
+    }
+    // Clear all client-side auth state
+    logout();
+    // Hard redirect: wipes all in-memory React state, ensures route guards
+    // re-evaluate from a clean slate against the now-empty localStorage
+    window.location.href = '/';
+  };
+
   const socialLinks = [
-    { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: '#', color: '#0A66C2' },
-    // { icon: <FaTwitter size={15} />, label: 'Twitter', href: '#', color: '#1DA1F2' },
-    { icon: <FaYoutube size={15} />, label: 'YouTube', href: '#', color: '#FF0000' },
-    { icon: <FaInstagram size={15} />, label: 'Instagram', href: '#', color: '#E1306C' },
-    { icon: <FaFacebook size={15} />, label: 'Facebook', href: '#', color: '#1877F2' },
+    { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: 'https://www.linkedin.com/company/infoverifyhub/', color: '#0A66C2' },
+    { icon: <FaThreads size={15} />, label: 'Threads', href: 'https://www.threads.com/@info.verifyhub?invite=0', color: '#000000' },
+    { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=m93h8jz', color: '#E1306C' },
+    { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },
+    { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com/@info.verifyhub?si=KMG9lv2oPEuIvdud', color: '#FF0033' },
   ];
 
   const drawer = (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      bgcolor: 'secondary.main', 
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      bgcolor: 'secondary.main',
       color: 'primary.contrastText',
       overflowY: "auto",
       overflowX: "hidden",
@@ -157,8 +204,8 @@ const AdminLayout = () => {
                       {item.icon}
                     </ListItemIcon>
                     {!isCollapsed && (
-                      <ListItemText 
-                        primary={item.text} 
+                      <ListItemText
+                        primary={item.text}
                         slotProps={{
                           primary: {
                             fontSize: "0.82rem",
@@ -169,7 +216,7 @@ const AdminLayout = () => {
                               textOverflow: 'ellipsis',
                             },
                           },
-                        }} 
+                        }}
                       />
                     )}
                     {!isCollapsed && item.badge && (
@@ -247,33 +294,57 @@ const AdminLayout = () => {
           {drawer}
         </Drawer>
       </Box>
-      
+
       <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', width: { xs: '100%', md: `calc(100% - ${currentDrawerWidth}px)` }, minWidth: 0, transition: 'width 0.3s ease' }}>
         <AppBar position="sticky" sx={{ bgcolor: '#fff', color: 'text.primary', boxShadow: 'none', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Toolbar sx={{ justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' } }}>
-                <Menu />
+                <MenuIcon size={20} />
               </IconButton>
               <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
                 {location.pathname.split('/').pop().replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Typography>
             </Box>
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="subtitle2" sx={{ color: 'success.main', fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
-                PROFIT TODAY ₹1,284
-              </Typography>
-              <Button variant="contained" color="primary" startIcon={<ExternalLink size={16} />} sx={{ borderRadius: 2 }}>
-                Export to Sheets
-              </Button>
               <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Super Admin</Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>admin@verifyhub.in</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{user?.name || 'Super Admin'}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{user?.email || 'admin@verifyhub.in'}</Typography>
               </Box>
-              <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>
-                A
+              {/* Avatar — click to open logout menu */}
+              <Box
+                onClick={handleAvatarClick}
+                sx={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  bgcolor: '#D97706', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: '#fff', fontWeight: 700,
+                  cursor: 'pointer', userSelect: 'none',
+                  '&:hover': { bgcolor: '#B45309', transition: 'background 0.2s' }
+                }}
+              >
+                {(user?.name?.[0] || 'A').toUpperCase()}
               </Box>
+              <MuiMenu
+                anchorEl={avatarAnchorEl}
+                open={Boolean(avatarAnchorEl)}
+                onClose={handleAvatarClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { mt: 1, minWidth: 200, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' } } }}
+              >
+                <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="body2" fontWeight={700}>{user?.name || 'Super Admin'}</Typography>
+                  <Typography variant="caption" color="text.secondary">{user?.email || 'admin@verifyhub.in'}</Typography>
+                </Box>
+                <MenuItem
+                  onClick={handleLogout}
+                  sx={{ mt: 0.5, color: 'error.main', gap: 1.5, py: 1.25, '&:hover': { bgcolor: 'error.50' } }}
+                >
+                  <LogOut size={16} />
+                  <Typography variant="body2" fontWeight={600}>Sign Out</Typography>
+                </MenuItem>
+              </MuiMenu>
             </Box>
           </Toolbar>
         </AppBar>

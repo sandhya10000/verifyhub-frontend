@@ -68,6 +68,7 @@ const initialFormData = {
   panNumber: "",
   fullName: "",
   mobileNumber: "",
+  gender: "",
   email: "",
   dob: "",
   pincode: "",
@@ -911,7 +912,7 @@ const CrifReport = () => {
               </Typography>
             </Box>
 
-            <Button
+            {/* <Button
               variant="outlined"
               size="medium"
               onClick={handleRecentReports}
@@ -928,7 +929,7 @@ const CrifReport = () => {
               }}
             >
               Recent Reports
-            </Button>
+            </Button> */}
           </Box>
 
           <Chip
@@ -1094,7 +1095,7 @@ const CrifReport = () => {
                 />
 
                 <Grid container spacing={2.2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       required
@@ -1117,7 +1118,7 @@ const CrifReport = () => {
                     />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       required
@@ -1137,7 +1138,7 @@ const CrifReport = () => {
                     />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       required
@@ -1160,7 +1161,7 @@ const CrifReport = () => {
                       sx={inputSx}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       required
@@ -1184,7 +1185,7 @@ const CrifReport = () => {
                     </TextField>
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       required
@@ -1205,7 +1206,7 @@ const CrifReport = () => {
                     />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     {/* DOB uses a custom floating label because native
                         Chrome/Edge date controls can overlap MUI labels. */}
                     <Box
@@ -1316,7 +1317,7 @@ const CrifReport = () => {
                   />
 
                   <Grid container spacing={2.2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -1340,7 +1341,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -1360,7 +1361,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -1380,7 +1381,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -1393,7 +1394,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         required
