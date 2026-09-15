@@ -1,8 +1,7 @@
 export const NAV_LINKS = [
-  { label: 'Products', url: '/#products' },
-  { label: 'Platform', url: '/#platform' },
-  { label: 'Developers', url: '/#developers' },
-  { label: 'Pricing', url: '/#contact' },
+  { label: 'AI Credit Report', url: '/#ai-credit-report' },
+  { label: 'Integrations', url: '/#integrations' },
+  { label: 'Pricing', url: '/#' },
 ];
 
 export const FOOTER_LINKS = [
@@ -14,15 +13,6 @@ export const FOOTER_LINKS = [
       { label: 'Statement Analyzer', url: '/#products' },
       { label: 'AI Decisioning', url: '/#products' },
       { label: 'Monitoring', url: '/#products' },
-    ],
-  },
-  {
-    title: 'Developers',
-    links: [
-      { label: 'Documentation', url: '/#developers' },
-      { label: 'API Reference', url: '/#developers' },
-      { label: 'SDKs', url: '/#developers' },
-      { label: 'System status', url: '/#developers' },
     ],
   },
   {

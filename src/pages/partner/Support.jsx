@@ -26,7 +26,6 @@ const Support = () => {
   const categories = [
     "Wallet — recharge not credited",
     "Report generation issue",
-    "API/integration issue",
     "Billing query",
     "Other"
   ];
@@ -54,10 +53,25 @@ const Support = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    // TODO: Connect this to actual backend endpoint e.g., /api/support/ticket
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          category: formData.category,
+          reference: formData.reference,
+          description: formData.description
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit ticket');
+      }
+
       setToast({
         open: true,
         message: 'Ticket submitted successfully! We will get back to you shortly.',

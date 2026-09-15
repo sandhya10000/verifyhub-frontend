@@ -33,6 +33,13 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const formatName = (name = "") => {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   // ==========================================
   // FIELD ROW
   // ==========================================
@@ -109,8 +116,8 @@ const Profile = () => {
 
         setError(
           error?.response?.data?.message ||
-            error?.message ||
-            "Unable to load profile details.",
+          error?.message ||
+          "Unable to load profile details.",
         );
       } finally {
         setLoading(false);
@@ -124,7 +131,7 @@ const Profile = () => {
   // DISPLAY VALUES
   // ==========================================
 
-  const displayName = userDetails?.name || "User";
+  const displayName = formatName(userDetails?.name) || "User";
 
   const displayPartnerId = userDetails?.userId || "—";
 
@@ -314,7 +321,7 @@ const Profile = () => {
             {/* LEFT COLUMN */}
 
             <Grid item xs={12} md={6}>
-              <FieldRow label="Full Name" value={userDetails.name} />
+              <FieldRow label="Full Name" value={formatName(userDetails.name)} />
 
               <Divider sx={{ my: 2 }} />
 

@@ -84,11 +84,10 @@ const PartnerLayout = () => {
   };
   const handleLogout = () => {
     handleMenuClose();
-    // Navigate FIRST so React Router leaves the /partner/* tree before
-    // logout() sets user=null. This prevents ProtectedRoute from firing
-    // its own <Navigate to="/login"> redirect on the stale route.
-    navigate('/', { replace: true });
     logout?.();
+    // Hard redirect: wipes all in-memory React state, ensures route guards
+    // re-evaluate from a clean slate against the now-empty localStorage
+    window.location.href = '/';
   };
 
   if (!user) return null;
@@ -152,7 +151,6 @@ const PartnerLayout = () => {
 
   const socialLinks = [
     { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: 'https://www.linkedin.com/company/infoverifyhub/', color: '#0A66C2' },
-    // { icon: <FaTwitter size={15} />, label: 'Twitter', href: '#', color: '#1DA1F2' },
     { icon: <FaThreads size={15} />, label: 'Threads', href: 'https://www.threads.com/@info.verifyhub?invite=0', color: '#000000' },
     { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=m93h8jz', color: '#E1306C' },
     { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },

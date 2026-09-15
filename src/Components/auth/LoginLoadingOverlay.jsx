@@ -87,7 +87,7 @@ const LoginLoadingOverlay = ({ visible }) => {
       >
         <Logo height={54} className="vh-overlay-logo" alt="VerifyHub" />
         <div className="vh-overlay-spinner-track" aria-hidden="true" />
-        <span className="vh-overlay-label">Signing in…</span>
+        <span className="vh-overlay-label">Signing in...</span>
       </div>
     </>,
     document.body

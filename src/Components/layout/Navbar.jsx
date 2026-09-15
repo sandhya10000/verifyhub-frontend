@@ -98,7 +98,7 @@ const Navbar = () => {
                   px: 2.5,
                   py: 1,
                   transition: '0.2s',
-                  '&:hover': { 
+                  '&:hover': {
                     borderColor: 'rgba(255, 255, 255, 0.5)',
                     backgroundColor: 'rgba(255, 255, 255, 0.05)'
                   },
@@ -129,11 +129,15 @@ const Navbar = () => {
 
             {/* Mobile Hamburger */}
             <IconButton
-              sx={{ display: { xs: 'flex', md: 'none' }, color: theme.palette.text.primary }}
+              sx={{ 
+                display: { xs: 'flex', md: 'none' }, 
+                color: '#fff', // force high contrast against dark #000824 navbar
+                p: '10px'      // increase touch target area
+              }}
               onClick={toggleMenu}
               aria-label="Toggle menu"
             >
-              <MenuIcon />
+              <MenuIcon sx={{ fontSize: '32px' }} /> {/* make icon larger */}
             </IconButton>
           </Box>
         </Container>
@@ -146,13 +150,16 @@ const Navbar = () => {
         onClose={closeMenu}
         sx={{
           display: { xs: 'block', md: 'none' },
+          zIndex: (theme) => theme.zIndex.appBar + 1, // ✅ ensure drawer renders above navbar
           '& .MuiDrawer-paper': {
             top: 72,
             boxShadow: 'none',
             borderBottom: `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme.palette.background.paper, // ✅ explicit bg so it's not transparent
           },
         }}
         slotProps={{ backdrop: { invisible: true } }}
+        ModalProps={{ keepMounted: true }} // ✅ better mobile performance + ensures it mounts properly
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 3, pt: 2 }}>
           {NAV_LINKS.map((link) => (
@@ -177,15 +184,15 @@ const Navbar = () => {
             </Box>
           ))}
           <Box sx={{ mt: 1 }}>
-            <PrimaryButton 
-              href="/#contact" 
-              sx={{ width: '100%' }} 
+            <PrimaryButton
+              href="/login"
+              sx={{ width: '100%' }}
               onClick={() => {
                 sessionStorage.setItem('preLoginPath', window.location.pathname);
                 closeMenu();
               }}
             >
-              Get started →
+              Login
             </PrimaryButton>
           </Box>
         </Box>

@@ -5,10 +5,17 @@ import axios from 'axios';
 import useAuth from '../../context/useAuth';
 import StatCard from '../../Components/shared/StatCard';
 import DataTable from '../../Components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
+import StatusBadge from '../../Components/shared/StatusBadge';
 import { CircleDot, Wallet } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatName = (name = "") => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -46,6 +53,8 @@ const Dashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [todayCount, setTodayCount]     = useState(null);
   const [monthCount, setMonthCount]     = useState(null);
+  const [aiToday, setAiToday]           = useState(null);
+  const [aiMonth, setAiMonth]           = useState(null);
   const [todayTrend, setTodayTrend]     = useState([]);
   const [monthTrend, setMonthTrend]     = useState([]);
 
@@ -57,8 +66,11 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data.success) {
-          setTodayCount(res.data.todayCount);
-          setMonthCount(res.data.monthCount);
+          // Prefer the new combined keys; fall back to legacy todayCount/monthCount
+          setTodayCount(res.data.totalToday ?? res.data.todayCount);
+          setMonthCount(res.data.totalMonth ?? res.data.monthCount);
+          setAiToday(res.data.aiToday ?? null);
+          setAiMonth(res.data.aiMonth ?? null);
           setTodayTrend(res.data.todayTrend || []);
           setMonthTrend(res.data.monthTrend || []);
         }
@@ -124,7 +136,8 @@ const Dashboard = () => {
       {/* ── Greeting ── */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          {getGreeting()}, {user?.name || 'Partner'}
+          {/* {getGreeting()}, {user?.name || 'Partner'} */}
+          {getGreeting()}, {formatName(user?.name || "Partner")}
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary' }}>
           Credit report pulls, wallet and activity — updated in real time.
@@ -145,9 +158,15 @@ const Dashboard = () => {
           ) : todayCount > 0 ? (
             // ── Data state ──
             <StatCard
-              title="REPORTS DOWNLOADED · TODAY"
+              title="REPORTS PULLED · TODAY"
               value={String(todayCount)}
-              subtitle="AI analyses completed"
+              subtitle={
+                aiToday !== null && aiToday < todayCount
+                  ? `${aiToday} AI ${aiToday === 1 ? 'analysis' : 'analyses'} · ${todayCount - aiToday} bureau ${todayCount - aiToday === 1 ? 'pull' : 'pulls'}`
+                  : aiToday !== null && aiToday > 0
+                  ? `${aiToday} AI ${aiToday === 1 ? 'analysis' : 'analyses'} completed`
+                  : 'Bureau reports generated today'
+              }
               decoration={
                 <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
@@ -185,9 +204,15 @@ const Dashboard = () => {
           ) : monthCount > 0 ? (
             // ── Data state ──
             <StatCard
-              title="REPORTS DOWNLOADED · THIS MONTH"
+              title="REPORTS PULLED · THIS MONTH"
               value={String(monthCount)}
-              subtitle="AI analyses this calendar month"
+              subtitle={
+                aiMonth !== null && aiMonth < monthCount
+                  ? `${aiMonth} AI ${aiMonth === 1 ? 'analysis' : 'analyses'} · ${monthCount - aiMonth} bureau ${monthCount - aiMonth === 1 ? 'pull' : 'pulls'}`
+                  : aiMonth !== null && aiMonth > 0
+                  ? `${aiMonth} AI ${aiMonth === 1 ? 'analysis' : 'analyses'} this month`
+                  : 'Bureau reports this calendar month'
+              }
               decoration={
                 <Box sx={{ color: '#10B981', opacity: 0.8 }}>
                   <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
@@ -241,7 +266,7 @@ const Dashboard = () => {
       {/* ── Main Content: Table + Activity ── */}
       <Grid container spacing={3}>
         {/* Recent Report Pulls */}
-        <Grid size={{ xs: 12, md: 8 }}>
+        {/* <Grid size={{ xs: 12, md: 8 }}>
           <DataTable
             title="Recent Report Pulls"
             actionLabel="All reports"
@@ -250,10 +275,10 @@ const Dashboard = () => {
             data={recentPulls}
             emptyMessage="No reports are available yet"
           />
-        </Grid>
+        </Grid> */}
 
         {/* Activity Feed */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        {/* <Grid size={{ xs: 12, md: 4 }}>
           <Paper
             sx={{
               borderRadius: 4,
@@ -263,7 +288,7 @@ const Dashboard = () => {
               height: '100%',
             }}
           >
-            {/* Activity header */}
+            
             <Box
               sx={{
                 p: 2.5,
@@ -290,7 +315,7 @@ const Dashboard = () => {
               </Typography>
             </Box>
 
-            {/* Activity list — or empty state */}
+           
             {activityFeed.length === 0 ? (
               <Box
                 sx={{
@@ -361,7 +386,7 @@ const Dashboard = () => {
               </List>
             )}
           </Paper>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );

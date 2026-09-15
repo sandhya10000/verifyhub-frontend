@@ -17,11 +17,15 @@ const CrifReport = lazy(() => import("../pages/partner/CrifReport"));
 const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 const ProtectedRoute = lazy(() => import("../Components/common/ProtectedRoute"));
+const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
+const AdminReports = lazy(() => import("../pages/admin/Reports"));
+const AdminPartners = lazy(() => import("../pages/admin/Partners"));
+const AdminSupport = lazy(() => import("../pages/admin/Support"));
 
 const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
@@ -137,12 +141,12 @@ const AppRoutes = () => {
         </Route>
 
         {/* Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<Navigate to="/admin/overview" replace />} />
           <Route path="overview" element={<AdminOverview />} />
           <Route
             path="partners"
-            element={<PlaceholderPage title="Partners" />}
+            element={<AdminPartners />}
           />
           <Route
             path="pricing"
@@ -159,11 +163,11 @@ const AppRoutes = () => {
           />
           <Route
             path="reports"
-            element={<PlaceholderPage title="Reports & Export" />}
+            element={<AdminReports />}
           />
           <Route
             path="support"
-            element={<PlaceholderPage title="Support Tickets" />}
+            element={<AdminSupport />}
           />
           <Route
             path="settings"
