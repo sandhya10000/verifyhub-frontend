@@ -1007,19 +1007,6 @@ const CrifReport = () => {
             ALERTS
         ===================================================== */}
 
-        {error && (
-          <Alert
-            severity="error"
-            onClose={() => setError("")}
-            sx={{
-              mb: 2.5,
-              borderRadius: 2,
-            }}
-          >
-            {error}
-          </Alert>
-        )}
-
         {successMessage && (
           <Alert
             severity="success"
@@ -1282,17 +1269,19 @@ const CrifReport = () => {
                             padding: 0,
                           },
 
-                          "& input[type='date']::-webkit-datetime-edit-fields-wrapper": {
-                            padding: 0,
-                          },
+                          "& input[type='date']::-webkit-datetime-edit-fields-wrapper":
+                            {
+                              padding: 0,
+                            },
 
-                          "& input[type='date']::-webkit-calendar-picker-indicator": {
-                            cursor: "pointer",
-                            opacity: 0.75,
-                            width: 18,
-                            height: 18,
-                            marginLeft: 6,
-                          },
+                          "& input[type='date']::-webkit-calendar-picker-indicator":
+                            {
+                              cursor: "pointer",
+                              opacity: 0.75,
+                              width: 18,
+                              height: 18,
+                              marginLeft: 6,
+                            },
                         }}
                       />
                     </Box>
