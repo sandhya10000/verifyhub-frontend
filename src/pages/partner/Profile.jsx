@@ -253,7 +253,7 @@ const Profile = () => {
 
           {/* ACCOUNT STATUS */}
 
-          <Chip
+          {/* <Chip
             label="Credit Bureau Account"
             sx={{
               bgcolor: "#EEF2FF",
@@ -264,7 +264,7 @@ const Profile = () => {
               py: 2.5,
               fontSize: "0.8rem",
             }}
-          />
+          /> */}
         </Box>
 
         <Divider sx={{ mb: 4 }} />
