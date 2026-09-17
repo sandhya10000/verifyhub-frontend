@@ -43,7 +43,8 @@ const AdminPartners = () => {
         ...(debouncedSearch && { search: debouncedSearch })
       }).toString();
 
-      const res = await axios.get(`http://localhost:5000/api/admin/partners?${queryParams}`, {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.get(`${API_BASE_URL}/api/admin/partners?${queryParams}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

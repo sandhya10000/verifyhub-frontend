@@ -52,7 +52,8 @@ const AdminSupport = () => {
     const markSeen = async () => {
       try {
         const token = localStorage.getItem('token');
-        await fetch('http://localhost:5000/api/admin/tickets/mark-seen', {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        await fetch(`${API_BASE_URL}/api/admin/tickets/mark-seen`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -68,7 +69,8 @@ const AdminSupport = () => {
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/tickets?status=${statusFilter}&partnerSearch=${search}`, {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_BASE_URL}/api/admin/tickets?status=${statusFilter}&partnerSearch=${search}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -97,7 +99,8 @@ const AdminSupport = () => {
   const handleSaveTicket = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/admin/tickets/${selectedTicket._id}`, {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await fetch(`${API_BASE_URL}/api/admin/tickets/${selectedTicket._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

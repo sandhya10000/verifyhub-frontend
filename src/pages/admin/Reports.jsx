@@ -42,9 +42,10 @@ const AdminReports = () => {
         ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch })
       }).toString();
 
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const [aiRes, creditRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/admin/reports/ai-analyzer?${queryParams}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
-        axios.get(`http://localhost:5000/api/admin/reports/credit-reports?${queryParams}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
+        axios.get(`${API_BASE_URL}/api/admin/reports/ai-analyzer?${queryParams}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
+        axios.get(`${API_BASE_URL}/api/admin/reports/credit-reports?${queryParams}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
       ]);
 
       let aiMapped = [];
@@ -188,8 +189,9 @@ const AdminReports = () => {
     try {
       setDownloadingId(row.id);
       const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await axios.get(
-        `http://localhost:5000/api/ai-analyzer/${row.id}/download-pdf`,
+        `${API_BASE_URL}/api/ai-analyzer/${row.id}/download-pdf`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
