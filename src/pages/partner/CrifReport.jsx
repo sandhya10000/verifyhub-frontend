@@ -315,10 +315,9 @@ const CrifReport = () => {
     }
 
     // 2. Convert local filesystem path to public URL
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     if (report?.localPath) {
-      const baseUrl = import.meta.env.VITE_API_URL
-        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
-        : "http://localhost:5000";
+      const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
 
       // Windows "\" -> "/"
       const normalizedPath = report.localPath.replace(/\\/g, "/");

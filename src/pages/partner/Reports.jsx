@@ -21,10 +21,10 @@ const Reports = () => {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem('token');
-        
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const [aiRes, creditRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/ai-analyzer', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
-          axios.get('http://localhost:5000/api/credit/get-credit-rpt', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
+          axios.get(`${API_BASE_URL}/api/ai-analyzer`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
+          axios.get(`${API_BASE_URL}/api/credit/get-credit-rpt`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
         ]);
 
         let aiMapped = [];
@@ -169,7 +169,8 @@ const Reports = () => {
              console.error('PDF conversion error:', err);
           }
        } else if (report?.reportUrl || report?.localPath) {
-          const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : 'http://localhost:5000/api';
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+          const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
           const localPath = report.localPath ? (report.localPath.startsWith('/') ? report.localPath : `/${report.localPath}`) : null;
           const finalUrl = localPath ? `${baseUrl}${localPath}` : report.reportUrl;
           window.open(finalUrl, '_blank');
@@ -182,8 +183,9 @@ const Reports = () => {
     try {
       setDownloadingId(row.id);
       const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await axios.get(
-        `http://localhost:5000/api/ai-analyzer/${row.id}/download-pdf`,
+        `${API_BASE_URL}/api/ai-analyzer/${row.id}/download-pdf`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
