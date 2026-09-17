@@ -46,6 +46,25 @@ const AdminSupport = () => {
     fetchTickets();
   }, [statusFilter, search]);
 
+  // Mark all tickets as seen the moment the admin opens this page.
+  // This stamps supportLastSeenAt on the backend so the sidebar badge clears.
+  useEffect(() => {
+    const markSeen = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch('http://localhost:5000/api/admin/tickets/mark-seen', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        // Immediately tell the sidebar to refresh its count (badge → 0)
+        window.dispatchEvent(new Event('ticketUpdated'));
+      } catch (error) {
+        console.error('Failed to mark tickets seen:', error);
+      }
+    };
+    markSeen();
+  }, []);
+
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem('token');

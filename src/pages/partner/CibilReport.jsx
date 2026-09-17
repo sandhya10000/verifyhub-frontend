@@ -1198,7 +1198,7 @@ const CibilReport = () => {
         {`
           @keyframes marquee {
             from {
-              transform: translateX(100%);
+              transform: translateX(50%);
             }
             to {
               transform: translateX(-100%);

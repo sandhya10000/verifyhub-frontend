@@ -58,6 +58,12 @@ const getInitials = (name) => {
 };
 
 const PartnerLayout = () => {
+  const formatName = (name = "") => {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -303,8 +309,8 @@ const PartnerLayout = () => {
                   {item.icon}
                 </ListItemIcon>
                 {!isCollapsed && (
-                  <ListItemText 
-                    primary={item.text} 
+                  <ListItemText
+                    primary={item.text}
                     slotProps={{
                       primary: {
                         fontSize: "0.82rem",
@@ -386,9 +392,9 @@ const PartnerLayout = () => {
               bgcolor: location.pathname === item.path ? "#3730A3" : "transparent",
               color: location.pathname === item.path ? "#fff" : "#8FA3BF",
               justifyContent: isCollapsed ? 'center' : 'flex-start',
-              "&:hover": { 
+              "&:hover": {
                 bgcolor: location.pathname === item.path ? "#3730A3" : "rgba(255, 255, 255, 0.05)",
-                color: "#fff" 
+                color: "#fff"
               },
             }}
           >
@@ -508,13 +514,13 @@ const PartnerLayout = () => {
 
       <Box
         component="main"
-        sx={{ 
-          flexGrow: 1, 
-          display: "flex", 
-          flexDirection: "column", 
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
           width: { xs: '100%', md: `calc(100% - ${currentDrawerWidth}px)` },
-          minWidth: 0, 
-          transition: 'width 0.3s ease' 
+          minWidth: 0,
+          transition: 'width 0.3s ease'
         }}
       >
         <AppBar
@@ -565,7 +571,7 @@ const PartnerLayout = () => {
                 }}
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  {user?.companyName || user?.name || "Partner"}
+                  {user?.companyName || formatName(user?.name) || "Partner"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   {user?.partnerId || user?.id || "N/A"} · Tier {user?.tier || 1}

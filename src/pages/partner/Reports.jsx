@@ -42,7 +42,7 @@ const Reports = () => {
               }),
               customer: formatName(r.mergedData?.client_name || r.result?.customerName || r.fileName.replace(/\.[^/.]+$/, '')),
               type: 'AI Credit Analysis Report',
-              bureau: 'CIBIL',
+              bureau: '-',
               score: r.result?.score || '—',
               rawType: 'ai-analyzer',
               rawReport: r

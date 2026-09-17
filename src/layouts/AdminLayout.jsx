@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider, Menu as MuiMenu, MenuItem } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider, Menu as MuiMenu, MenuItem, Badge } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu as MenuIcon, ExternalLink, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import Logo from '../Components/shared/Logo';
@@ -33,11 +33,17 @@ const AdminLayout = () => {
         console.error('Failed to fetch unread tickets:', error);
       }
     };
-    fetchUnread();
 
-    // Listen for ticket updates to refresh count
+    // Fetch immediately, then every 30 s
+    fetchUnread();
+    const pollInterval = setInterval(fetchUnread, 30_000);
+
+    // Also refresh whenever a ticket is created/updated in this tab
     window.addEventListener('ticketUpdated', fetchUnread);
-    return () => window.removeEventListener('ticketUpdated', fetchUnread);
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('ticketUpdated', fetchUnread);
+    };
   }, []);
 
   const navGroups = [
@@ -60,7 +66,7 @@ const AdminLayout = () => {
       label: 'INSIGHTS',
       items: [
         { text: 'Reports & Export', icon: <Activity size={20} />, path: '/admin/reports' },
-        { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support' },
+        { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support', showBadge: true },
         { text: 'Settings', icon: <Settings size={20} />, path: '/admin/settings' },
       ]
     }
@@ -201,7 +207,25 @@ const AdminLayout = () => {
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: isCollapsed ? 'auto' : 36, color: active ? '#fff' : '#8FA3BF', display: 'flex', justifyContent: 'center' }}>
-                      {item.icon}
+                      {/* When collapsed, wrap icon in a Badge dot so the count is still visible */}
+                      {item.showBadge && isCollapsed && unreadTickets > 0 ? (
+                        <Badge
+                          badgeContent={unreadTickets > 99 ? '99+' : unreadTickets}
+                          sx={{
+                            '& .MuiBadge-badge': {
+                              bgcolor: '#EF4444',
+                              color: '#fff',
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              minWidth: 16,
+                              height: 16,
+                              padding: '0 3px',
+                            }
+                          }}
+                        >
+                          {item.icon}
+                        </Badge>
+                      ) : item.icon}
                     </ListItemIcon>
                     {!isCollapsed && (
                       <ListItemText
@@ -219,8 +243,13 @@ const AdminLayout = () => {
                         }}
                       />
                     )}
-                    {!isCollapsed && item.badge && (
-                      <Chip label={item.badge} size="small" sx={{ bgcolor: '#EF4444', color: '#fff', height: 20, fontSize: '0.75rem', fontWeight: 700 }} />
+                    {/* Expanded sidebar: show a Chip badge (hidden when count is 0 or sidebar is collapsed) */}
+                    {!isCollapsed && item.showBadge && unreadTickets > 0 && (
+                      <Chip
+                        label={unreadTickets > 99 ? '99+' : unreadTickets}
+                        size="small"
+                        sx={{ bgcolor: '#EF4444', color: '#fff', height: 20, fontSize: '0.72rem', fontWeight: 700, ml: 0.5 }}
+                      />
                     )}
                   </ListItem>
                 )
