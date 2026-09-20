@@ -18,9 +18,11 @@ import AuthCard from '../../Components/auth/AuthCard';
 import PasswordField from '../../Components/auth/PasswordField';
 import { signupSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
+import useAuth from '../../context/useAuth';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState(null);
   
   const {
@@ -34,10 +36,14 @@ const Signup = () => {
   const onSubmit = async (data) => {
     try {
       setError(null);
-      await authService.signup(data);
+      const res = await authService.signup(data);
+      if (res.success && res.token && res.user) {
+        login(res.user, res.token);
+      }
       navigate('/partner/dashboard');
     } catch (err) {
-      setError(err.message || 'Failed to create account');
+      const backendMessage = err.response?.data?.message;
+      setError(backendMessage || err.message || 'Failed to create account');
     }
   };
 

@@ -19,9 +19,11 @@ import PasswordField from '../../Components/auth/PasswordField';
 import { loginSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/authService';
 import LoginLoadingOverlay from '../../Components/auth/LoginLoadingOverlay';
+import useAuth from '../../context/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState(null);
   // Separate loading state so the overlay stays up until the route transition
   // completes, not just until the API call resolves.
@@ -41,6 +43,11 @@ const Login = () => {
       // Show the full-screen overlay immediately — before the API call
       setLoading(true);
       const res = await authService.login(data);
+      
+      if (res.success && res.token && res.user) {
+        login(res.user, res.token);
+      }
+
       // Keep the overlay visible during route transition; it unmounts with this component
       if (res.user?.role === 'admin') {
         navigate('/admin/overview');
@@ -50,7 +57,8 @@ const Login = () => {
     } catch (err) {
       // Dismiss overlay first, then surface the error
       setLoading(false);
-      setError(err.message || 'Failed to login');
+      const backendMessage = err.response?.data?.message;
+      setError(backendMessage || err.message || 'Failed to login');
     }
   };
 
