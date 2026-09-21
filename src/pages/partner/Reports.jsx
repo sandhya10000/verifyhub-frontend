@@ -21,10 +21,10 @@ const Reports = () => {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         const [aiRes, creditRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/ai-analyzer`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
-          axios.get(`${API_BASE_URL}/api/credit/get-credit-rpt`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
+          axios.get(`${API_BASE_URL}/ai-analyzer`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } })),
+          axios.get(`${API_BASE_URL}/credit/get-credit-rpt`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { success: false } }))
         ]);
 
         let aiMapped = [];
