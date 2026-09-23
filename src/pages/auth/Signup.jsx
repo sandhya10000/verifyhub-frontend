@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Box,
   Button,
@@ -11,20 +11,20 @@ import {
   Checkbox,
   Link,
   Alert,
-  CircularProgress
-} from '@mui/material';
-import AuthLayout from '../../Components/auth/AuthLayout';
-import AuthCard from '../../Components/auth/AuthCard';
-import PasswordField from '../../Components/auth/PasswordField';
-import { signupSchema } from '../../schemas/authSchemas';
-import { authService } from '../../services/authService';
-import useAuth from '../../context/useAuth';
+  CircularProgress,
+} from "@mui/material";
+import AuthLayout from "../../Components/auth/AuthLayout";
+import AuthCard from "../../Components/auth/AuthCard";
+import PasswordField from "../../Components/auth/PasswordField";
+import { signupSchema } from "../../schemas/authSchemas";
+import { authService } from "../../services/authService";
+import useAuth from "../../context/useAuth";
 
 const Signup = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [error, setError] = useState(null);
-  
+
   const {
     register,
     handleSubmit,
@@ -40,17 +40,19 @@ const Signup = () => {
       if (res.success && res.token && res.user) {
         login(res.user, res.token);
       }
-      navigate('/partner/dashboard');
+      navigate("/partner/dashboard");
     } catch (err) {
       const backendMessage = err.response?.data?.message;
-      setError(backendMessage || err.message || 'Failed to create account');
+      setError(backendMessage || err.message || "Failed to create account");
     }
   };
 
   return (
     <AuthLayout variant="split">
       <AuthCard sx={{ maxWidth: 600 }}>
-        <Typography variant="h4" sx={{ mb: 1 }}>Request Access</Typography>
+        <Typography variant="h4" sx={{ mb: 1 }}>
+          Register
+        </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           Join VerifyHub as a partner to start pulling reports
         </Typography>
@@ -62,18 +64,18 @@ const Signup = () => {
         )}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
+          <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
             <TextField
               fullWidth
               label="First Name"
-              {...register('firstName')}
+              {...register("firstName")}
               error={!!errors.firstName}
               helperText={errors.firstName?.message}
             />
             <TextField
               fullWidth
               label="Last Name"
-              {...register('lastName')}
+              {...register("lastName")}
               error={!!errors.lastName}
               helperText={errors.lastName?.message}
             />
@@ -84,7 +86,7 @@ const Signup = () => {
               fullWidth
               label="Email"
               type="email"
-              {...register('email')}
+              {...register("email")}
               error={!!errors.email}
               helperText={errors.email?.message}
             />
@@ -94,24 +96,24 @@ const Signup = () => {
             <TextField
               fullWidth
               label="Phone Number"
-              {...register('phone')}
+              {...register("phone")}
               error={!!errors.phone}
               helperText={errors.phone?.message}
             />
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
+          <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
             <PasswordField
               fullWidth
               label="Password"
-              {...register('password')}
+              {...register("password")}
               error={!!errors.password}
               helperText={errors.password?.message}
             />
             <PasswordField
               fullWidth
               label="Confirm Password"
-              {...register('confirmPassword')}
+              {...register("confirmPassword")}
               error={!!errors.confirmPassword}
               helperText={errors.confirmPassword?.message}
             />
@@ -119,15 +121,24 @@ const Signup = () => {
 
           <Box sx={{ mb: 3 }}>
             <FormControlLabel
-              control={<Checkbox {...register('termsAccepted')} color="primary" />}
+              control={
+                <Checkbox {...register("termsAccepted")} color="primary" />
+              }
               label={
                 <Typography variant="body2" color="text.secondary">
-                  I agree to the VerifyHub <Link href="#" underline="hover" sx={{ color: '#2563EB' }}>Terms & Conditions</Link>
+                  I agree to the VerifyHub{" "}
+                  <Link href="#" underline="hover" sx={{ color: "#2563EB" }}>
+                    Terms & Conditions
+                  </Link>
                 </Typography>
               }
             />
             {errors.termsAccepted && (
-              <Typography variant="caption" color="error" sx={{ display: 'block', ml: 4 }}>
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block", ml: 4 }}
+              >
                 {errors.termsAccepted.message}
               </Typography>
             )}
@@ -142,15 +153,19 @@ const Signup = () => {
             disabled={isSubmitting}
             sx={{ mb: 3 }}
           >
-            {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Create Partner Account'}
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Create Partner Account"
+            )}
           </Button>
 
           <Typography variant="body2" align="center" color="text.secondary">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link
               component={RouterLink}
               to="/login"
-              sx={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}
+              sx={{ color: "#2563EB", textDecoration: "none", fontWeight: 600 }}
             >
               Log in
             </Link>

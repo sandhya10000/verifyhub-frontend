@@ -1,12 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, Skeleton } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import useAuth from '../../context/useAuth';
-import StatCard from '../../Components/shared/StatCard';
-import DataTable from '../../Components/shared/DataTable';
-import StatusBadge from '../../Components/shared/StatusBadge';
-import { CircleDot, Wallet } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Skeleton,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import useAuth from "../../context/useAuth";
+import StatCard from "../../Components/shared/StatCard";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import { CircleDot, Wallet } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -19,9 +30,9 @@ const formatName = (name = "") => {
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 };
 
 /**
@@ -30,17 +41,19 @@ const getGreeting = () => {
  */
 const buildSparklinePath = (trend) => {
   if (!trend || trend.length === 0) {
-    return 'M 0,26 L 112,26'; // flat line fallback
+    return "M 0,26 L 112,26"; // flat line fallback
   }
   const counts = trend.map((t) => t.count);
   const max = Math.max(...counts, 1); // avoid div/0
-  const W = 112, H = 28, PAD = 4; // drawable area
+  const W = 112,
+    H = 28,
+    PAD = 4; // drawable area
   const points = counts.map((c, i) => {
     const x = (i / (counts.length - 1)) * W;
     const y = PAD + (1 - c / max) * H;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  return `M ${points.join(' L ')}`;
+  return `M ${points.join(" L ")}`;
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -49,21 +62,22 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // ── Report stats fetched from /api/ai-analyzer/stats ────────────────────
+  // ── Report stats fetched from  /ai-analyzer/stats ────────────────────
   const [statsLoading, setStatsLoading] = useState(true);
-  const [todayCount, setTodayCount]     = useState(null);
-  const [monthCount, setMonthCount]     = useState(null);
-  const [aiToday, setAiToday]           = useState(null);
-  const [aiMonth, setAiMonth]           = useState(null);
-  const [todayTrend, setTodayTrend]     = useState([]);
-  const [monthTrend, setMonthTrend]     = useState([]);
+  const [todayCount, setTodayCount] = useState(null);
+  const [monthCount, setMonthCount] = useState(null);
+  const [aiToday, setAiToday] = useState(null);
+  const [aiMonth, setAiMonth] = useState(null);
+  const [todayTrend, setTodayTrend] = useState([]);
+  const [monthTrend, setMonthTrend] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.get(`${API_BASE_URL}/api/ai-analyzer/stats`, {
+        const token = localStorage.getItem("token");
+        const API_BASE_URL =
+          import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const res = await axios.get(`${API_BASE_URL}/ai-analyzer/stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data.success) {
@@ -76,7 +90,7 @@ const Dashboard = () => {
           setMonthTrend(res.data.monthTrend || []);
         }
       } catch (err) {
-        console.error('Failed to fetch report stats:', err);
+        console.error("Failed to fetch report stats:", err);
         // Leave counts as null — empty states will render
       } finally {
         setStatsLoading(false);
@@ -87,43 +101,58 @@ const Dashboard = () => {
 
   // These will be replaced with real API responses when the backend is ready.
   // Pass empty arrays / null so the UI renders its empty states immediately.
-  const recentPulls  = [];   // TODO: fetch from /api/partner/pulls?limit=5
-  const activityFeed = [];   // TODO: fetch from /api/partner/activity?limit=10
+  const recentPulls = []; // TODO: fetch from /api/partner/pulls?limit=5
+  const activityFeed = []; // TODO: fetch from /api/partner/activity?limit=10
 
   const walletBalance =
     user?.walletBalance != null
-      ? `₹${Number(user.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-      : '₹0.00';
+      ? `₹${Number(user.walletBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+      : "₹0.00";
 
   const columns = [
     {
-      header: 'Customer',
-      field: 'customerName',
+      header: "Customer",
+      field: "customerName",
       render: (row) => (
         <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.customerName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', letterSpacing: 1 }}>{row.pan}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {row.customerName}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", letterSpacing: 1 }}
+          >
+            {row.pan}
+          </Typography>
         </Box>
       ),
     },
-    { header: 'Bureau', field: 'bureau' },
+    { header: "Bureau", field: "bureau" },
     {
-      header: 'Score',
-      field: 'score',
+      header: "Score",
+      field: "score",
       render: (row) => (
-        <Typography sx={{ fontWeight: 700, color: row.score ? 'text.primary' : 'text.disabled' }}>
-          {row.score || '—'}
+        <Typography
+          sx={{
+            fontWeight: 700,
+            color: row.score ? "text.primary" : "text.disabled",
+          }}
+        >
+          {row.score || "—"}
         </Typography>
       ),
     },
     {
-      header: 'Status',
-      field: 'status',
+      header: "Status",
+      field: "status",
       render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <StatusBadge status={row.status} />
-          {row.status === 'Failed' && (
-            <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+          {row.status === "Failed" && (
+            <Typography
+              variant="caption"
+              sx={{ color: "error.main", fontWeight: 600 }}
+            >
               -₹{row.fee}
             </Typography>
           )}
@@ -133,14 +162,14 @@ const Dashboard = () => {
   ];
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       {/* ── Greeting ── */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           {/* {getGreeting()}, {user?.name || 'Partner'} */}
           {getGreeting()}, {formatName(user?.name || "Partner")}
         </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+        <Typography variant="body1" sx={{ color: "text.secondary" }}>
           Credit report pulls, wallet and activity — updated in real time.
         </Typography>
       </Box>
@@ -151,8 +180,22 @@ const Dashboard = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           {statsLoading ? (
             // ── Loading skeleton ──
-            <Box sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
-              <Skeleton variant="text" width="60%" height={16} sx={{ mb: 1.5 }} />
+            <Box
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                height: "100%",
+              }}
+            >
+              <Skeleton
+                variant="text"
+                width="60%"
+                height={16}
+                sx={{ mb: 1.5 }}
+              />
               <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
               <Skeleton variant="text" width="50%" height={14} />
             </Box>
@@ -163,14 +206,27 @@ const Dashboard = () => {
               value={String(todayCount)}
               subtitle={
                 aiToday !== null && aiToday < todayCount
-                  ? `${aiToday} AI ${aiToday === 1 ? 'analysis' : 'analyses'} · ${todayCount - aiToday} bureau ${todayCount - aiToday === 1 ? 'pull' : 'pulls'}`
+                  ? `${aiToday} AI ${aiToday === 1 ? "analysis" : "analyses"} · ${todayCount - aiToday} bureau ${todayCount - aiToday === 1 ? "pull" : "pulls"}`
                   : aiToday !== null && aiToday > 0
-                  ? `${aiToday} AI ${aiToday === 1 ? 'analysis' : 'analyses'} completed`
-                  : 'Bureau reports generated today'
+                    ? `${aiToday} AI ${aiToday === 1 ? "analysis" : "analyses"} completed`
+                    : "Bureau reports generated today"
               }
               decoration={
-                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
+                <Box sx={{ color: "#8B5CF6", opacity: 0.8 }}>
+                  <svg
+                    width="120"
+                    height="32"
+                    viewBox="0 0 120 32"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      filter:
+                        "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
+                    }}
+                  >
                     <path d={buildSparklinePath(todayTrend)} />
                   </svg>
                 </Box>
@@ -183,8 +239,21 @@ const Dashboard = () => {
               value="—"
               subtitle="No reports pulled yet"
               decoration={
-                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
+                <Box sx={{ color: "#8B5CF6", opacity: 0.8 }}>
+                  <svg
+                    width="120"
+                    height="32"
+                    viewBox="0 0 120 32"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      filter:
+                        "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
+                    }}
+                  >
                     <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
                   </svg>
                 </Box>
@@ -197,8 +266,22 @@ const Dashboard = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           {statsLoading ? (
             // ── Loading skeleton ──
-            <Box sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
-              <Skeleton variant="text" width="65%" height={16} sx={{ mb: 1.5 }} />
+            <Box
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                height: "100%",
+              }}
+            >
+              <Skeleton
+                variant="text"
+                width="65%"
+                height={16}
+                sx={{ mb: 1.5 }}
+              />
               <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
               <Skeleton variant="text" width="55%" height={14} />
             </Box>
@@ -209,14 +292,27 @@ const Dashboard = () => {
               value={String(monthCount)}
               subtitle={
                 aiMonth !== null && aiMonth < monthCount
-                  ? `${aiMonth} AI ${aiMonth === 1 ? 'analysis' : 'analyses'} · ${monthCount - aiMonth} bureau ${monthCount - aiMonth === 1 ? 'pull' : 'pulls'}`
+                  ? `${aiMonth} AI ${aiMonth === 1 ? "analysis" : "analyses"} · ${monthCount - aiMonth} bureau ${monthCount - aiMonth === 1 ? "pull" : "pulls"}`
                   : aiMonth !== null && aiMonth > 0
-                  ? `${aiMonth} AI ${aiMonth === 1 ? 'analysis' : 'analyses'} this month`
-                  : 'Bureau reports this calendar month'
+                    ? `${aiMonth} AI ${aiMonth === 1 ? "analysis" : "analyses"} this month`
+                    : "Bureau reports this calendar month"
               }
               decoration={
-                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
+                <Box sx={{ color: "#10B981", opacity: 0.8 }}>
+                  <svg
+                    width="120"
+                    height="32"
+                    viewBox="0 0 120 32"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      filter:
+                        "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
+                    }}
+                  >
                     <path d={buildSparklinePath(monthTrend)} />
                   </svg>
                 </Box>
@@ -229,8 +325,21 @@ const Dashboard = () => {
               value="—"
               subtitle="No reports this month yet"
               decoration={
-                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
+                <Box sx={{ color: "#10B981", opacity: 0.8 }}>
+                  <svg
+                    width="120"
+                    height="32"
+                    viewBox="0 0 120 32"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      filter:
+                        "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
+                    }}
+                  >
                     <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
                   </svg>
                 </Box>
@@ -248,14 +357,40 @@ const Dashboard = () => {
             subtitle="No recharge history yet"
             chipLabel=""
             decoration={
-              <Box sx={{ transform: 'translate(5px, 5px)', opacity: 0.35 }}>
-                <svg width="90" height="90" viewBox="0 0 100 100" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))' }}>
-                  <path d="M 45 15 L 85 28 L 78 40 L 38 27 Z" strokeOpacity="0.5" fill="rgba(99, 102, 241, 0.1)" />
-                  <path d="M 35 25 L 75 38 L 70 50 L 30 37 Z" strokeOpacity="0.8" fill="rgba(99, 102, 241, 0.1)" />
-                  <path d="M 10 45 L 70 65 L 65 95 L 5 75 Z" fill="rgba(30, 41, 59, 0.8)" />
+              <Box sx={{ transform: "translate(5px, 5px)", opacity: 0.35 }}>
+                <svg
+                  width="90"
+                  height="90"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  stroke="#6366F1"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    filter: "drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))",
+                  }}
+                >
+                  <path
+                    d="M 45 15 L 85 28 L 78 40 L 38 27 Z"
+                    strokeOpacity="0.5"
+                    fill="rgba(99, 102, 241, 0.1)"
+                  />
+                  <path
+                    d="M 35 25 L 75 38 L 70 50 L 30 37 Z"
+                    strokeOpacity="0.8"
+                    fill="rgba(99, 102, 241, 0.1)"
+                  />
+                  <path
+                    d="M 10 45 L 70 65 L 65 95 L 5 75 Z"
+                    fill="rgba(30, 41, 59, 0.8)"
+                  />
                   <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
                   <path d="M 10 45 L 70 65" strokeWidth="3" />
-                  <path d="M 55 60 L 65 63 L 63 78 L 53 75 Z" fill="rgba(99, 102, 241, 0.2)" />
+                  <path
+                    d="M 55 60 L 65 63 L 63 78 L 53 75 Z"
+                    fill="rgba(99, 102, 241, 0.2)"
+                  />
                   <path d="M 60 72 L 60.01 72" strokeWidth="4" />
                 </svg>
               </Box>
