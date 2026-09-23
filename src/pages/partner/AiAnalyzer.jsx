@@ -208,13 +208,13 @@ const AiAnalyzer = () => {
     if (isAnalyzing && analysisId) {
       console.log("[AiAnalyzer] Starting poll for analysisId:", analysisId);
       intervalId = setInterval(async () => {
-        console.log("[AiAnalyzer] Polling GET /api/ai-analyzer/", analysisId);
+        console.log("[AiAnalyzer] Polling GET  /ai-analyzer/", analysisId);
         try {
           const token = localStorage.getItem("token");
           const API_BASE_URL =
             import.meta.env.VITE_API_URL || "http://localhost:5000";
           const response = await axios.get(
-            `${API_BASE_URL}/api/ai-analyzer/${analysisId}`,
+            `${API_BASE_URL}/ai-analyzer/${analysisId}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -320,7 +320,7 @@ const AiAnalyzer = () => {
           const API_BASE_URL =
             import.meta.env.VITE_API_URL || "http://localhost:5000";
           const response = await axios.get(
-            `${API_BASE_URL}/api/ai-analyzer/${analysisId}`,
+            `${API_BASE_URL}/ai-analyzer/${analysisId}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -337,7 +337,7 @@ const AiAnalyzer = () => {
 
               try {
                 const pdfResponse = await axios.get(
-                  `${API_BASE_URL}/api/ai-analyzer/${analysisId}/download-pdf`,
+                  `${API_BASE_URL}/ai-analyzer/${analysisId}/download-pdf`,
                   {
                     headers: { Authorization: `Bearer ${token}` },
                     responseType: "blob",
@@ -411,7 +411,7 @@ const AiAnalyzer = () => {
       const API_BASE_URL =
         import.meta.env.VITE_API_URL || "http://localhost:5000";
       const response = await axios.get(
-        `${API_BASE_URL}/api/ai-analyzer/${analysisId}/download-pdf`,
+        `${API_BASE_URL}/ai-analyzer/${analysisId}/download-pdf`,
         { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 }, // Omit blob to allow 202 JSON parsing cleanly; 60s safety timeout
       );
 
