@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 
 import { creditAPI } from "../../services/authService";
+import useAuth from "../../context/useAuth";
 
 const getInitials = (name) => {
   if (!name) return "U";
@@ -29,6 +30,7 @@ const Profile = () => {
   // STATE
   // ==========================================
 
+  const { user } = useAuth(); // Partner ID comes from auth context (same as PartnerLayout)
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,17 +98,14 @@ const Profile = () => {
         // API response directly returned from authService
         if (response?.success && response?.data) {
           const data = response.data;
-
+          console.log("data: ", data);
           setUserDetails({
-            userId: String(data.userId || ""),
             name: String(data.name || ""),
             mobile: String(data.mobile || ""),
             email: String(data.email || ""),
-            pan: String(data.pan || ""),
-
             // partnerId null hai,
             // isliye userId ko Partner ID ke liye use kar rahe hain
-            partnerId: String(data.userId || ""),
+            partnerId: String(data.partner_id || ""),
           });
         } else {
           setError(response?.message || "Failed to fetch profile details");
@@ -133,7 +132,7 @@ const Profile = () => {
 
   const displayName = formatName(userDetails?.name) || "User";
 
-  const displayPartnerId = userDetails?.userId || "—";
+  const displayPartnerId = user?.partner_id || "—";
 
   // ==========================================
   // UI
@@ -319,13 +318,8 @@ const Profile = () => {
 
           <Grid container spacing={4}>
             {/* LEFT COLUMN */}
-
             <Grid item xs={12} md={6}>
               <FieldRow label="Full Name" value={formatName(userDetails.name)} />
-
-              <Divider sx={{ my: 2 }} />
-
-              <FieldRow label="PAN Number" value={userDetails.pan} />
 
               <Divider sx={{ my: 2 }} />
 
@@ -333,19 +327,12 @@ const Profile = () => {
             </Grid>
 
             {/* RIGHT COLUMN */}
-
             <Grid item xs={12} md={6}>
               <FieldRow label="Email Address" value={userDetails.email} />
 
               <Divider sx={{ my: 2 }} />
 
-              {/* USER ID AS PARTNER ID */}
-
-              <FieldRow label="Partner ID" value={userDetails.userId} />
-
-              <Divider sx={{ my: 2 }} />
-
-              <FieldRow label="User ID" value={userDetails.userId} />
+              <FieldRow label="Partner ID" value={user?.partner_id} />
             </Grid>
           </Grid>
         ) : (
