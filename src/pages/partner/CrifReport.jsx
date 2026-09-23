@@ -47,6 +47,7 @@ import {
   Close,
   CreditScore,
   Email,
+  FileDownload,
   Home,
   LocationCity,
   LocationOn,
@@ -164,7 +165,7 @@ const CrifReport = () => {
 
   const formatDate = (dateValue) => {
     if (!dateValue) {
-      return "-";
+      return null;
     }
 
     try {
@@ -229,8 +230,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to get CRIF report",
+        error?.message ||
+        "Unable to get CRIF report",
       );
 
       return false;
@@ -301,8 +302,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to fetch recent CRIF reports",
+        error?.message ||
+        "Unable to fetch recent CRIF reports",
       );
     } finally {
       setRecentLoading(false);
@@ -525,8 +526,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-          error?.message ||
-          "Something went wrong while fetching CRIF report",
+        error?.message ||
+        "Something went wrong while fetching CRIF report",
       );
 
       setCrifResponse(null);
@@ -651,8 +652,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to submit answer",
+        error?.message ||
+        "Unable to submit answer",
       );
     } finally {
       setLoading(false);
@@ -1270,18 +1271,18 @@ const CrifReport = () => {
                           },
 
                           "& input[type='date']::-webkit-datetime-edit-fields-wrapper":
-                            {
-                              padding: 0,
-                            },
+                          {
+                            padding: 0,
+                          },
 
                           "& input[type='date']::-webkit-calendar-picker-indicator":
-                            {
-                              cursor: "pointer",
-                              opacity: 0.75,
-                              width: 18,
-                              height: 18,
-                              marginLeft: 6,
-                            },
+                          {
+                            cursor: "pointer",
+                            opacity: 0.75,
+                            width: 18,
+                            height: 18,
+                            marginLeft: 6,
+                          },
                         }}
                       />
                     </Box>
@@ -1776,273 +1777,247 @@ const CrifReport = () => {
 
         {activeStep === 2 && reportData && (
           <Box>
-            {/* REPORT HEADER */}
 
-            <Card
-              sx={{
-                borderRadius: 3,
-                mb: 2.5,
-                boxShadow: "0 4px 22px rgba(0,0,0,.05)",
-                overflow: "hidden",
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: {
-                    xs: 2,
-                    sm: 3,
-                    md: 4,
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: {
-                      xs: "flex-start",
-                      md: "center",
-                    },
-                    gap: 2,
-                    flexDirection: {
-                      xs: "column",
-                      md: "row",
-                    },
-                  }}
-                >
-                  <Box>
-                    <Box
+            {/* ── SCORE + REPORT INFO ── side-by-side, score is the hero */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+
+              {/* SCORE CARD */}
+              <Grid size={{ xs: 12, md: 5 }}>
+                {(() => {
+                  const score = Number(reportData.score);
+                  const isExcellent = score >= 750;
+                  const isGood = score >= 700 && score < 750;
+                  const isFair = score >= 650 && score < 700;
+                  const ringColor = isExcellent
+                    ? "#22c55e"
+                    : isGood
+                      ? "#3b82f6"
+                      : isFair
+                        ? "#f59e0b"
+                        : "#ef4444";
+                  const label = isExcellent
+                    ? "Excellent"
+                    : isGood
+                      ? "Good"
+                      : isFair
+                        ? "Fair"
+                        : score
+                          ? "Poor"
+                          : "N/A";
+
+                  // Score gauge: semicircle, 300–900 mapped to 180°–0°
+                  const minScore = 300;
+                  const maxScore = 900;
+                  const pct = Math.min(
+                    Math.max((score - minScore) / (maxScore - minScore), 0),
+                    1,
+                  );
+
+                  const cx = 100;
+                  const cy = 92;
+                  const r = 78;
+                  const strokeW = 14;
+
+                  const polarToCartesian = (angleDeg) => {
+                    const rad = (angleDeg * Math.PI) / 180;
+                    return {
+                      x: cx + r * Math.cos(rad),
+                      y: cy - r * Math.sin(rad),
+                    };
+                  };
+
+                  const describeArc = (startAngle, endAngle) => {
+                    const start = polarToCartesian(startAngle);
+                    const end = polarToCartesian(endAngle);
+                    const largeArcFlag =
+                      Math.abs(startAngle - endAngle) > 180 ? 1 : 0;
+                    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+                  };
+
+                  const trackPath = describeArc(180, 0);
+                  const fillPath =
+                    pct > 0 ? describeArc(180, 180 - 180 * pct) : "";
+
+                  return (
+                    <Card
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
+                        height: "100%",
+                        borderRadius: 3,
+                        background:
+                          "linear-gradient(160deg, #0f172a 0%, #1e293b 100%)",
+                        color: "#fff",
+                        boxShadow: "0 8px 32px rgba(0,0,0,.25)",
                       }}
                     >
-                      <CheckCircle color="success" />
-
-                      <Typography
-                        variant="h5"
-                        fontWeight={800}
+                      <CardContent
                         sx={{
-                          fontSize: {
-                            xs: "1.35rem",
-                            sm: "1.6rem",
-                          },
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          py: 4,
+                          px: 3,
                         }}
                       >
-                        CRIF Credit Report
-                      </Typography>
-                    </Box>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        mt: 0.8,
-                      }}
-                    >
-                      Credit report has been generated successfully.
-                    </Typography>
-                  </Box>
-
-                  <Chip
-                    icon={<CheckCircle />}
-                    label={reportData.status || "SUCCESS"}
-                    color="success"
-                    sx={{
-                      fontWeight: 700,
-                      borderRadius: 2,
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* SCORE + REPORT INFO */}
-
-            <Grid container spacing={2.5}>
-              <Grid item xs={12} md={4}>
-                <Card
-                  sx={{
-                    height: "100%",
-                    borderRadius: 3,
-                    background: "linear-gradient(145deg, #0f172a, #1e293b)",
-                    color: "#fff",
-                  }}
-                >
-                  <CardContent
-                    sx={{
-                      minHeight: 265,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      textAlign: "center",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 58,
-                        height: 58,
-                        borderRadius: "50%",
-                        backgroundColor: "rgba(255,255,255,.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mb: 1.5,
-                      }}
-                    >
-                      <CreditScore />
-                    </Box>
-
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        opacity: 0.75,
-                        fontWeight: 700,
-                        letterSpacing: ".8px",
-                      }}
-                    >
-                      CRIF CREDIT SCORE
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        fontSize: {
-                          xs: "4rem",
-                          sm: "5rem",
-                        },
-                        fontWeight: 900,
-                        lineHeight: 1,
-                        mt: 1.5,
-                      }}
-                    >
-                      {reportData.score ?? "-"}
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        opacity: 0.7,
-                        mt: 1,
-                      }}
-                    >
-                      Credit Score
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} md={8}>
-                <Card
-                  sx={{
-                    height: "100%",
-                    borderRadius: 3,
-                    boxShadow: "0 4px 18px rgba(0,0,0,.04)",
-                  }}
-                >
-                  <CardContent
-                    sx={{
-                      p: {
-                        xs: 2.2,
-                        sm: 3,
-                      },
-                    }}
-                  >
-                    <Typography variant="h6" fontWeight={750}>
-                      Report Information
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        mt: 0.4,
-                      }}
-                    >
-                      Basic information about this credit report.
-                    </Typography>
-
-                    <Divider
-                      sx={{
-                        my: 2.5,
-                      }}
-                    />
-
-                    <Grid container spacing={2.5}>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary">
-                          Report ID
-                        </Typography>
-
                         <Typography
-                          variant="body2"
-                          fontWeight={700}
+                          variant="overline"
                           sx={{
-                            mt: 0.4,
-                            wordBreak: "break-word",
+                            opacity: 0.6,
+                            letterSpacing: 2,
+                            fontSize: "0.65rem",
+                            mb: 1,
                           }}
                         >
-                          {reportData.reportId || reportData._id || "-"}
-                        </Typography>
-                      </Grid>
-
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary">
-                          Inquiry ID
+                          CRIF CREDIT SCORE
                         </Typography>
 
-                        <Typography
-                          variant="body2"
-                          fontWeight={700}
+                        {/* SVG Gauge */}
+                        <Box sx={{ position: "relative", width: 200, height: 114 }}>
+                          <svg width="200" height="114" viewBox="0 0 200 110">
+                            {/* Track */}
+                            <path
+                              d={trackPath}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.1)"
+                              strokeWidth={strokeW}
+                              strokeLinecap="round"
+                            />
+
+                            {/* Filled arc */}
+                            {fillPath && (
+                              <path
+                                d={fillPath}
+                                fill="none"
+                                stroke={ringColor}
+                                strokeWidth={strokeW}
+                                strokeLinecap="round"
+                                style={{
+                                  filter: `drop-shadow(0 0 6px ${ringColor}88)`,
+                                }}
+                              />
+                            )}
+                          </svg>
+
+                          {/* Score number, anchored below the arc */}
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              bottom: -6,
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              textAlign: "center",
+                              width: "100%",
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: { xs: "2.6rem", sm: "3rem" },
+                                fontWeight: 900,
+                                lineHeight: 1,
+                                color: ringColor,
+                                textShadow: `0 0 24px ${ringColor}55`,
+                              }}
+                            >
+                              {score || "—"}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Band label */}
+                        <Chip
+                          label={label}
+                          size="small"
                           sx={{
-                            mt: 0.4,
-                            wordBreak: "break-word",
+                            mt: 1.5,
+                            mb: 2,
+                            fontWeight: 700,
+                            fontSize: "0.78rem",
+                            bgcolor: `${ringColor}22`,
+                            color: ringColor,
+                            border: `1px solid ${ringColor}55`,
                           }}
-                        >
-                          {reportData.inquiryId || "-"}
-                        </Typography>
-                      </Grid>
+                        />
 
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary">
-                          Report Date
-                        </Typography>
-
-                        <Typography
-                          variant="body2"
-                          fontWeight={700}
-                          sx={{
-                            mt: 0.4,
-                          }}
-                        >
-                          {formatDate(
-                            reportData.dateOfIssue || reportData.dateOfRequest,
-                          )}
-                        </Typography>
-                      </Grid>
-
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary">
-                          Status
-                        </Typography>
-
+                        {/* Score scale hint */}
                         <Box
                           sx={{
-                            mt: 0.5,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: 170,
+                            opacity: 0.45,
                           }}
                         >
-                          <Chip
-                            size="small"
-                            icon={<CheckCircle />}
-                            label={reportData.status || "SUCCESS"}
-                            color="success"
-                            sx={{
-                              fontWeight: 600,
-                            }}
-                          />
+                          <Typography variant="caption">300</Typography>
+                          <Typography variant="caption">900</Typography>
                         </Box>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+              </Grid>
+
+              {/* REPORT INFO CARD */}
+              <Grid size={{ xs: 12, md: 7 }}>
+                <Card sx={{ height: "100%", borderRadius: 3, boxShadow: "0 4px 18px rgba(0,0,0,.04)" }}>
+                  <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+                      <Typography variant="h6" fontWeight={750}>Report Information</Typography>
+                      <Chip
+                        size="small"
+                        icon={<CheckCircle sx={{ fontSize: "0.9rem !important" }} />}
+                        label="Report Generated"
+                        color="success"
+                        sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                      Details retrieved from CRIF bureau.
+                    </Typography>
+                    <Divider sx={{ mb: 2.5 }} />
+                    <Grid container spacing={2.5}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>REPORT ID</Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, wordBreak: "break-word", fontFamily: "monospace", fontSize: "0.85rem" }}>
+                          {reportData.reportId || reportData._id || <Box component="span" sx={{ color: "text.disabled", fontFamily: "inherit" }}>Not available</Box>}
+                        </Typography>
                       </Grid>
+
+                      {reportData.inquiryId && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>INQUIRY ID</Typography>
+                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, wordBreak: "break-word", fontFamily: "monospace", fontSize: "0.85rem" }}>
+                            {reportData.inquiryId}
+                          </Typography>
+                        </Grid>
+                      )}
+
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>REPORT DATE</Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>
+                          {formatDate(reportData.dateOfIssue || reportData.dateOfRequest || reportData.createdAt) || <Box component="span" sx={{ color: "text.disabled" }}>Not available</Box>}
+                        </Typography>
+                      </Grid>
+
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>BUREAU</Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>CRIF High Mark</Typography>
+                      </Grid>
+
+                      {reportData.pan && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>PAN</Typography>
+                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, fontFamily: "monospace", letterSpacing: 1 }}>
+                            {reportData.pan}
+                          </Typography>
+                        </Grid>
+                      )}
+
+                      {reportData.mobile && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>MOBILE</Typography>
+                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>{reportData.mobile}</Typography>
+                        </Grid>
+                      )}
                     </Grid>
                   </CardContent>
                 </Card>
@@ -2097,21 +2072,18 @@ const CrifReport = () => {
                       },
                       {
                         label: "Current Balance",
-                        value: `₹${
-                          reportData.accountSummary.currentBalance ?? 0
-                        }`,
+                        value: `₹${reportData.accountSummary.currentBalance ?? 0
+                          }`,
                       },
                       {
                         label: "Sanctioned Amount",
-                        value: `₹${
-                          reportData.accountSummary.sanctionedAmount ?? 0
-                        }`,
+                        value: `₹${reportData.accountSummary.sanctionedAmount ?? 0
+                          }`,
                       },
                       {
                         label: "Disbursed Amount",
-                        value: `₹${
-                          reportData.accountSummary.disbursedAmount ?? 0
-                        }`,
+                        value: `₹${reportData.accountSummary.disbursedAmount ?? 0
+                          }`,
                       },
                     ].map((item) => (
                       <Grid item xs={6} sm={4} md={3} key={item.label}>
@@ -2151,20 +2123,17 @@ const CrifReport = () => {
                     <Grid item xs={6} sm={3}>
                       <SummaryCard
                         label="Credit History"
-                        value={`${
-                          reportData.creditHistory.creditHistoryYears || 0
-                        } Years`}
+                        value={`${reportData.creditHistory.creditHistoryYears || 0
+                          } Years`}
                       />
                     </Grid>
 
                     <Grid item xs={6} sm={3}>
                       <SummaryCard
                         label="Average Account Age"
-                        value={`${
-                          reportData.creditHistory.averageAccountAgeYears || 0
-                        } Y ${
-                          reportData.creditHistory.averageAccountAgeMonths || 0
-                        } M`}
+                        value={`${reportData.creditHistory.averageAccountAgeYears || 0
+                          } Y ${reportData.creditHistory.averageAccountAgeMonths || 0
+                          } M`}
                       />
                     </Grid>
 
@@ -2381,9 +2350,8 @@ const CrifReport = () => {
                         <TableCell>
                           {report.fullName ||
                             report.name ||
-                            `${report.firstName || ""} ${
-                              report.lastName || ""
-                            }`.trim() ||
+                            `${report.firstName || ""} ${report.lastName || ""
+                              }`.trim() ||
                             "-"}
                         </TableCell>
 
@@ -2397,7 +2365,7 @@ const CrifReport = () => {
 
                         <TableCell>
                           {report.score !== null &&
-                          report.score !== undefined ? (
+                            report.score !== undefined ? (
                             <Chip
                               label={report.score}
                               color={getScoreColor(report.score)}
@@ -2411,8 +2379,8 @@ const CrifReport = () => {
                         <TableCell>
                           {formatDate(
                             report.createdAt ||
-                              report.dateOfIssue ||
-                              report.dateOfRequest,
+                            report.dateOfIssue ||
+                            report.dateOfRequest,
                           )}
                         </TableCell>
 

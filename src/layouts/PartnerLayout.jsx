@@ -574,9 +574,10 @@ const PartnerLayout = () => {
                   {user?.companyName || formatName(user?.name) || "Partner"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {user?.partnerId || user?.id || "N/A"} · Tier {user?.tier || 1}
+                  {user?.partner_id || "N/A"} · Tier {user?.tier || 1}
                 </Typography>
               </Box>
+              {console.log('user', user)}
 
               {/* Avatar with Dropdown */}
               <Avatar
