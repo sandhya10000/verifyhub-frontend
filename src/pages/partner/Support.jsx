@@ -271,10 +271,14 @@ const Support = () => {
               </Typography>
             </DialogTitle>
             <DialogContent dividers sx={{ bgcolor: 'background.default', maxHeight: '60vh', overflowY: 'auto' }} ref={conversationRef}>
-              <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-                <Typography variant="overline" color="text.secondary">Your initial message</Typography>
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{selectedTicket.description}</Typography>
-              </Paper>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+                <Box sx={{ maxWidth: '80%', bgcolor: 'primary.main', color: 'primary.contrastText', px: 2, py: 1.25, borderRadius: 2 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.75, fontWeight: 600 }}>
+                    You · {selectedTicket.createdAt ? format(new Date(selectedTicket.createdAt), 'MMM dd HH:mm') : ''}
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{selectedTicket.description}</Typography>
+                </Box>
+              </Box>
               {(selectedTicket.messages || []).map((m, i) => {
                 const mine = m.senderRole !== 'admin';
                 return (
