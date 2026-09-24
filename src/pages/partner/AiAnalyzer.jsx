@@ -140,7 +140,7 @@ const AiAnalyzer = () => {
 
     try {
       const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000";
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await axios.post(
         `${API_BASE_URL}/ai-analyzer/upload`,
         formData,
@@ -209,16 +209,13 @@ const AiAnalyzer = () => {
       console.log("[AiAnalyzer] Starting poll for analysisId:", analysisId);
       intervalId = setInterval(async () => {
         console.log("[AiAnalyzer] Polling GET  /ai-analyzer/", analysisId);
+
         try {
-          const token = localStorage.getItem("token");
-          const API_BASE_URL =
-            import.meta.env.VITE_API_URL || "http://localhost:5000";
-          const response = await axios.get(
-            `${API_BASE_URL}/ai-analyzer/${analysisId}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
+          const token = localStorage.getItem('token');
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const response = await axios.get(`${API_BASE_URL}/ai-analyzer/${analysisId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
 
           console.log(
             "[AiAnalyzer] Poll response:",
@@ -316,15 +313,13 @@ const AiAnalyzer = () => {
         }
 
         try {
-          const token = localStorage.getItem("token");
-          const API_BASE_URL =
-            import.meta.env.VITE_API_URL || "http://localhost:5000";
-          const response = await axios.get(
-            `${API_BASE_URL}/ai-analyzer/${analysisId}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
+
+          const token = localStorage.getItem('token');
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const response = await axios.get(`${API_BASE_URL}/ai-analyzer/${analysisId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
 
           if (response.data.success) {
             const { htmlStatus } = response.data;
@@ -408,11 +403,10 @@ const AiAnalyzer = () => {
     const token = localStorage.getItem("token");
 
     try {
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(
         `${API_BASE_URL}/ai-analyzer/${analysisId}/download-pdf`,
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 }, // Omit blob to allow 202 JSON parsing cleanly; 60s safety timeout
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 } // Omit blob to allow 202 JSON parsing cleanly; 60s safety timeout
       );
 
       // If it returned 200, the HTML is ready (cached path A)

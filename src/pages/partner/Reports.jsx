@@ -614,7 +614,7 @@ const Reports = () => {
             ? "Opening..."
             : row.rawType === "credit-report"
               ? "PDF ↓"
-              : "PDF ↓"}
+              : "HTML ↓"}
         </Box>
       ),
     },
