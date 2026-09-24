@@ -4,10 +4,10 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  Snackbar,
   TextField,
   MenuItem,
   Button,
-  Grid,
   InputAdornment,
 } from "@mui/material";
 import axios from "axios";
@@ -15,19 +15,42 @@ import DataTable from "../../Components/shared/DataTable";
 import DownloadIcon from "@mui/icons-material/Download";
 import { Search } from "lucide-react";
 
+const DATE_MIN = "1900-01-01";
+const DATE_MAX = "2100-12-31"; // use today's date instead if future dates aren't allowed
+
+const AI_OPTION = "AI Credit Analysis";
+const BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", AI_OPTION];
+
+// Works whether VITE_API_URL is "https://host" or "https://host/api"
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(
+  /\/api\/?$/,
+  "",
+);
+const API_BASE = `${API_ROOT}/api`;
+
+const formatName = (name = "") => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDate = (value) =>
+  new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
 const AdminReports = () => {
-  const formatName = (name = "") => {
-    return name
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  };
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [toast, setToast] = useState("");
 
   const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const limit = 50;
 
   const [filters, setFilters] = useState({
@@ -42,30 +65,44 @@ const AdminReports = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // ---- Which dropdown option decides which API(s) we call ----
+      //  All                 -> AI analyses + all bureau reports
+      //  EXPERIAN / CRIF     -> bureau reports only (bureau sent to the API)
+      //  AI Credit Analysis  -> AI analyses only
+      const isAll = filters.bureau === "All";
+      const isAiOnly = filters.bureau === AI_OPTION;
+      const fetchAi = isAll || isAiOnly;
+      const fetchCredit = !isAiOnly;
 
       const queryParams = new URLSearchParams({
         page,
         limit,
-        ...(filters.bureau !== "All" && { bureau: filters.bureau }),
+        // Only send a real bureau name; never "All" or the AI option
+        ...(!isAll && !isAiOnly && { bureau: filters.bureau }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
         ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch }),
       }).toString();
 
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const skipped = () => Promise.resolve({ data: { success: false } });
+
       const [aiRes, creditRes] = await Promise.all([
-        axios
-          .get(`${API_BASE_URL}/api/admin/reports/ai-analyzer?${queryParams}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .catch(() => ({ data: { success: false } })),
-        axios
-          .get(
-            `${API_BASE_URL}/api/admin/reports/credit-reports?${queryParams}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          )
-          .catch(() => ({ data: { success: false } })),
+        fetchAi
+          ? axios
+              .get(`${API_BASE}/admin/reports/ai-analyzer?${queryParams}`, {
+                headers,
+              })
+              .catch(() => ({ data: { success: false } }))
+          : skipped(),
+        fetchCredit
+          ? axios
+              .get(`${API_BASE}/admin/reports/credit-reports?${queryParams}`, {
+                headers,
+              })
+              .catch(() => ({ data: { success: false } }))
+          : skipped(),
       ]);
 
       let aiMapped = [];
@@ -76,18 +113,15 @@ const AdminReports = () => {
           .filter((r) => r.status === "completed")
           .map((r) => ({
             id: r._id,
-            date: new Date(r.createdAt).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
+            date: formatDate(r.createdAt),
             partnerName: formatName(
               r.userId?.name || r.userId?.email || "Unknown",
             ),
             customer: formatName(
               r.mergedData?.client_name ||
                 r.result?.customerName ||
-                r.fileName.replace(/\.[^/.]+$/, ""),
+                (r.fileName || "").replace(/\.[^/.]+$/, "") ||
+                "-",
             ),
             type: "AI Credit Analysis",
             bureau: "-",
@@ -98,68 +132,33 @@ const AdminReports = () => {
       }
 
       if (creditRes.data.success && Array.isArray(creditRes.data.data)) {
-        creditMapped = creditRes.data.data.map((r) => ({
-          id: r._id,
-          date: new Date(r.createdAt).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }),
-          partnerName: formatName(
-            r.userId?.name || r.userId?.email || "Unknown",
-          ),
-          customer: formatName(
-            r.fullName ||
-              r.name ||
-              `${r.firstName || ""} ${r.lastName || ""}`.trim() ||
-              "-",
-          ),
-          type: "Credit Report",
-          bureau: r.bureau
-            ? r.bureau.charAt(0).toUpperCase() + r.bureau.slice(1).toLowerCase()
-            : "—",
-          score: r.score !== null && r.score !== undefined ? r.score : "—",
-          rawType: "credit-report",
-          rawReport: r,
-        }));
+        creditMapped = creditRes.data.data
+          // safety net: CIBIL rows were duplicates of AI analyses
+          .filter((r) => (r.bureau || "").toUpperCase() !== "CIBIL")
+          .map((r) => ({
+            id: r._id,
+            date: formatDate(r.createdAt),
+            partnerName: formatName(
+              r.userId?.name || r.userId?.email || "Unknown",
+            ),
+            customer: formatName(
+              r.fullName ||
+                r.name ||
+                `${r.firstName || ""} ${r.lastName || ""}`.trim() ||
+                "-",
+            ),
+            type: "Credit Report",
+            bureau: r.bureau
+              ? r.bureau.charAt(0).toUpperCase() +
+                r.bureau.slice(1).toLowerCase()
+              : "—",
+            score: r.score !== null && r.score !== undefined ? r.score : "—",
+            rawType: "credit-report",
+            rawReport: r,
+          }));
       }
 
-      // Deduplication
-      const suppressedCreditReportIds = new Set();
-      for (const ai of aiMapped) {
-        const raw = ai.rawReport;
-        if (raw.creditReportId) {
-          suppressedCreditReportIds.add(String(raw.creditReportId));
-          continue;
-        }
-        const aiScore =
-          typeof raw.result?.score === "number" ? raw.result.score : null;
-        const aiDay = raw.createdAt
-          ? new Date(raw.createdAt).toDateString()
-          : null;
-        if (aiScore !== null && aiDay) {
-          for (const cr of creditMapped) {
-            const crBureau = cr.rawReport.bureau?.toUpperCase();
-            if (crBureau !== "CIBIL") continue;
-            const crScore =
-              typeof cr.rawReport.score === "number"
-                ? cr.rawReport.score
-                : null;
-            const crDay = cr.rawReport.createdAt
-              ? new Date(cr.rawReport.createdAt).toDateString()
-              : null;
-            if (crScore !== null && crScore === aiScore && crDay === aiDay) {
-              suppressedCreditReportIds.add(String(cr.rawReport._id));
-            }
-          }
-        }
-      }
-
-      const filteredCreditMapped = creditMapped.filter(
-        (cr) => !suppressedCreditReportIds.has(String(cr.rawReport._id)),
-      );
-
-      let mapped = [...aiMapped, ...filteredCreditMapped];
+      const mapped = [...aiMapped, ...creditMapped];
 
       mapped.sort((a, b) => {
         const timeA = new Date(a.rawReport.createdAt || 0).getTime();
@@ -168,6 +167,11 @@ const AdminReports = () => {
       });
 
       setReportsData(mapped);
+
+      // Next page exists if any endpoint we called reports more pages
+      const aiPages = fetchAi ? aiRes.data?.pages || 1 : 1;
+      const crPages = fetchCredit ? creditRes.data?.pages || 1 : 1;
+      setHasNextPage(page < Math.max(aiPages, crPages));
     } catch (err) {
       console.error("Failed to fetch admin reports:", err);
       setError("Failed to load reports. Please try again.");
@@ -182,6 +186,13 @@ const AdminReports = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
+
+    // Ignore dates whose year is longer than 4 digits
+    if ((name === "startDate" || name === "endDate") && value) {
+      const year = value.split("-")[0];
+      if (year.length > 4) return;
+    }
+
     setFilters((prev) => ({ ...prev, [name]: value }));
     setPage(1); // Reset to first page on filter change
   };
@@ -231,22 +242,27 @@ const AdminReports = () => {
           );
         } catch (err) {
           console.error("PDF conversion error:", err);
+          setToast("Could not open the PDF. The report data is invalid.");
         }
       } else if (report?.reportUrl || report?.localPath) {
-        const baseUrl = import.meta.env.VITE_API_URL
-          ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
-          : "http://localhost:5000/api";
-        const localPath = report.localPath
-          ? report.localPath.startsWith("/")
-            ? report.localPath
-            : `/${report.localPath}`
-          : null;
-        const finalUrl = localPath
-          ? `${baseUrl}${localPath}`
-          : report.reportUrl;
+        let finalUrl = report.reportUrl;
+
+        if (report.localPath) {
+          // Windows "\" -> "/", then keep the public "/uploads/..." part
+          const normalized = report.localPath.replace(/\\/g, "/");
+          const idx = normalized.lastIndexOf("/uploads/");
+          const publicPath =
+            idx !== -1
+              ? normalized.substring(idx)
+              : normalized.startsWith("/")
+                ? normalized
+                : `/${normalized}`;
+          finalUrl = `${API_ROOT}${publicPath}`;
+        }
+
         window.open(finalUrl, "_blank");
       } else {
-        console.error("Report file is not available.");
+        setToast("Report file is not available.");
       }
       return;
     }
@@ -254,11 +270,12 @@ const AdminReports = () => {
     try {
       setDownloadingId(row.id);
       const token = localStorage.getItem("token");
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000";
       const response = await axios.get(
-        `${API_BASE_URL}/ai-analyzer/${row.id}/download-pdf`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        `${API_BASE}/ai-analyzer/${row.id}/download-pdf`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        },
       );
 
       if (response.status === 200) {
@@ -275,6 +292,15 @@ const AdminReports = () => {
       }
     } catch (err) {
       console.error("Failed to download report:", err);
+      let message = "Failed to download report.";
+      try {
+        // With responseType "blob", error bodies arrive as a Blob
+        const text = await err?.response?.data?.text?.();
+        if (text) message = JSON.parse(text).message || message;
+      } catch {
+        /* keep default message */
+      }
+      setToast(message);
     } finally {
       setDownloadingId(null);
     }
@@ -420,9 +446,9 @@ const AdminReports = () => {
           value={filters.bureau}
           onChange={handleFilterChange}
           size="small"
-          sx={{ minWidth: 150 }}
+          sx={{ minWidth: 190 }}
         >
-          {["All", "CIBIL", "EXPERIAN", "CRIF", "EQUIFAX"].map((option) => (
+          {BUREAU_OPTIONS.map((option) => (
             <MenuItem key={option} value={option}>
               {option}
             </MenuItem>
@@ -433,16 +459,28 @@ const AdminReports = () => {
           name="startDate"
           value={filters.startDate}
           onChange={handleFilterChange}
-          InputLabelProps={{ shrink: true }}
           size="small"
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: {
+              min: DATE_MIN,
+              max: filters.endDate || DATE_MAX, // start can't be after end
+            },
+          }}
         />
         <TextField
           type="date"
           name="endDate"
           value={filters.endDate}
           onChange={handleFilterChange}
-          InputLabelProps={{ shrink: true }}
           size="small"
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: {
+              min: filters.startDate || DATE_MIN, // end can't be before start
+              max: DATE_MAX,
+            },
+          }}
         />
       </Box>
 
@@ -463,7 +501,7 @@ const AdminReports = () => {
             columns={columns}
             data={reportsData}
             emptyMessage="No reports found matching filters."
-            pageSize={limit} // DataTable might handle its own pagination if we pass all data, but here we only have the current page. If DataTable does client-side pagination, passing limit=50 is fine.
+            pageSize={limit}
           />
           <Box
             sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}
@@ -475,7 +513,7 @@ const AdminReports = () => {
               Page {page}
             </Typography>
             <Button
-              disabled={reportsData.length < limit}
+              disabled={!hasNextPage}
               onClick={() => setPage((p) => p + 1)}
             >
               Next Page
@@ -483,6 +521,17 @@ const AdminReports = () => {
           </Box>
         </>
       )}
+
+      <Snackbar
+        open={Boolean(toast)}
+        autoHideDuration={5000}
+        onClose={() => setToast("")}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity="error" onClose={() => setToast("")} sx={{ width: "100%" }}>
+          {toast}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

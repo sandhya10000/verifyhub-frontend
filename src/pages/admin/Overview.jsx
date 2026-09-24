@@ -32,8 +32,8 @@ const Dashboard = () => {
         setSummaryLoading(true);
         setSummaryError(false);
         const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${API_BASE_URL}/api/admin/overview/summary`, {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${API_BASE_URL}/admin/overview/summary`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

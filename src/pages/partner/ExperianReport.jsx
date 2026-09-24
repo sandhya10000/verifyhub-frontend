@@ -958,6 +958,10 @@ const ExperianReport = () => {
                           />
                         ),
                       },
+                      htmlInput: {
+                        min: "1900-01-01",
+                        max: new Date().toISOString().split("T")[0],
+                      },
                     }}
                   />
                 </Grid>
@@ -1505,28 +1509,28 @@ const ExperianReport = () => {
                   reportData?.experianReport ||
                   reportData?.reportBase64 ||
                   reportData?.pdfBase64) && (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleDownloadReport}
-                    sx={{
-                      mt: 3,
-                      py: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: "#16a34a",
-                      textTransform: "none",
-                      fontWeight: 700,
-                      boxShadow: "none",
-                      "&:hover": {
-                        backgroundColor: "#15803d",
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={<DownloadIcon />}
+                      onClick={handleDownloadReport}
+                      sx={{
+                        mt: 3,
+                        py: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: "#16a34a",
+                        textTransform: "none",
+                        fontWeight: 700,
                         boxShadow: "none",
-                      },
-                    }}
-                  >
-                    Download Experian Report
-                  </Button>
-                )}
+                        "&:hover": {
+                          backgroundColor: "#15803d",
+                          boxShadow: "none",
+                        },
+                      }}
+                    >
+                      Download Experian Report
+                    </Button>
+                  )}
               </CardContent>
             </Card>
           )}

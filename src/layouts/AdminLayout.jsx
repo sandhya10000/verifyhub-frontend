@@ -24,8 +24,8 @@ const AdminLayout = () => {
     const fetchUnread = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${API_BASE_URL}/api/admin/tickets/unread-count`, {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_BASE_URL}/admin/tickets/unread-count`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -84,9 +84,9 @@ const AdminLayout = () => {
     handleAvatarClose();
     try {
       const token = localStorage.getItem('token');
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       // Call server-side logout to clear the httpOnly cookie
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });

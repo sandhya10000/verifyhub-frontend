@@ -88,6 +88,11 @@ const initialQuestionData = {
 };
 
 const CrifReport = () => {
+  const toLocalISO = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const DOB_MIN = "1900-01-01";
+  const DOB_MAX = toLocalISO(new Date());
   const [activeStep, setActiveStep] = useState(0);
 
   const [loading, setLoading] = useState(false);
@@ -138,6 +143,14 @@ const CrifReport = () => {
     // Pincode only numbers
     if (name === "pincode") {
       updatedValue = value.replace(/\D/g, "").slice(0, 6);
+    }
+
+    // DOB: year must be at most 4 digits (blocks 275760 etc.)
+    if (name === "dob" && value) {
+      const year = value.split("-")[0];
+      if (year.length > 4) {
+        return;
+      }
     }
 
     setFormData((prev) => ({
@@ -1230,6 +1243,8 @@ const CrifReport = () => {
                         onChange={handleChange}
                         inputProps={{
                           "aria-label": "Date of Birth",
+                          min: DOB_MIN,
+                          max: DOB_MAX,
                         }}
                         InputProps={{
                           startAdornment: (
