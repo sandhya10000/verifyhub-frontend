@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INDIAN_STATES } from '../data/indianStates';
 
 export const loginSchema = z.object({
   email: z.string().min(1, { message: 'Email or Partner ID is required' }),
@@ -11,7 +12,7 @@ export const signupSchema = z.object({
   lastName: z.string().min(2, { message: 'Last name is required' }),
   email: z.string().email({ message: 'Invalid email address' }),
   phone: z.string().regex(/^\d{10}$/, { message: 'Phone number must be 10 digits' }),
-  state: z.string().min(2, { message: 'State is required' }),
+  state: z.enum(INDIAN_STATES, { message: 'Please select a valid state' }),
   city: z.string().min(2, { message: 'City is required' }),
   pincode: z.string().regex(/^\d{6}$/, { message: 'Pincode must be 6 digits' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters' }),

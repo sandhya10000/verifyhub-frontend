@@ -7,6 +7,7 @@ import {
   Button,
   Typography,
   TextField,
+  MenuItem,
   FormControlLabel,
   Checkbox,
   Link,
@@ -18,6 +19,7 @@ import AuthCard from "../../Components/auth/AuthCard";
 import PasswordField from "../../Components/auth/PasswordField";
 import OtpInput from "../../Components/auth/OtpInput";
 import { signupSchema } from "../../schemas/authSchemas";
+import { INDIAN_STATES } from "../../data/indianStates";
 import { authService } from "../../services/authService";
 import useAuth from "../../context/useAuth";
 
@@ -184,11 +186,22 @@ const Signup = () => {
             <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
               <TextField
                 fullWidth
+                select
                 label="State"
+                defaultValue=""
                 {...register("state")}
                 error={!!errors.state}
                 helperText={errors.state?.message}
-              />
+              >
+                <MenuItem value="" disabled>
+                  Select state
+                </MenuItem>
+                {INDIAN_STATES.map((st) => (
+                  <MenuItem key={st} value={st}>
+                    {st}
+                  </MenuItem>
+                ))}
+              </TextField>
               <TextField
                 fullWidth
                 label="City"
