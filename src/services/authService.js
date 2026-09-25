@@ -61,6 +61,9 @@ export const authService = {
       email: data.email,
       phone: data.phone,
       password: data.password,
+      state: data.state,
+      city: data.city,
+      pincode: data.pincode,
     };
 
     const response = await api.post("/auth/register", payload);

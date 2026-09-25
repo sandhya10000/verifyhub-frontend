@@ -59,7 +59,7 @@ const Signup = () => {
   const applyBackendError = (err, fallback) => {
     const field = err.response?.data?.field;
     const message = err.response?.data?.message || err.message || fallback;
-    if (field === "phone" || field === "email") {
+    if (["phone", "email", "state", "city", "pincode"].includes(field)) {
       setFormError(field, { type: "server", message });
       setFieldError({ field, message });
     } else {
@@ -178,6 +178,34 @@ const Signup = () => {
                 {...register("phone")}
                 error={!!errors.phone}
                 helperText={errors.phone?.message}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
+              <TextField
+                fullWidth
+                label="State"
+                {...register("state")}
+                error={!!errors.state}
+                helperText={errors.state?.message}
+              />
+              <TextField
+                fullWidth
+                label="City"
+                {...register("city")}
+                error={!!errors.city}
+                helperText={errors.city?.message}
+              />
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                label="Pincode"
+                inputProps={{ maxLength: 6, inputMode: "numeric" }}
+                {...register("pincode")}
+                error={!!errors.pincode}
+                helperText={errors.pincode?.message}
               />
             </Box>
 
