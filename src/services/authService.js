@@ -61,6 +61,9 @@ export const authService = {
       email: data.email,
       phone: data.phone,
       password: data.password,
+      state: data.state,
+      city: data.city,
+      pincode: data.pincode,
     };
 
     const response = await api.post("/auth/register", payload);
@@ -75,13 +78,35 @@ export const authService = {
   },
 
   // ========================================
-  // FORGOT PASSWORD
+  // SIGNUP OTP
+  // ========================================
+  sendSignupOtp: async (email, phone) => {
+    const response = await api.post("/auth/send-signup-otp", { email, phone });
+    return response.data;
+  },
+
+  verifySignupOtp: async (email, otp) => {
+    const response = await api.post("/auth/verify-signup-otp", { email, otp });
+    return response.data;
+  },
+
+  // ========================================
+  // FORGOT PASSWORD (OTP)
   // ========================================
   forgotPassword: async (email) => {
     const response = await api.post("/auth/request-password-reset", {
       email,
     });
 
+    return response.data;
+  },
+
+  resetPassword: async ({ email, otp, password }) => {
+    const response = await api.post("/auth/reset-password", {
+      email,
+      otp,
+      password,
+    });
     return response.data;
   },
 

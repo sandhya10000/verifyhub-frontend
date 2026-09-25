@@ -26,6 +26,14 @@ const getInitials = (name) => {
 };
 
 const Profile = () => {
+  // Right-hand vertical separator between detail cells (desktop only).
+  // Last cell in each row gets no sx, so no trailing `|` appears.
+  const dividerCellSx = {
+    borderRight: { xs: "none", md: "1px solid" },
+    borderColor: { md: "divider" },
+    pr: { md: 2 },
+  };
+
   // ==========================================
   // STATE
   // ==========================================
@@ -53,14 +61,14 @@ const Profile = () => {
         : "—";
 
     return (
-      <Box sx={{ mb: 2.5 }}>
+      <Box sx={{ mb: 1 }}>
         <Typography
           variant="overline"
           sx={{
             color: "text.secondary",
             display: "block",
             lineHeight: 1,
-            mb: 0.7,
+            mb: 0.5,
             fontWeight: 600,
           }}
         >
@@ -106,6 +114,9 @@ const Profile = () => {
             // partnerId null hai,
             // isliye userId ko Partner ID ke liye use kar rahe hain
             partnerId: String(data.partner_id || ""),
+            state: String(data.state || user?.state || ""),
+            city: String(data.city || user?.city || ""),
+            pincode: String(data.pincode || user?.pincode || ""),
           });
         } else {
           setError(response?.message || "Failed to fetch profile details");
@@ -314,27 +325,44 @@ const Profile = () => {
             </Typography>
           </Box>
         ) : userDetails ? (
-          /* DATA */
-
-          <Grid container spacing={4}>
-            {/* LEFT COLUMN */}
-            <Grid item xs={12} md={6}>
+          /* DATA — row 1: identity (4 cols), row 2: location (3 cols) */
+          <>
+          {/* ROW 1 — Full Name | Email | Mobile | Partner ID */}
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
               <FieldRow label="Full Name" value={formatName(userDetails.name)} />
+            </Grid>
 
-              <Divider sx={{ my: 2 }} />
+            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
+              <FieldRow label="Email Address" value={userDetails.email} />
+            </Grid>
 
+            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
               <FieldRow label="Mobile Number" value={userDetails.mobile} />
             </Grid>
 
-            {/* RIGHT COLUMN */}
-            <Grid item xs={12} md={6}>
-              <FieldRow label="Email Address" value={userDetails.email} />
-
-              <Divider sx={{ my: 2 }} />
-
+            <Grid item xs={12} sm={6} md={3}>
               <FieldRow label="Partner ID" value={user?.partner_id} />
             </Grid>
           </Grid>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* ROW 2 — State | City | Pincode */}
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={4} sx={dividerCellSx}>
+              <FieldRow label="State" value={userDetails.state} />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4} sx={dividerCellSx}>
+              <FieldRow label="City" value={userDetails.city} />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4}>
+              <FieldRow label="Pincode" value={userDetails.pincode} />
+            </Grid>
+          </Grid>
+          </>
         ) : (
           <Box
             sx={{

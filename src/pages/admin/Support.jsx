@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -11,6 +11,7 @@ import {
   TableRow,
   Chip,
   IconButton,
+  Badge,
   TextField,
   MenuItem,
   InputAdornment,
@@ -23,9 +24,10 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
-import { Search, Eye, Filter } from 'lucide-react';
+import { Search, MessageCircle, Filter, Send } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
+import { ticketService } from '../../services/ticketService';
 
 const AdminSupport = () => {
   const formatName = (name = "") => {
@@ -41,6 +43,26 @@ const AdminSupport = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const conversationRef = useRef(null);
+
+  const scrollConversationToBottom = (smooth = false) => {
+    const el = conversationRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  // Auto-scroll on open (after Dialog transition mounts content) + on new messages
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    const t1 = setTimeout(() => scrollConversationToBottom(false), 50);
+    const t2 = setTimeout(() => scrollConversationToBottom(false), 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [isDialogOpen, selectedTicket?._id]);
+
+  useEffect(() => {
+    if (isDialogOpen) scrollConversationToBottom(true);
+  }, [selectedTicket?.messages?.length]);
 
   useEffect(() => {
     fetchTickets();
@@ -88,7 +110,27 @@ const AdminSupport = () => {
     setSelectedTicket(ticket);
     setUpdateStatus(ticket.status);
     setInternalNotes(ticket.internalNotes || '');
+    setReplyText('');
     setIsDialogOpen(true);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedTicket) return;
+    setSendingReply(true);
+    try {
+      const data = await ticketService.replyAsAdmin(selectedTicket._id, replyText.trim());
+      if (data.success) {
+        setSelectedTicket(data.data);
+        setUpdateStatus(data.data.status);
+        setReplyText('');
+        fetchTickets();
+        window.dispatchEvent(new Event('ticketUpdated'));
+      }
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -177,7 +219,7 @@ const AdminSupport = () => {
                 <TableCell>Category</TableCell>
                 <TableCell>Reference</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell align="center">Replies/Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -198,9 +240,11 @@ const AdminSupport = () => {
                       sx={{ fontWeight: 600, fontSize: '0.7rem' }}
                     />
                   </TableCell>
-                  <TableCell align="right">
-                    <IconButton color="primary" onClick={() => handleOpenDialog(ticket)}>
-                      <Eye size={20} />
+                  <TableCell align="center">
+                    <IconButton color="primary" title="Open conversation" onClick={() => handleOpenDialog(ticket)} sx={{ borderRadius: 2 }}>
+                      <Badge badgeContent={(ticket.messages?.length || 0) + 1} color="primary" max={99} overlap="circular" anchorOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 18, minWidth: 18, fontWeight: 700 } }}>
+                        <MessageCircle size={22} />
+                      </Badge>
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -217,7 +261,7 @@ const AdminSupport = () => {
       </Paper>
 
       {/* Ticket Detail Dialog */}
-      <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth TransitionProps={{ onEntered: () => scrollConversationToBottom(false) }}>
         {selectedTicket && (
           <>
             <DialogTitle sx={{ fontWeight: 700 }}>
@@ -244,6 +288,48 @@ const AdminSupport = () => {
                     {selectedTicket.description}
                   </Typography>
                 </Paper>
+              </Box>
+
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="overline" color="text.secondary">Conversation ({(selectedTicket.messages?.length || 0) + 1})</Typography>
+                <Paper ref={conversationRef} variant="outlined" sx={{ p: 2, mt: 1, bgcolor: 'background.default', maxHeight: 280, overflowY: 'auto' }}>
+                  {/* Initial partner message — always first in thread */}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1.25 }}>
+                    <Box sx={{ maxWidth: '85%', bgcolor: 'background.paper', color: 'text.primary', px: 1.75, py: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="caption" sx={{ opacity: 0.75, fontWeight: 600 }}>
+                        {selectedTicket.partnerId?.name || 'Partner'} · {selectedTicket.createdAt ? format(new Date(selectedTicket.createdAt), 'MMM dd HH:mm') : ''}
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{selectedTicket.description}</Typography>
+                    </Box>
+                  </Box>
+                  {(selectedTicket.messages || []).map((m, i) => {
+                      const isAdminMsg = m.senderRole === 'admin';
+                      return (
+                        <Box key={m._id || i} sx={{ display: 'flex', justifyContent: isAdminMsg ? 'flex-end' : 'flex-start', mb: 1.25 }}>
+                          <Box sx={{ maxWidth: '85%', bgcolor: isAdminMsg ? 'primary.main' : 'background.paper', color: isAdminMsg ? 'primary.contrastText' : 'text.primary', px: 1.75, py: 1, borderRadius: 2, border: isAdminMsg ? 'none' : '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="caption" sx={{ opacity: 0.75, fontWeight: 600 }}>
+                              {isAdminMsg ? `You${m.sender?.name ? ` · ${m.sender.name}` : ''}` : `${selectedTicket.partnerId?.name || 'Partner'}`} · {m.createdAt ? format(new Date(m.createdAt), 'MMM dd HH:mm') : ''}
+                            </Typography>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{m.text}</Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                </Paper>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Type a reply to partner..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                  <Button variant="contained" onClick={handleSendReply} disabled={!replyText.trim() || sendingReply} startIcon={<Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    Reply
+                  </Button>
+                </Box>
               </Box>
 
               <Box sx={{ display: 'flex', gap: 3 }}>
