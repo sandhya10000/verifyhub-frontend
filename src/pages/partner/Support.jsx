@@ -22,7 +22,9 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Send, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -38,6 +40,8 @@ const getStatusColor = (status) => {
 };
 
 const Support = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [formData, setFormData] = useState({ category: '', reference: '', description: '' });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -226,26 +230,97 @@ const Support = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
         ) : tickets.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No tickets yet. Raise one above and the conversation will appear here.</Typography>
+        ) : isMobile ? (
+          /* ── Mobile stacked cards ──────────────────────────────────── */
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            {tickets.map((t) => (
+              <Box
+                key={t._id}
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                }}
+              >
+                {/* Date */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', flexShrink: 0, mr: 2 }}>Date</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500, textAlign: 'right' }}>
+                    {t.createdAt ? format(new Date(t.createdAt), 'MMM dd, yyyy HH:mm') : '-'}
+                  </Typography>
+                </Box>
+
+                {/* Category */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', flexShrink: 0, mr: 2 }}>Category</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-word' }}>
+                    {t.category}
+                  </Typography>
+                </Box>
+
+                {/* Reference */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25, pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', flexShrink: 0, mr: 2 }}>Reference</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>
+                    {t.reference || '-'}
+                  </Typography>
+                </Box>
+
+                {/* Status + Replies on the same row */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={t.status.toUpperCase()}
+                    color={getStatusColor(t.status)}
+                    size="small"
+                    sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                  />
+                  <IconButton
+                    color="primary"
+                    title="Open conversation"
+                    onClick={() => openThread(t)}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <Badge
+                      badgeContent={(t.messages?.length || 0) + 1}
+                      color="primary"
+                      max={99}
+                      overlap="circular"
+                      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                      sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 18, minWidth: 18, fontWeight: 700 } }}
+                    >
+                      <MessageCircle size={22} />
+                    </Badge>
+                  </IconButton>
+                </Box>
+              </Box>
+            ))}
+          </Box>
         ) : (
+          /* ── Desktop table ─────────────────────────────────────────── */
           <TableContainer>
-            <Table>
+            <Table sx={{ minWidth: 600 }}>
               <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Reference</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Replies</TableCell>
+                <TableRow sx={{ bgcolor: 'background.default' }}>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Reference</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Replies</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {tickets.map((t) => (
-                  <TableRow key={t._id} hover>
-                    <TableCell>{t.createdAt ? format(new Date(t.createdAt), 'MMM dd, yyyy HH:mm') : '-'}</TableCell>
-                    <TableCell>{t.category}</TableCell>
-                    <TableCell>{t.reference || '-'}</TableCell>
-                    <TableCell><Chip label={t.status.toUpperCase()} color={getStatusColor(t.status)} size="small" sx={{ fontWeight: 600, fontSize: '0.7rem' }} /></TableCell>
-                    <TableCell>
+                  <TableRow key={t._id} hover sx={{ '&:last-child td': { border: 0 } }}>
+                    <TableCell sx={{ py: 1.75 }}>{t.createdAt ? format(new Date(t.createdAt), 'MMM dd, yyyy HH:mm') : '-'}</TableCell>
+                    <TableCell sx={{ py: 1.75 }}>{t.category}</TableCell>
+                    <TableCell sx={{ py: 1.75 }}>{t.reference || '-'}</TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
+                      <Chip label={t.status.toUpperCase()} color={getStatusColor(t.status)} size="small" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+                    </TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
                       <IconButton color="primary" title="Open conversation" onClick={() => openThread(t)} sx={{ borderRadius: 2 }}>
                         <Badge badgeContent={(t.messages?.length || 0) + 1} color="primary" max={99} overlap="circular" anchorOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 18, minWidth: 18, fontWeight: 700 } }}>
                           <MessageCircle size={22} />

@@ -959,7 +959,7 @@ const AiAnalyzer = () => {
                     )}
                   </Button>
                 )}
-                <Button
+                {/* <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<Save size={18} />}
@@ -972,7 +972,7 @@ const AiAnalyzer = () => {
                   }}
                 >
                   Save to Reports
-                </Button>
+                </Button> */}
               </Stack>
               {isGeneratingHtml && (
                 <Typography

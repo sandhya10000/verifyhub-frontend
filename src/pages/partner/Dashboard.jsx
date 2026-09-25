@@ -223,6 +223,9 @@ const Dashboard = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     style={{
+                      width: "100%",
+                      maxWidth: 120,
+                      height: "auto",
                       filter:
                         "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
                     }}
@@ -250,6 +253,9 @@ const Dashboard = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     style={{
+                      width: "100%",
+                      maxWidth: 120,
+                      height: "auto",
                       filter:
                         "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
                     }}
@@ -309,6 +315,9 @@ const Dashboard = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     style={{
+                      width: "100%",
+                      maxWidth: 120,
+                      height: "auto",
                       filter:
                         "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
                     }}
@@ -336,6 +345,9 @@ const Dashboard = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     style={{
+                      width: "100%",
+                      maxWidth: 120,
+                      height: "auto",
                       filter:
                         "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
                     }}
