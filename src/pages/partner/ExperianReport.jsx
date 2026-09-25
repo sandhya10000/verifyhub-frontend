@@ -502,6 +502,47 @@ const ExperianReport = () => {
     }
   };
 
+  // ============================================================
+  // VIEW CURRENT REPORT
+  // ============================================================
+
+  const handleViewReport = () => {
+    if (!reportData) return;
+    
+    const finalUrl = getReportUrl(reportData);
+    
+    if (finalUrl) {
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+    } else {
+      const reportBase64 =
+        reportData?.excelExperianReport ||
+        reportData?.experianReport ||
+        reportData?.reportBase64 ||
+        reportData?.pdfBase64;
+
+      if (reportBase64) {
+        try {
+          const base64Data = reportBase64.includes(",") ? reportBase64.split(",")[1] : reportBase64;
+          const cleanBase64 = base64Data.replace(/\s/g, "");
+          const byteCharacters = atob(cleanBase64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: "application/pdf" });
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, "_blank", "noopener,noreferrer");
+        } catch (err) {
+          console.error("[REACT] PDF conversion error for viewing:", err);
+          setError("Unable to open Experian report PDF.");
+        }
+      } else {
+        setError("Report file is not available for viewing.");
+      }
+    }
+  };
+
 
   // ============================================================
   // RENDER
@@ -1323,12 +1364,23 @@ const ExperianReport = () => {
                     </Typography>
                   </Box>
 
-                  <Chip
-                    icon={<CheckCircleIcon />}
-                    label="Verified"
-                    color="success"
-                    variant="outlined"
-                  />
+                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<VisibilityIcon />}
+                      onClick={handleViewReport}
+                      size="small"
+                      sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600, color: 'text.secondary', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}
+                    >
+                      View Report
+                    </Button>
+                    <Chip
+                      icon={<CheckCircleIcon />}
+                      label="Verified"
+                      color="success"
+                      variant="outlined"
+                    />
+                  </Box>
                 </Box>
 
                 {/* SCORE */}
