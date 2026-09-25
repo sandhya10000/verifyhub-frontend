@@ -11,6 +11,9 @@ export const signupSchema = z.object({
   lastName: z.string().min(2, { message: 'Last name is required' }),
   email: z.string().email({ message: 'Invalid email address' }),
   phone: z.string().regex(/^\d{10}$/, { message: 'Phone number must be 10 digits' }),
+  state: z.string().min(2, { message: 'State is required' }),
+  city: z.string().min(2, { message: 'City is required' }),
+  pincode: z.string().regex(/^\d{6}$/, { message: 'Pincode must be 6 digits' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
   confirmPassword: z.string(),
   termsAccepted: z.literal(true, {
