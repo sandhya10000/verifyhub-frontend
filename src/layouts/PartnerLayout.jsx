@@ -554,14 +554,24 @@ const PartnerLayout = () => {
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Chip
-                label={`WALLET ₹${user?.walletBalance != null ? Number(user.walletBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : '0.00'}`}
+                icon={<Wallet size={16} />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, mr: 0.5 }}>WALLET</Box>
+                    ₹{user?.walletBalance != null ? Number(user.walletBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : '0.00'}
+                  </Box>
+                }
                 sx={{
                   bgcolor: "#ECFDF5",
                   color: "#0a1628",
                   fontWeight: 800,
                   borderRadius: 6,
-                  py: 2.5,
-                  px: 2,
+                  height: { xs: 32, sm: 40 },
+                  px: { xs: 0.5, sm: 1 },
+                  '& .MuiChip-icon': {
+                    color: '#0a1628',
+                    display: { xs: 'none', sm: 'block' }
+                  }
                 }}
               />
               <Box
@@ -621,7 +631,7 @@ const PartnerLayout = () => {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1 }}>
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, flexGrow: 1 }}>
           <Outlet />
         </Box>
       </Box>

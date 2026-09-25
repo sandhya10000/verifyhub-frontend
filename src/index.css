@@ -2,3 +2,9 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Global text wrapping for mobile responsiveness */
+td, th, .MuiTableCell-root, .data-value, .break-word {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}

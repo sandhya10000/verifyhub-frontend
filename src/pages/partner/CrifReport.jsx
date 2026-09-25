@@ -1826,7 +1826,7 @@ const CrifReport = () => {
             <Grid container spacing={3} sx={{ mb: 3 }}>
 
               {/* SCORE CARD */}
-              <Grid size={{ xs: 12, md: 5 }}>
+              <Grid size={{ xs: 12, sm: 12, md: 5 }}>
                 {(() => {
                   const score = Number(reportData.score);
                   const isExcellent = score >= 750;
@@ -2286,21 +2286,20 @@ const CrifReport = () => {
                 gap: 1.5,
                 flexDirection: {
                   xs: "column-reverse",
-                  sm: "row",
+                  md: "row",
                 },
+                flexWrap: "wrap",
               }}
             >
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column-reverse', sm: 'row' }, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
                 <Button
                   variant="outlined"
                   onClick={handleBack}
                   disabled={loading}
                   startIcon={<ArrowBack />}
                   sx={{
-                    minWidth: {
-                      xs: "100%",
-                      sm: 120,
-                    },
+                    flex: { xs: 1, sm: 'none' },
+                    minWidth: { xs: "100%", sm: 120 },
                     height: 46,
                     borderRadius: 2,
                     textTransform: "none",
@@ -2316,10 +2315,8 @@ const CrifReport = () => {
                   disabled={loading}
                   startIcon={<VisibilityIcon />}
                   sx={{
-                    minWidth: {
-                      xs: "100%",
-                      sm: 160,
-                    },
+                    flex: { xs: 1, sm: 'none' },
+                    minWidth: { xs: "100%", sm: 160 },
                     height: 46,
                     borderRadius: 2,
                     textTransform: "none",
@@ -2336,10 +2333,8 @@ const CrifReport = () => {
                 disabled={loading}
                 startIcon={<Refresh />}
                 sx={{
-                  minWidth: {
-                    xs: "100%",
-                    sm: 180,
-                  },
+                  width: { xs: "100%", md: "auto" },
+                  minWidth: { md: 180 },
                   height: 46,
                   borderRadius: 2,
                   textTransform: "none",

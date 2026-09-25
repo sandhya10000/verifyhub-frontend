@@ -380,7 +380,7 @@ const AdminLayout = () => {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1 }}>
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, flexGrow: 1 }}>
           <Outlet />
         </Box>
       </Box>

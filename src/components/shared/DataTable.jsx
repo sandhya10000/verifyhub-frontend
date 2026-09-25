@@ -9,6 +9,8 @@ import {
   Paper,
   Typography,
   Box,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 
 /**
@@ -39,6 +41,8 @@ const DataTable = ({
   pageSize,
 }) => {
   const [page, setPage] = useState(1);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Reset to first page whenever the underlying data changes
   // (re-fetch, filter change, etc.) so we never land on an out-of-range page.
@@ -122,61 +126,86 @@ const DataTable = ({
         </Box>
       )}
 
-      {/* ── Scrollable table area ──────────────────────────────────────── */}
-      <TableContainer>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'background.default' }}>
-              {columns.map((col, idx) => (
-                <TableCell
-                  key={idx}
-                  sx={{
-                    color: 'text.secondary',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    py: 1.5,
-                  }}
-                >
-                  {col.header}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {visibleRows.map((row, rowIdx) => (
-              <TableRow
-                key={rowIdx}
-                sx={{
-                  '&:last-child td, &:last-child th': { border: 0 },
-                  '&:hover': { bgcolor: 'rgba(0,0,0,0.01)' },
-                }}
-              >
+      {/* ── Scrollable table area or Mobile Cards ─────────────────────── */}
+      {isMobile ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: 'background.default' }}>
+          {visibleRows.length === 0 ? (
+            <Typography variant="body2" sx={{ color: 'text.disabled', textAlign: 'center', py: 4 }}>
+              {emptyMessage}
+            </Typography>
+          ) : (
+            visibleRows.map((row, rowIdx) => (
+              <Box key={rowIdx} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, bgcolor: 'background.paper', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 {columns.map((col, colIdx) => (
-                  <TableCell key={colIdx} sx={{ py: 2 }}>
-                    {col.render ? col.render(row) : row[col.field]}
+                  <Box key={colIdx} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: colIdx === columns.length - 1 ? 0 : 1, pb: colIdx === columns.length - 1 ? 0 : 1, borderBottom: colIdx === columns.length - 1 ? 'none' : '1px solid', borderBottomColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', flexShrink: 0, mr: 2 }}>
+                      {col.header}
+                    </Typography>
+                    <Box sx={{ textAlign: 'right', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                      {col.render ? col.render(row) : row[col.field]}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            ))
+          )}
+        </Box>
+      ) : (
+        <TableContainer>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'background.default' }}>
+                {columns.map((col, idx) => (
+                  <TableCell
+                    key={idx}
+                    sx={{
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      py: 1.5,
+                    }}
+                  >
+                    {col.header}
                   </TableCell>
                 ))}
               </TableRow>
-            ))}
+            </TableHead>
 
-            {data.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  align="center"
-                  sx={{ py: 6, border: 0 }}
+            <TableBody>
+              {visibleRows.map((row, rowIdx) => (
+                <TableRow
+                  key={rowIdx}
+                  sx={{
+                    '&:last-child td, &:last-child th': { border: 0 },
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.01)' },
+                  }}
                 >
-                  <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                    {emptyMessage}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  {columns.map((col, colIdx) => (
+                    <TableCell key={colIdx} sx={{ py: 2, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                      {col.render ? col.render(row) : row[col.field]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+
+              {data.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    align="center"
+                    sx={{ py: 6, border: 0 }}
+                  >
+                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                      {emptyMessage}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* ── Pagination footer ──────────────────────────────────────────── */}
       {showPagination && (

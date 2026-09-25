@@ -446,6 +446,7 @@ const Home = () => {
                 alignItems: 'center',
                 transform: { xs: 'scale(0.72)', sm: 'scale(0.85)', md: 'scale(1)' },
                 mx: 'auto',
+                overflow: 'hidden', // prevent orbit ellipses from leaking on mobile
               }}
             >
 
@@ -462,39 +463,41 @@ const Home = () => {
                 }}
               />
 
-              {/* Orbit */}
-              <div
-                style={{
-                  position: 'absolute',
-                  width: '350px',
-                  height: '150px',
-                  border: '1px solid rgba(74, 108, 255, 0.18)',
-                  borderRadius: '50%',
-                  transform: 'rotate(75deg)',
-                }}
-              />
+              {/* Orbit ellipses — hidden on mobile to prevent overflow */}
+              <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '350px',
+                    height: '150px',
+                    border: '1px solid rgba(74, 108, 255, 0.18)',
+                    borderRadius: '50%',
+                    transform: 'rotate(75deg)',
+                  }}
+                />
 
-              <div
-                style={{
-                  position: 'absolute',
-                  width: '400px',
-                  height: '150px',
-                  border: '1px solid rgba(62, 6, 228, 0.18)',
-                  borderRadius: '50%',
-                  transform: 'rotate(20deg)',
-                }}
-              />
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '400px',
+                    height: '150px',
+                    border: '1px solid rgba(62, 6, 228, 0.18)',
+                    borderRadius: '50%',
+                    transform: 'rotate(20deg)',
+                  }}
+                />
 
-              <div
-                style={{
-                  position: 'absolute',
-                  width: '450px',
-                  height: '200px',
-                  border: '1px solid rgba(9, 2, 31, 0.18)',
-                  borderRadius: '50%',
-                  transform: 'rotate(-16deg)',
-                }}
-              />
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '450px',
+                    height: '200px',
+                    border: '1px solid rgba(9, 2, 31, 0.18)',
+                    borderRadius: '50%',
+                    transform: 'rotate(-16deg)',
+                  }}
+                />
+              </Box>
 
               {/* Orbit dots */}
               <div
