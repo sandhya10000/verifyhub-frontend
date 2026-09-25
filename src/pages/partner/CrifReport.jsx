@@ -199,6 +199,35 @@ const CrifReport = () => {
   };
 
   // ============================================================
+  // VIEW CURRENT REPORT
+  // ============================================================
+
+  const handleViewReport = () => {
+    if (!reportData) return;
+
+    let finalUrl = reportData.reportUrl || reportData.pdfUrl;
+    
+    if (reportData.localPath) {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+      const localPath = reportData.localPath.startsWith("/") ? reportData.localPath : `/${reportData.localPath}`;
+      
+      const encodedPath = localPath
+        .split("/")
+        .map((part, index) => (index === 0 || index === 1 ? part : encodeURIComponent(part)))
+        .join("/");
+        
+      finalUrl = `${baseUrl}${encodedPath}`;
+    }
+
+    if (finalUrl) {
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+    } else {
+      setError("Report file is not available for viewing.");
+    }
+  };
+
+  // ============================================================
   // GET SAVED CRIF REPORT
   // ============================================================
 
@@ -2261,24 +2290,45 @@ const CrifReport = () => {
                 },
               }}
             >
-              <Button
-                variant="outlined"
-                onClick={handleBack}
-                disabled={loading}
-                startIcon={<ArrowBack />}
-                sx={{
-                  minWidth: {
-                    xs: "100%",
-                    sm: 120,
-                  },
-                  height: 46,
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Back
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  onClick={handleBack}
+                  disabled={loading}
+                  startIcon={<ArrowBack />}
+                  sx={{
+                    minWidth: {
+                      xs: "100%",
+                      sm: 120,
+                    },
+                    height: 46,
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Back
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={handleViewReport}
+                  disabled={loading}
+                  startIcon={<VisibilityIcon />}
+                  sx={{
+                    minWidth: {
+                      xs: "100%",
+                      sm: 160,
+                    },
+                    height: 46,
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  View Report
+                </Button>
+              </Box>
 
               <Button
                 variant="contained"
