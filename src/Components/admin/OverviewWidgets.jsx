@@ -65,7 +65,8 @@ export const TrendChart = ({ data }) => (
   </ResponsiveContainer>
 );
 
-// Compact donut — thin ring, small legend
+// Compact donut — thin ring; slice colours come from the bureau map
+// so slices always match the legend dots
 export const BureauDonut = ({ data }) => (
   <ResponsiveContainer width="100%" height="100%">
     <PieChart>
@@ -78,7 +79,7 @@ export const BureauDonut = ({ data }) => (
         paddingAngle={2}
         strokeWidth={0}
       >
-        {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+        {data.map((d, i) => <Cell key={d.name} fill={bureauColor(d.name, i)} />)}
       </Pie>
       <Tooltip contentStyle={tooltipStyle} />
     </PieChart>
@@ -98,13 +99,22 @@ export const BUREAU_COLORS = {
 export const bureauColor = (name, i = 0) =>
   BUREAU_COLORS[String(name || '').toUpperCase()] || BUREAU_COLORS[name] || COLORS[i % COLORS.length];
 
-// Donut with centre total + custom side legend (dot · name · count)
+// Donut with centre total + custom side legend (dot · name · count).
+// Canonical bureau list is zero-filled here too, so EQUIFAX always gets
+// its section even if the serving backend predates the split change.
+const BUREAU_ORDER = ['AI Analysis', 'EXPERIAN', 'CRIF', 'CIBIL', 'EQUIFAX'];
+
 export const BureauDonutPanel = ({ data }) => {
-  const total = data.reduce((s, d) => s + (d.value || 0), 0);
+  const counts = Object.fromEntries((data || []).map((d) => [d.name, d.value || 0]));
+  const rows = [
+    ...BUREAU_ORDER.map((name) => ({ name, value: counts[name] || 0 })),
+    ...(data || []).filter((d) => !BUREAU_ORDER.includes(d.name)),
+  ];
+  const total = rows.reduce((sum, d) => sum + (d.value || 0), 0);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
       <Box sx={{ position: 'relative', width: '52%', height: '100%', flexShrink: 0 }}>
-        <BureauDonut data={data} />
+        <BureauDonut data={rows} />
         <Box
           sx={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
@@ -116,7 +126,7 @@ export const BureauDonutPanel = ({ data }) => {
         </Box>
       </Box>
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.9 }}>
-        {data.map((d, i) => (
+        {rows.map((d, i) => (
           <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: bureauColor(d.name, i), flexShrink: 0 }} />
             <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -127,7 +137,7 @@ export const BureauDonutPanel = ({ data }) => {
             </Typography>
           </Box>
         ))}
-        {data.length === 0 && (
+        {rows.length === 0 && (
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>No data yet</Typography>
         )}
       </Box>

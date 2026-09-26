@@ -19,7 +19,7 @@ const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31"; // use today's date instead if future dates aren't allowed
 
 const AI_OPTION = "AI Credit Analysis";
-const BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", AI_OPTION];
+const BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", "CIBIL", "EQUIFAX", AI_OPTION];
 
 // Works whether VITE_API_URL is "https://host" or "https://host/api"
 const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(
@@ -69,7 +69,7 @@ const AdminReports = () => {
 
       // ---- Which dropdown option decides which API(s) we call ----
       //  All                 -> AI analyses + all bureau reports
-      //  EXPERIAN / CRIF     -> bureau reports only (bureau sent to the API)
+      //  EXPERIAN / CRIF / CIBIL / EQUIFAX -> bureau reports only (bureau sent to the API)
       //  AI Credit Analysis  -> AI analyses only
       const isAll = filters.bureau === "All";
       const isAiOnly = filters.bureau === AI_OPTION;
