@@ -487,7 +487,7 @@ const Reports = () => {
 
       if (response.status === 200) {
         const blob = new Blob([response.data], {
-          type: response.headers["content-type"] || "application/pdf",
+          type: "text/html",
         });
 
         const url = window.URL.createObjectURL(blob);
@@ -496,7 +496,7 @@ const Reports = () => {
 
         link.href = url;
 
-        link.download = `credit-analysis-${row.id}.pdf`;
+        link.download = `credit-analysis-${row.id}.html`;
 
         document.body.appendChild(link);
 
@@ -509,7 +509,7 @@ const Reports = () => {
         }, 1000);
       }
     } catch (err) {
-      console.error("[REPORT PDF] Download failed:", err);
+      console.error("[REPORT HTML] Download failed:", err);
 
       alert(err?.response?.data?.message || "Failed to open/download report.");
     } finally {
