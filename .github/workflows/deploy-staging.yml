@@ -40,9 +40,20 @@ jobs:
           echo "Starting staging deployment"
           echo "================================="
 
+          # =================================
+          # BACKEND DEPLOYMENT
+          # =================================
+
           echo "Updating backend..."
           cd /var/www/staging-api/verifyhub-backend
+
+          echo "Preserving local analysis_logs.txt..."
+          git stash push -m "preserve staging analysis logs" -- analysis_logs.txt || true
+
+          echo "Fetching latest staging backend..."
           git fetch origin
+
+          echo "Resetting backend to origin/staging..."
           git reset --hard origin/staging
 
           echo "Installing backend dependencies..."
@@ -51,9 +62,23 @@ jobs:
           echo "Restarting staging backend..."
           pm2 restart verifyhub-staging --update-env
 
+          echo "Verifying staging backend process..."
+          pm2 describe verifyhub-staging > /dev/null
+
+          echo "Restoring analysis_logs.txt..."
+          git stash pop || true
+
+          # =================================
+          # FRONTEND DEPLOYMENT
+          # =================================
+
           echo "Updating frontend..."
           cd /var/www/staging-frontend/verifyhub-frontend
+
+          echo "Fetching latest staging frontend..."
           git fetch origin
+
+          echo "Resetting frontend to origin/staging..."
           git reset --hard origin/staging
 
           echo "Installing frontend dependencies..."
@@ -62,7 +87,11 @@ jobs:
           echo "Building staging frontend..."
           npm run build
 
-          echo "Checking staging..."
+          # =================================
+          # HEALTH CHECKS
+          # =================================
+
+          echo "Checking staging frontend..."
           curl -fsS https://staging.verifyhub.in/ > /dev/null
 
           echo "Checking staging backend..."
