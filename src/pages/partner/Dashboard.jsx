@@ -11,8 +11,8 @@ import {
   Percent, AlertTriangle, Star, Ticket, Bot, Building2, Plus, CircleDot,
 } from "lucide-react";
 import useAuth from "../../context/useAuth";
-import DataTable from "../../Components/shared/DataTable";
-import StatusBadge from "../../Components/shared/StatusBadge";
+import DataTable from "../../components/shared/DataTable";
+import StatusBadge from "../../components/shared/StatusBadge";
 import { KpiCard, ChartCard, TrendChart, ScoreBars, timeAgo } from "../../Components/partner/PartnerWidgets";
 
 const API = (path) => {
