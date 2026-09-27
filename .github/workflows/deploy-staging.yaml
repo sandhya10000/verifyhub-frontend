@@ -1,9 +1,44 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Staging VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+
       - name: Deploy staging
         run: |
           ssh -i ~/.ssh/staging_key \
             "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" << 'EOF'
 
           set -e
+
+          # =================================
+          # NODE / NPM ENVIRONMENT
+          # =================================
 
           export NVM_DIR="/home/deploy/.nvm"
           export PATH="$NVM_DIR/versions/node/v22.23.2/bin:$PATH"
@@ -17,3 +52,66 @@
           echo "================================="
           echo "Starting staging deployment"
           echo "================================="
+
+          # =================================
+          # BACKEND DEPLOYMENT
+          # =================================
+
+          echo "Updating backend..."
+          cd /var/www/staging-api/verifyhub-backend
+
+          echo "Preserving local analysis_logs.txt..."
+          git stash push -m "preserve staging analysis logs" -- analysis_logs.txt || true
+
+          echo "Fetching latest staging backend..."
+          git fetch origin
+
+          echo "Resetting backend to origin/staging..."
+          git reset --hard origin/staging
+
+          echo "Installing backend dependencies..."
+          npm ci
+
+          echo "Restarting staging backend..."
+          pm2 restart verifyhub-staging --update-env
+
+          echo "Verifying staging backend process..."
+          pm2 describe verifyhub-staging > /dev/null
+
+          echo "Restoring analysis_logs.txt..."
+          git stash pop || true
+
+          # =================================
+          # FRONTEND DEPLOYMENT
+          # =================================
+
+          echo "Updating frontend..."
+          cd /var/www/staging-frontend/verifyhub-frontend
+
+          echo "Fetching latest staging frontend..."
+          git fetch origin
+
+          echo "Resetting frontend to origin/staging..."
+          git reset --hard origin/staging
+
+          echo "Installing frontend dependencies..."
+          npm ci
+
+          echo "Building staging frontend..."
+          npm run build
+
+          # =================================
+          # HEALTH CHECKS
+          # =================================
+
+          echo "Checking staging frontend..."
+          curl -fsS https://staging.verifyhub.in/ > /dev/null
+
+          echo "Checking staging backend..."
+          curl -fsS http://127.0.0.1:5001/ > /dev/null
+
+          echo "================================="
+          echo "Staging deployment successful"
+          echo "================================="
+
+          EOF
