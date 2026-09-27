@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider, Menu as MuiMenu, MenuItem, Badge } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu as MenuIcon, ExternalLink, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
-import Logo from '../Components/shared/Logo';
+import Logo from '../components/shared/Logo';
 import wordmarkImg from '../assets/wordmark.png';
 import { FaLinkedin, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { FaThreads } from 'react-icons/fa6';

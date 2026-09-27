@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../Components/shared/DataTable";
+import DataTable from "../../components/shared/DataTable";
 
 const Reports = () => {
   // ============================================================

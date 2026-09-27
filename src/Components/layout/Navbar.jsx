@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Container, IconButton, Drawer, Button, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
-import Logo from '../shared/Logo';
+import Logo from '../../components/shared/Logo';
 import { NAV_LINKS } from '../../data/navigation';
 import PrimaryButton from '../common/PrimaryButton';
 

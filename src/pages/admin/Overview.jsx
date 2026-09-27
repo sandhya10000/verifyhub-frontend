@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, CircularProgress, Skeleton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
-import StatCard from '../../Components/shared/StatCard';
-import DataTable from '../../Components/shared/DataTable';
-import StatusBadge from '../../Components/shared/StatusBadge';
+import StatCard from '../../components/shared/StatCard';
+import DataTable from '../../components/shared/DataTable';
+import StatusBadge from '../../components/shared/StatusBadge';
 import { CircleDot, Wallet } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

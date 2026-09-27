@@ -41,7 +41,7 @@ import {
   Scale,
   Building2,
 } from "lucide-react";
-import Logo from "../Components/shared/Logo";
+import Logo from "../components/shared/Logo";
 import wordmarkImg from "../assets/wordmark.png";
 import { FaLinkedin, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { FaThreads } from 'react-icons/fa6';

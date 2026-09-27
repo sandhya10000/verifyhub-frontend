@@ -11,7 +11,7 @@ import {
   InputAdornment,
 } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../Components/shared/DataTable";
+import DataTable from "../../components/shared/DataTable";
 import DownloadIcon from "@mui/icons-material/Download";
 import { Search } from "lucide-react";
 

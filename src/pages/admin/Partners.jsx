@@ -3,8 +3,8 @@ import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Search, X } from 'lucide-react';
 import axios from 'axios';
-import DataTable from '../../Components/shared/DataTable';
-import StatusBadge from '../../Components/shared/StatusBadge';
+import DataTable from '../../components/shared/DataTable';
+import StatusBadge from '../../components/shared/StatusBadge';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);

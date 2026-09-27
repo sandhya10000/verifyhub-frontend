@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import Logo from "../shared/Logo";
+import Logo from "../../components/shared/Logo";
 
 /**
  * LoginLoadingOverlay
