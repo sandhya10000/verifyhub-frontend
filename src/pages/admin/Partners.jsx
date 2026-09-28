@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton, Menu, MenuItem, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -238,11 +239,19 @@ const AdminPartners = () => {
       field: 'partner_id',
       render: (row) => (
         <Typography
+          component={RouterLink}
+          to={`/admin/partners/${row._id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open partner profile in new tab"
           sx={{
             fontFamily: 'monospace',
             fontWeight: 600,
             fontSize: '0.85rem',
             whiteSpace: 'nowrap',
+            color: '#3730A3',
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
           }}
         >
           {row.partner_id || '—'}
@@ -411,7 +420,7 @@ const AdminPartners = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={handleMenuClose}>View Details</MenuItem>
+        <MenuItem onClick={() => { const p = selectedPartner; handleMenuClose(); if (p) window.open(`/admin/partners/${p._id}`, '_blank', 'noopener,noreferrer'); }}>View Details</MenuItem>
         <MenuItem onClick={() => handleOpenFunds(selectedPartner)}>Add Funds</MenuItem>
         <MenuItem onClick={handleToggleClick} sx={{ color: selectedPartner?.isActive !== false ? 'error.main' : 'success.main' }}>
           {selectedPartner?.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
