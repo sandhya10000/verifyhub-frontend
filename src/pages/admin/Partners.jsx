@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton, Menu, MenuItem, InputAdornment } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton, Menu, MenuItem, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Search, X } from 'lucide-react';
 import axios from 'axios';
@@ -21,6 +22,32 @@ const AdminPartners = () => {
   // Menu state for actions
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
+
+  // Suspend/reactivate confirm + progress
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState(null);
+
+  // Add Funds modal
+  const [fundsOpen, setFundsOpen] = useState(false);
+  const [fundsOptions, setFundsOptions] = useState([]);
+  const [fundsLoading, setFundsLoading] = useState(false);
+  const [fundsPartner, setFundsPartner] = useState(null);
+  const [fundsAmount, setFundsAmount] = useState('');
+  const [fundsNote, setFundsNote] = useState('');
+  const [fundsSubmitting, setFundsSubmitting] = useState(false);
+  const [fundsError, setFundsError] = useState(null);
+  const [fundsSuccess, setFundsSuccess] = useState(null);
+
+  const inr0 = (n) => {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '—';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
+  };
+  const fundsAmountNum = Math.round(Number(fundsAmount) * 100) / 100;
+  const fundsPreview = fundsPartner && Number.isFinite(fundsAmountNum) && fundsAmountNum > 0
+    ? Number(fundsPartner.walletBalance || 0) + fundsAmountNum
+    : null;
 
   // 300ms debounce
   useEffect(() => {
@@ -73,7 +100,117 @@ const AdminPartners = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+    // keep selectedPartner until confirm dialog resolves
+    if (!confirmOpen) setSelectedPartner(null);
+  };
+
+  const handleToggleClick = () => {
+    setAnchorEl(null);
+    setToggleError(null);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmClose = () => {
+    setConfirmOpen(false);
     setSelectedPartner(null);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!selectedPartner) return;
+    const nextActive = !(selectedPartner.isActive !== false);
+    setToggling(true);
+    setToggleError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.patch(
+        `${API_BASE_URL}/admin/partners/${selectedPartner._id}/status`,
+        { isActive: nextActive },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setPartners((prev) => prev.map((p) => (p._id === selectedPartner._id ? { ...p, isActive: nextActive } : p)));
+        setConfirmOpen(false);
+        setSelectedPartner(null);
+      } else {
+        setToggleError(res.data?.message || 'Failed to update status.');
+      }
+    } catch (err) {
+      setToggleError(err.response?.data?.message || 'Failed to update status. Please try again.');
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleOpenFunds = async (preset = null) => {
+    setAnchorEl(null);
+    setFundsError(null);
+    setFundsSuccess(null);
+    setFundsAmount('');
+    setFundsNote('');
+    setFundsPartner(preset || null);
+    setFundsOpen(true);
+    // Load a wide option list for the dropdown (first page, big limit)
+    setFundsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?page=1&limit=500`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setFundsOptions(res.data.data);
+        if (preset) {
+          const fresh = res.data.data.find((p) => p._id === preset._id);
+          if (fresh) setFundsPartner(fresh);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load partners for top-up:', err);
+    } finally {
+      setFundsLoading(false);
+    }
+  };
+
+  const handleCloseFunds = () => {
+    if (fundsSubmitting) return;
+    setFundsOpen(false);
+    setFundsPartner(null);
+    setSelectedPartner(null);
+  };
+
+  const handleSubmitFunds = async () => {
+    if (!fundsPartner || !(fundsAmountNum > 0)) {
+      setFundsError('Select a partner and enter a positive amount.');
+      return;
+    }
+    setFundsSubmitting(true);
+    setFundsError(null);
+    setFundsSuccess(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.post(
+        `${API_BASE_URL}/admin/partners/${fundsPartner._id}/add-funds`,
+        { amount: fundsAmountNum, note: fundsNote.trim() || undefined },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const { walletBalance, credited } = res.data.data;
+        setFundsPartner((prev) => (prev ? { ...prev, walletBalance } : prev));
+        setFundsOptions((prev) => prev.map((p) => (p._id === fundsPartner._id ? { ...p, walletBalance } : p)));
+        setPartners((prev) => prev.map((p) => (p._id === fundsPartner._id ? { ...p, walletBalance } : p)));
+        setFundsSuccess(`${inr0(credited)} added. New balance ${inr0(walletBalance)}. Receipt mailed to the partner.`);
+        setFundsAmount('');
+        setFundsNote('');
+      } else {
+        setFundsError(res.data?.message || 'Failed to add funds.');
+      }
+    } catch (err) {
+      setFundsError(err.response?.data?.message || 'Failed to add funds. Please try again.');
+    } finally {
+      setFundsSubmitting(false);
+    }
   };
 
   const formatName = (name = "") => {
@@ -132,13 +269,18 @@ const AdminPartners = () => {
       header: 'Wallet Balance',
       field: 'walletBalance',
       render: (row) => {
-        return(
+        const bal = Number(row.walletBalance);
+        const label = Number.isFinite(bal)
+          ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(bal)
+          : '—';
+        return (
           <Typography
             sx={{
               fontWeight: 700,
-              color: row.walletBalance > 0 ? '#10B981' : 'text.primary'
+              whiteSpace: 'nowrap',
+              color: bal > 0 ? '#10B981' : 'text.primary',
             }}
-          >-</Typography>
+          >{label}</Typography>
         );
       }
     },
@@ -156,22 +298,22 @@ const AdminPartners = () => {
         day: '2-digit', month: 'short', year: 'numeric'
       })
     },
-    // {
-    //   header: 'Status',
-    //   field: 'isActive',
-    //   render: (row) => (
-    //     <StatusBadge status={row.isActive ? 'Active' : 'Suspended'} />
-    //   )
-    // },
-    // {
-    //   header: '',
-    //   field: 'action',
-    //   render: (row) => (
-    //     <IconButton size="small" onClick={(e) => handleMenuClick(e, row)}>
-    //       <MoreVertIcon fontSize="small" />
-    //     </IconButton>
-    //   )
-    // }
+    {
+      header: 'Status',
+      field: 'isActive',
+      render: (row) => (
+        <StatusBadge status={row.isActive !== false ? 'Active' : 'Suspended'} />
+      )
+    },
+    {
+      header: '',
+      field: 'action',
+      render: (row) => (
+        <IconButton size="small" onClick={(e) => handleMenuClick(e, row)}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      )
+    }
   ];
 
   return (
@@ -185,6 +327,9 @@ const AdminPartners = () => {
             Manage and view all registered partners.
           </Typography>
         </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenFunds()} sx={{ whiteSpace: 'nowrap' }}>
+          Add Funds
+        </Button>
       </Box>
 
       <Box sx={{ mb: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -267,10 +412,99 @@ const AdminPartners = () => {
         onClose={handleMenuClose}
       >
         <MenuItem onClick={handleMenuClose}>View Details</MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
-          {selectedPartner?.isActive ? 'Suspend Account' : 'Reactivate Account'}
+        <MenuItem onClick={() => handleOpenFunds(selectedPartner)}>Add Funds</MenuItem>
+        <MenuItem onClick={handleToggleClick} sx={{ color: selectedPartner?.isActive !== false ? 'error.main' : 'success.main' }}>
+          {selectedPartner?.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
         </MenuItem>
       </Menu>
+
+      <Dialog open={confirmOpen} onClose={handleConfirmClose} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {selectedPartner?.isActive !== false ? 'Suspend partner?' : 'Reactivate partner?'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {selectedPartner?.isActive !== false ? (
+              <>Suspending <b>{selectedPartner?.name || selectedPartner?.email}</b> signs them out immediately — they cannot log in or pull reports until reactivated. Wallet balance and history are preserved.</>
+            ) : (
+              <>Reactivating <b>{selectedPartner?.name || selectedPartner?.email}</b> restores their access immediately.</>
+            )}
+          </DialogContentText>
+          {toggleError && (
+            <Alert severity="error" sx={{ mt: 2 }}>{toggleError}</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmClose} disabled={toggling}>Cancel</Button>
+          <Button
+            onClick={handleConfirmToggle}
+            disabled={toggling}
+            color={selectedPartner?.isActive !== false ? 'error' : 'success'}
+            variant="contained"
+          >
+            {toggling ? 'Please wait…' : selectedPartner?.isActive !== false ? 'Suspend' : 'Reactivate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={fundsOpen} onClose={handleCloseFunds} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Funds to Partner Wallet</DialogTitle>
+        <DialogContent dividers>
+          <DialogContentText sx={{ mb: 2 }}>
+            Top-up is credited in full — no GST. The partner gets a receipt by email.
+          </DialogContentText>
+          {fundsError && <Alert severity="error" sx={{ mb: 2 }}>{fundsError}</Alert>}
+          {fundsSuccess && <Alert severity="success" sx={{ mb: 2 }}>{fundsSuccess}</Alert>}
+          <Autocomplete
+            options={fundsOptions}
+            loading={fundsLoading}
+            value={fundsPartner}
+            onChange={(_, v) => setFundsPartner(v)}
+            getOptionLabel={(p) => `${p.name || ''} · ${p.email || ''} · ${p.partner_id || ''}`}
+            isOptionEqualToValue={(a, b) => a._id === b._id}
+            renderInput={(params) => <TextField {...params} label="Select partner" size="small" fullWidth />}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          {fundsPartner && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, borderRadius: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Current balance</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr0(fundsPartner.walletBalance)}</Typography>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Balance after top-up</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: fundsPreview != null ? '#10B981' : 'text.primary' }}>
+                  {fundsPreview != null ? inr0(fundsPreview) : '—'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <TextField
+            label="Top-up amount (₹)"
+            type="number"
+            size="small"
+            fullWidth
+            value={fundsAmount}
+            onChange={(e) => setFundsAmount(e.target.value)}
+            inputProps={{ min: 1, step: 'any' }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Note (optional)"
+            size="small"
+            fullWidth
+            value={fundsNote}
+            onChange={(e) => setFundsNote(e.target.value)}
+            placeholder="e.g. Goodwill credit for downtime"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseFunds} disabled={fundsSubmitting}>Close</Button>
+          <Button onClick={handleSubmitFunds} disabled={fundsSubmitting || !fundsPartner || !(fundsAmountNum > 0)} variant="contained">
+            {fundsSubmitting ? 'Adding…' : 'Add Funds'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
