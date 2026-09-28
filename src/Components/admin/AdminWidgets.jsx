@@ -148,7 +148,7 @@ export const ScoreBars = ({ data }) => (
 
 // Ranked partner rows: rank · name · tier chip · progress · count · spend
 const RANK_COLORS = ['#8B5CF6', '#60A5FA', '#34D399', '#FBBF24', '#F472B6'];
-const TIER_LABEL = { starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
+const TIER_LABEL = { startup: 'Start-Up', starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
 
 export const TopPartnersList = ({ data }) => {
   const max = Math.max(1, ...data.map((d) => d.reports || 0));
@@ -188,7 +188,7 @@ export const TopPartnersList = ({ data }) => {
 };
 
 // Plan-mix rows: tier dot · name · partners · collected · float
-const TIER_COLORS = { starter: '#94A3B8', growth: '#60A5FA', pro: '#8B5CF6', enterprise: '#F59E0B' };
+const TIER_COLORS = { startup: '#06B6D4', starter: '#94A3B8', growth: '#60A5FA', pro: '#8B5CF6', enterprise: '#F59E0B' };
 
 export const PlanMixList = ({ data }) => {
   const max = Math.max(1, ...data.map((d) => d.partners || 0));

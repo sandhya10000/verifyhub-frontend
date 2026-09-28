@@ -1,41 +1,42 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
   Button,
+  TextField,
   Alert,
   Chip,
   Grid,
   Paper,
+  InputAdornment,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import {
-  QrCode2,
-  Info,
-  CreditCard,
-  CheckCircle,
-} from '@mui/icons-material';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
 
-// Founder price table — used instantly, then refreshed from the public
+// Founder price table - used instantly, then refreshed from the public
 // pricing API so the page never drifts from backend truth.
 const FALLBACK_PLANS = {
+  startup: { recharge: 200, cibil: 120, experian: 95, crif: 95, equifax: 85, cibilFailed: 90 },
   starter: { recharge: 1000, cibil: 110, experian: 85, crif: 85, equifax: 80, cibilFailed: 80 },
   growth: { recharge: 5000, cibil: 90, experian: 65, crif: 65, equifax: 60, cibilFailed: 70 },
   pro: { recharge: 10000, cibil: 80, experian: 50, crif: 55, equifax: 50, cibilFailed: 60 },
   enterprise: { recharge: 25000, cibil: 65, experian: 35, crif: 45, equifax: 40, cibilFailed: 50 },
 };
 const PLAN_META = [
+  { key: 'startup', label: 'Start-Up', tagline: 'First top-up' },
   { key: 'starter', label: 'Starter', tagline: 'Try it out' },
   { key: 'growth', label: 'Growth', tagline: 'Most popular', highlight: true },
   { key: 'pro', label: 'Pro', tagline: 'High volume' },
   { key: 'enterprise', label: 'Enterprise', tagline: 'Best value' },
 ];
 const planLabel = (key) => (PLAN_META.find((p) => p.key === key)?.label || key);
-const UPI_ID = 'payments@verifyhub';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -48,20 +49,28 @@ const loadRazorpayScript = () => new Promise((resolve) => {
   document.body.appendChild(script);
 });
 
+const inr0 = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
 const AddFunds = () => {
   const { user, token, login } = useAuth();
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [aiTotal, setAiTotal] = useState(118);
   const [otherFail, setOtherFail] = useState(30);
+  const [minRecharge, setMinRecharge] = useState(200);
   const [selectedPlan, setSelectedPlan] = useState('growth');
-  const [activeMethod, setActiveMethod] = useState('upi');
-  const [qrReady, setQrReady] = useState(false);
+  const [amount, setAmount] = useState('5000');
+  const [amountError, setAmountError] = useState('');
+  // First funding ever -> plan auto-assigned by slab, no choice yet.
+  // Detected via lastRecharge; defaults true until the check completes.
+  const [firstTimer, setFirstTimer] = useState(true);
   const [paying, setPaying] = useState(false);
   const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
+  const [confirmPlan, setConfirmPlan] = useState(null); // plan key awaiting purchase confirm
 
-  const planAmount = plans[selectedPlan]?.recharge || 0;
+  const parsedAmount = parseFloat(amount) || 0;
 
-  // Live prices (public endpoint) — silent fallback to the founder table
+  // Live prices (public endpoint) + first-funding detection
   useEffect(() => {
     axios.get(`${API_BASE_URL}/partner/pricing/plans`)
       .then(({ data }) => {
@@ -69,38 +78,93 @@ const AddFunds = () => {
           if (data.data?.plans) setPlans(data.data.plans);
           if (data.data?.ai?.total != null) setAiTotal(data.data.ai.total);
           if (data.data?.otherFailedCharge != null) setOtherFail(data.data.otherFailedCharge);
+          if (data.data?.minRecharge != null) setMinRecharge(data.data.minRecharge);
         }
       })
       .catch(() => { /* fallback table stays */ });
+    const t = localStorage.getItem('token');
+    if (t) {
+      axios.get(`${API_BASE_URL}/partner/overview/summary`, { headers: { Authorization: `Bearer ${t}` } })
+        .then(({ data }) => {
+          if (data?.success) setFirstTimer(!data.data?.lastRecharge);
+        })
+        .catch(() => { /* stay in choose mode */ setFirstTimer(false); });
+    } else {
+      setFirstTimer(false);
+    }
   }, []);
 
   const handlePlanSelect = (key) => {
+    if (firstTimer) return;
     setSelectedPlan(key);
-    setQrReady(false);
     setPayBanner(null);
   };
 
+  const handleAmountChange = (e) => {
+    const val = e.target.value;
+    if (/^\d*\.?\d{0,2}$/.test(val)) {
+      setAmount(val);
+      setAmountError('');
+    }
+  };
+
   const handleProceed = () => {
+    const amt = parseFloat(amount) || 0;
+    if (amt < minRecharge) {
+      setAmountError(`Minimum top-up is ₹${Number(minRecharge).toLocaleString('en-IN')}`);
+      return;
+    }
+    setAmountError('');
     setPayBanner(null);
-    if (activeMethod === 'upi') {
-      setQrReady(true);
-    } else {
-      handleGatewayPay(planAmount);
+    // Pure wallet top-up (no plan attached) — gateway is the only way to add funds
+    handleGatewayPay(amt);
+  };
+
+  // Activate a plan from wallet balance (no Razorpay). Top up first, then activate.
+  const handleActivate = async (planKey) => {
+    try {
+      setPaying(true);
+      setConfirmPlan(null);
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const { data } = await axios.post(`${API_BASE_URL}/plan/activate`, { plan: planKey }, { headers });
+      if (data?.success) {
+        if (user && token) {
+          login({ ...user, walletBalance: data.walletBalance, activePlan: data.activePlan }, token);
+        }
+        setPayBanner({
+          tone: 'success',
+          text: `${planLabel(data.activePlan)} plan activated · fee ₹${Number(data.planFee).toLocaleString('en-IN')} deducted from wallet. New balance ₹${Number(data.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}.`,
+        });
+      } else {
+        setPayBanner({ tone: 'error', text: data?.message || 'Could not activate plan.' });
+      }
+    } catch (err) {
+      console.error('Plan activation error:', err);
+      setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Could not activate plan.' });
+    } finally {
+      setPaying(false);
     }
   };
 
   const handleGatewayPay = async (amt) => {
     try {
       setPaying(true);
+      setConfirmPlan(null);
       const sdkOk = await loadRazorpayScript();
       if (!sdkOk || !window.Razorpay) {
         setPayBanner({ tone: 'error', text: 'Payment gateway failed to load. Check your connection and retry.' });
+        setPaying(false);
         return;
       }
       const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
-      const { data } = await axios.post(`${API_BASE_URL}/wallet-recharge/payment`, { amount: amt }, { headers });
+      const { data } = await axios.post(
+        `${API_BASE_URL}/wallet-recharge/payment`,
+        { amount: amt },
+        { headers },
+      );
       if (!data?.success || !data?.orderId || !data?.keyId) {
         setPayBanner({ tone: 'error', text: data?.message || 'Could not start payment. Please retry.' });
+        setPaying(false);
         return;
       }
       const rzp = new window.Razorpay({
@@ -125,10 +189,13 @@ const AddFunds = () => {
               if (user && token && newBalance != null) {
                 login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan }, token);
               }
+              const fee = verifyRes.data.planFee;
+              const credited = verifyRes.data.credited;
               setPayBanner({
                 tone: 'success',
-                text: `₹${Number(amt).toLocaleString('en-IN')} added. New balance ₹${Number(newBalance ?? amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}${newPlan ? ` · ${planLabel(newPlan)} plan active` : ''}.`,
+                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active (fee ₹${Number(fee).toLocaleString('en-IN')})` : ''}. New balance ₹${Number(newBalance ?? amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}.`,
               });
+              if (verifyRes.data.autoAssigned) setFirstTimer(false);
             } else {
               setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
             }
@@ -150,10 +217,7 @@ const AddFunds = () => {
     }
   };
 
-  const formatINR = (val) => {
-    const num = parseFloat(val) || 0;
-    return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const gst = Math.round(parsedAmount * 0.18 * 100) / 100;
 
   return (
     <Box>
@@ -186,7 +250,7 @@ const AddFunds = () => {
 
       {/* Two-column layout */}
       <Grid container spacing={3} sx={{ alignItems: 'flex-start' }}>
-        {/* Left Column: Recharge Amount */}
+        {/* Left Column: Plans + Amount */}
         <Grid size={{ xs: 12, md: 8, lg: 7 }}>
           <Card
             elevation={0}
@@ -209,14 +273,20 @@ const AddFunds = () => {
               </Typography>
 
               {/* Plan Cards */}
+              {firstTimer && (
+                <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                  First top-up auto-activates the matching plan — enter any amount ₹{minRecharge} or more below.
+                </Alert>
+              )}
               <Grid container spacing={1.5} sx={{ mb: 2, pt: 1 }}>
                 {PLAN_META.map((p) => {
                   const row = plans[p.key] || {};
                   const isSelected = selectedPlan === p.key;
                   const isCurrent = user?.activePlan === p.key;
                   const pulls = row.cibil > 0 ? Math.floor(row.recharge / row.cibil) : 0;
+                  const disabled = firstTimer;
                   return (
-                    <Grid size={{ xs: 6 }} key={p.key}>
+                    <Grid size={{ xs: 6, md: 4 }} key={p.key}>
                       <Paper
                         onClick={() => handlePlanSelect(p.key)}
                         elevation={0}
@@ -224,9 +294,10 @@ const AddFunds = () => {
                           p: 2,
                           borderRadius: '10px',
                           border: '2px solid',
-                          borderColor: isSelected ? '#3730A3' : '#E2E8F0',
-                          bgcolor: isSelected ? '#EEF2FF' : '#fff',
-                          cursor: 'pointer',
+                          borderColor: isSelected && !disabled ? '#3730A3' : '#E2E8F0',
+                          bgcolor: isSelected && !disabled ? '#EEF2FF' : disabled ? '#F8FAFC' : '#fff',
+                          cursor: disabled ? 'not-allowed' : 'pointer',
+                          opacity: disabled ? 0.75 : 1,
                           position: 'relative',
                           transition: 'all 0.18s ease',
                           '&:hover': { borderColor: '#3730A3' },
@@ -263,81 +334,62 @@ const AddFunds = () => {
                             <Typography variant="caption" sx={{ fontWeight: 700 }}>₹{price}</Typography>
                           </Box>
                         ))}
+                        <Button
+                          fullWidth
+                          size="small"
+                          variant={isSelected && !disabled && !isCurrent ? 'contained' : 'outlined'}
+                          disableElevation
+                          disabled={disabled || isCurrent}
+                          onClick={(e) => { e.stopPropagation(); setConfirmPlan(p.key); }}
+                          sx={{
+                            mt: 1.5, borderRadius: '8px', fontWeight: 700, textTransform: 'none',
+                            ...(isSelected && !disabled && !isCurrent
+                              ? { bgcolor: '#3730A3', '&:hover': { bgcolor: '#312E81' } }
+                              : { borderColor: '#C7D2FE', color: '#3730A3' }),
+                          }}
+                        >
+                          {isCurrent ? 'Active plan' : `Recharge ₹${Number(row.recharge || 0).toLocaleString('en-IN')}`}
+                        </Button>
                       </Paper>
                     </Grid>
                   );
                 })}
               </Grid>
 
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
                 Failed pulls: CIBIL ₹{plans[selectedPlan]?.cibilFailed} on {planLabel(selectedPlan)} · others ₹{otherFail} · matched-input CIBIL retries free
               </Typography>
 
-              {/* Payment Method Tiles */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                {[
-                  {
-                    id: 'upi',
-                    icon: <QrCode2 sx={{ fontSize: 22 }} />,
-                    title: 'UPI / QR Code',
-                    sub: 'Scan & pay — instant credit',
+              {/* Top-up amount — lands fully in wallet; plans activate separately */}
+              <TextField
+                fullWidth
+                label="Top-up amount (₹)"
+                value={amount}
+                onChange={handleAmountChange}
+                error={!!amountError}
+                helperText={amountError || undefined}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '1.1rem' }}>
+                          ₹
+                        </Typography>
+                      </InputAdornment>
+                    ),
+                    sx: { fontSize: '1.15rem', fontWeight: 600, fontFamily: '"Inter", sans-serif' },
                   },
-                  {
-                    id: 'gateway',
-                    icon: <CreditCard sx={{ fontSize: 22 }} />,
-                    title: 'Payment Gateway',
-                    sub: 'Cards · Net banking · Wallets',
+                  formHelperText: {
+                    sx: { color: amountError ? 'error.main' : 'text.secondary', mt: 0.75 },
                   },
-                ].map((method) => {
-                  const isActive = activeMethod === method.id;
-                  return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={method.id}>
-                      <Paper
-                        onClick={() => setActiveMethod(method.id)}
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          borderRadius: '10px',
-                          border: '2px solid',
-                          borderColor: isActive ? '#3730A3' : '#E2E8F0',
-                          bgcolor: isActive ? '#EEF2FF' : '#FAFAFA',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          transition: 'all 0.18s ease',
-                          '&:hover': { borderColor: '#3730A3', bgcolor: '#EEF2FF' },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: '8px',
-                            bgcolor: isActive ? '#C7D2FE' : '#F1F5F9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            color: isActive ? '#3730A3' : '#64748B',
-                          }}
-                        >
-                          {method.icon}
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-                            {method.title}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {method.sub}
-                          </Typography>
-                        </Box>
-                        {isActive && <CheckCircle sx={{ color: '#3730A3', fontSize: 18 }} />}
-                      </Paper>
-                    </Grid>
-                  );
-                })}
-              </Grid>
+                }}
+                sx={{ mb: 2.5 }}
+              />
+
+              {/* Gateway is the only way to add funds — no method choice */}
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2, textAlign: 'center' }}>
+                Secured via Razorpay · Cards · Net banking · UPI · Wallets
+              </Typography>
 
               {/* Status banner */}
               {payBanner && (
@@ -375,18 +427,13 @@ const AddFunds = () => {
               >
                 {paying
                   ? 'Processing payment…'
-                  : `Buy ${planLabel(selectedPlan)} — Pay ₹${Number(planAmount).toLocaleString('en-IN')}`}
+                  : `Add ₹${Number(parsedAmount).toLocaleString('en-IN')}`}
               </Button>
-              {activeMethod === 'upi' && (
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.25, textAlign: 'center' }}>
-                  UPI top-ups credit after manual verification and don&apos;t auto-activate plan rates.
-                </Typography>
-              )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Right Column: Pay via UPI QR */}
+        {/* Right Column: Order Summary */}
         <Grid size={{ xs: 12, md: 4, lg: 5 }}>
           <Card
             elevation={0}
@@ -400,197 +447,88 @@ const AddFunds = () => {
             <CardContent sx={{ p: 3 }}>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 700, mb: 2.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
+                sx={{ fontWeight: 700, mb: 2, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
               >
-                Pay via UPI QR
+                Order Summary
               </Typography>
-
-              {/* QR Code Box */}
-              <Box
-                sx={{
-                  width: '100%',
-                  aspectRatio: '1 / 1',
-                  maxWidth: 240,
-                  mx: 'auto',
-                  mb: 2.5,
-                  borderRadius: '12px',
-                  border: '2px dashed',
-                  borderColor: qrReady ? '#3730A3' : '#CBD5E1',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#F8FAFC',
-                  transition: 'border-color 0.3s ease',
-                }}
-              >
-                {qrReady ? (
-                  <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
-                    <svg
-                      width="100%"
-                      height="100%"
-                      viewBox="0 0 200 200"
-                      xmlns="http://www.w3.org/2000/svg"
-                      style={{ display: 'block' }}
-                    >
-                      <rect width="200" height="200" fill="#fff" />
-                      {/* Top-left position marker */}
-                      <rect x="10" y="10" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="18" y="18" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="24" y="24" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Top-right position marker */}
-                      <rect x="140" y="10" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="148" y="18" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="154" y="24" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Bottom-left position marker */}
-                      <rect x="10" y="140" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="18" y="148" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="24" y="154" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Data modules */}
-                      {[
-                        [70,70],[80,70],[90,70],[110,70],[130,70],
-                        [70,80],[100,80],[120,80],[130,80],
-                        [80,90],[90,90],[110,90],[120,90],
-                        [70,100],[90,100],[100,100],[110,100],[130,100],
-                        [80,110],[90,110],[120,110],[130,110],
-                        [70,120],[100,120],[110,120],
-                        [80,130],[90,130],[110,130],[120,130],[130,130],
-                      ].map(([x, y], i) => (
-                        <rect key={i} x={x} y={y} width="8" height="8" fill="#0A1628" rx="1" />
-                      ))}
-                      {/* Green center logo circle */}
-                      <circle cx="100" cy="100" r="14" fill="#fff" />
-                      <circle cx="100" cy="100" r="10" fill="#3730A3" />
-                      <text x="100" y="104" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">V</text>
-                    </svg>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700, fontSize: '0.8rem' }}>
-                        ₹{formatINR(String(planAmount))} · {planLabel(selectedPlan)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(9, 1fr)',
-                        gap: '3px',
-                        mb: 1.5,
-                        opacity: 0.2,
-                        mx: 'auto',
-                        width: 'fit-content',
-                      }}
-                    >
-                      {[...Array(81)].map((_, i) => (
-                        <Box
-                          key={i}
-                          sx={{
-                            width: 10,
-                            height: 10,
-                            bgcolor: (i + Math.floor(i / 9)) % 2 === 0 ? '#0A1628' : 'transparent',
-                            borderRadius: '1px',
-                          }}
-                        />
-                      ))}
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.5, display: 'block' }}
-                    >
-                      UPI QR renders here after
-                      <br />
-                      amount is confirmed
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-
-              {/* UPI ID row */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  bgcolor: '#F8FAFC',
-                  borderRadius: '8px',
-                  px: 2,
-                  py: 1.25,
-                  mb: 2,
-                  border: '1px solid #E2E8F0',
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                    UPI ID
-                  </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", "Roboto Mono", monospace' }}
-                  >
-                    {UPI_ID}
+              {!firstTimer && user?.activePlan && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Active plan</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {planLabel(user.activePlan)}
                   </Typography>
                 </Box>
-                <Chip
-                  label="Copy"
-                  size="small"
-                  onClick={() => navigator.clipboard?.writeText(UPI_ID)}
-                  sx={{
-                    bgcolor: '#EEF2FF',
-                    color: '#3730A3',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: '#C7D2FE' },
-                  }}
-                />
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet credit</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>+{inr2(parsedAmount)}</Typography>
               </Box>
-
-              <Divider sx={{ mb: 2 }} />
-
-              {/* Partner ID callout */}
-              <Alert
-                icon={<Info sx={{ fontSize: 18 }} />}
-                severity="warning"
-                sx={{
-                  bgcolor: '#FFFBEB',
-                  border: '1px solid #FDE68A',
-                  borderRadius: '10px',
-                  '& .MuiAlert-icon': { color: '#D97706', alignItems: 'flex-start', pt: 0.5 },
-                  '& .MuiAlert-message': { lineHeight: 1.5 },
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 500, color: '#92400E' }}>
-                  Add your Partner ID{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      fontWeight: 800,
-                      fontFamily: '"JetBrains Mono", "Roboto Mono", monospace',
-                      bgcolor: '#FEF3C7',
-                      px: 0.75,
-                      py: 0.15,
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {user?.partnerId || user?.id || user?._id || 'Pending'}
-                  </Box>{' '}
-                  in the payment note so credit is matched automatically.
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>GST (18%)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr2(gst)}</Typography>
+              </Box>
+              <Divider sx={{ my: 1.5 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Total payable</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  {inr2(parsedAmount + gst)}
                 </Typography>
-              </Alert>
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
+                {firstTimer
+                  ? 'Plan auto-activates by amount on your first top-up.'
+                  : 'Full amount lands in your wallet. Activate or upgrade plans from the cards.'}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Plan activation confirm dialog — deducts from wallet, no Razorpay */}
+      <Dialog open={Boolean(confirmPlan)} onClose={() => !paying && setConfirmPlan(null)} maxWidth="xs" fullWidth>
+        {confirmPlan && (() => {
+          const row = plans[confirmPlan] || {};
+          const dialogFee = Number(row.recharge) || 0;
+          const balance = Number(user?.walletBalance || 0);
+          const short = balance < dialogFee;
+          return (
+            <>
+              <DialogTitle sx={{ fontWeight: 800 }}>Activate the {planLabel(confirmPlan)} plan?</DialogTitle>
+              <DialogContent dividers>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Plan fee (from wallet)</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{dialogFee.toLocaleString('en-IN')}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet balance</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Balance after</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: short ? 'error.main' : 'text.primary' }}>
+                    ₹{(balance - dialogFee).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </Typography>
+                </Box>
+                {short && (
+                  <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2 }}>
+                    Short by ₹{(dialogFee - balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })} — top up first, then activate.
+                  </Alert>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ px: 3, py: 2 }}>
+                <Button onClick={() => setConfirmPlan(null)} color="inherit" disabled={paying}>Cancel</Button>
+                <Button
+                  variant="contained" disableElevation disabled={paying || short}
+                  onClick={() => handleActivate(confirmPlan)}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
+                >
+                  {paying ? 'Processing…' : 'Confirm & Activate'}
+                </Button>
+              </DialogActions>
+            </>
+          );
+        })()}
+      </Dialog>
     </Box>
   );
 };

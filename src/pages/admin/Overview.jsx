@@ -28,7 +28,7 @@ const arrowDelta = (pct) => {
   return `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%`;
 };
 
-const TIER_LABEL = { starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
+const TIER_LABEL = { startup: 'Start-Up', starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
 
 const AdminOverview = () => {
   const navigate = useNavigate();
