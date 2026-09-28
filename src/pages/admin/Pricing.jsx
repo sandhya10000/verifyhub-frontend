@@ -12,6 +12,7 @@ const authHeaders = () => ({
 });
 
 const TIERS = [
+  { key: 'startup', label: 'Start-Up' },
   { key: 'starter', label: 'Starter' },
   { key: 'growth', label: 'Growth' },
   { key: 'pro', label: 'Pro' },
