@@ -12,6 +12,7 @@ const StatusBadge = ({ status }) => {
       break;
     case 'failed':
     case 'frozen':
+    case 'suspended':
     case 'low-balance':
       color = 'error';
       break;

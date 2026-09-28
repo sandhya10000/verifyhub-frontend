@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,8 +23,11 @@ import useAuth from "../../context/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(
+    searchParams.get("deactivated") ? "Your account has been deactivated. Please contact support." : null,
+  );
   // Separate loading state so the overlay stays up until the route transition
   // completes, not just until the API call resolves.
   const [loading, setLoading] = useState(false);
