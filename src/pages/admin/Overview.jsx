@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Grid, Paper, Skeleton, Button, Chip, List, ListItem, ListItemText, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Download, FileText, BarChart3, TrendingUp, TrendingDown, Users, AlertTriangle, Ticket, CircleDot } from 'lucide-react';
+import { RefreshCw, Download, FileText, TrendingUp, TrendingDown, Users, AlertTriangle, Ticket, CircleDot } from 'lucide-react';
 import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
 import DataTable from '../../components/shared/DataTable';
@@ -100,15 +100,9 @@ const AdminOverview = () => {
   const kpiRow1 = [
     {
       icon: <FileText size={18} />, iconBg: '#EFF6FF', iconColor: '#3B82F6',
-      title: 'Reports Today', value: err ? '—' : String(s.reportsToday ?? 0),
+      title: 'Reports', value: err ? '—' : `${s.reportsToday ?? 0} / ${s.reportsThisMonth ?? 0}`,
       delta: arrowDelta(s.todayDeltaPct), deltaTone: (s.todayDeltaPct ?? 0) >= 0 ? 'up' : 'down',
-      subtitle: `${s.reportsToday ?? 0} pulled today`,
-    },
-    {
-      icon: <BarChart3 size={18} />, iconBg: '#ECFDF5', iconColor: '#10B981',
-      title: 'Reports This Month', value: err ? '—' : String(s.reportsThisMonth ?? 0),
-      delta: arrowDelta(s.monthDeltaPct), deltaTone: (s.monthDeltaPct ?? 0) >= 0 ? 'up' : 'down',
-      subtitle: `${s.failedThisMonth ?? 0} failed · ${s.successRate ?? 100}% success`,
+      subtitle: `Today / This month · ${s.failedThisMonth ?? 0} failed`,
     },
     {
       icon: <TrendingUp size={18} />, iconBg: '#ECFDF5', iconColor: '#10B981',
@@ -127,9 +121,9 @@ const AdminOverview = () => {
   const kpiRow2 = [
     {
       icon: <Users size={18} />, iconBg: '#F5F3FF', iconColor: '#8B5CF6',
-      title: 'Partners', value: err ? '—' : String(s.totalPartners ?? 0),
+      title: 'Partners', value: err ? '—' : `${s.newPartnersToday ?? 0} / ${s.totalPartners ?? 0}`,
       delta: `+${s.newPartnersWeek ?? 0} this week`, deltaTone: 'up',
-      subtitle: 'Registered partners',
+      subtitle: 'Added today / Total till now',
     },
     {
       icon: <Ticket size={18} />, iconBg: '#FFF7ED', iconColor: '#F59E0B',
