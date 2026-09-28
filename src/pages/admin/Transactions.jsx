@@ -4,7 +4,7 @@ import {
   TextField, MenuItem, Button, InputAdornment, Skeleton,
 } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../Components/shared/DataTable";
+import DataTable from "../../components/shared/DataTable";
 import DownloadIcon from "@mui/icons-material/Download";
 import { Search, TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
