@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import useAuth from "../../context/useAuth";
 
 import {
   Alert,
@@ -88,6 +89,7 @@ const initialQuestionData = {
 };
 
 const CrifReport = () => {
+  const { refreshWallet } = useAuth();
   const toLocalISO = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -544,6 +546,9 @@ const CrifReport = () => {
 
           setSuccessMessage("CRIF report fetched successfully.");
 
+          // Pull deducted server-side — refresh context balance
+          refreshWallet();
+
           setActiveStep(2);
 
           return;
@@ -554,6 +559,7 @@ const CrifReport = () => {
 
           if (success) {
             setSuccessMessage("CRIF report fetched successfully.");
+            refreshWallet();
           }
 
           return;
@@ -565,6 +571,9 @@ const CrifReport = () => {
       throw new Error(data?.message || "Unable to fetch CRIF report");
     } catch (error) {
       console.error("[CRIF FRONTEND] Error:", error);
+
+      // Failed pulls can carry a nominal fail fee — sync balance
+      if (error?.response?.data?.failureCharge) refreshWallet();
 
       setError(
         error?.response?.data?.message ||
@@ -683,6 +692,7 @@ const CrifReport = () => {
 
         if (success) {
           setSuccessMessage("CRIF report fetched successfully.");
+          refreshWallet();
         }
 
         return;

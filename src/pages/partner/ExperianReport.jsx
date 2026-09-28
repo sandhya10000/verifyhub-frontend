@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import axios from "axios";
+import useAuth from "../../context/useAuth";
 
 import { creditAPI } from "../../services/authService";
 
@@ -97,6 +99,7 @@ const selectFieldSx = {
 };
 
 const ExperianReport = () => {
+  const { refreshWallet } = useAuth();
   // ============================================================
   // FORM DATA
   // ============================================================
@@ -141,6 +144,11 @@ const ExperianReport = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // User touched a prefilled field — remind them to double-check
+    if (prefilledRef.current && ["firstName", "lastName", "pan", "gender", "email"].includes(name)) {
+      setPrefillEdited(true);
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -156,6 +164,11 @@ const ExperianReport = () => {
 
   const handleMobileChange = (e) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+
+    // New number = new lookup cycle; clear any previous prefill state
+    prefilledRef.current = false;
+    setPrefillEdited(false);
+    setPrefill({ loading: false, note: "" });
 
     setFormData((prev) => ({
       ...prev,
@@ -176,6 +189,10 @@ const ExperianReport = () => {
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 10);
 
+    if (prefilledRef.current) {
+      setPrefillEdited(true);
+    }
+
     setFormData((prev) => ({
       ...prev,
       pan: value,
@@ -184,6 +201,64 @@ const ExperianReport = () => {
     setError("");
     setSuccess("");
   };
+
+  // ============================================================
+  // CUSTOMER PREFILL — 2s debounce on 10-digit mobile
+  // Looks up the partner's own past reports and fills only
+  // fields the user hasn't typed yet. Never overwrites input.
+  // ============================================================
+
+  const PREFILL_API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const [prefill, setPrefill] = useState({ loading: false, note: "" });
+  const [prefillEdited, setPrefillEdited] = useState(false);
+  const prefilledRef = useRef(false);
+  const prefillTimer = useRef(null);
+  const lastPrefilledMobile = useRef("");
+
+  useEffect(() => {
+    const mobile = formData.mobile;
+    if (prefillTimer.current) clearTimeout(prefillTimer.current);
+    if (!/^[6-9]\d{9}$/.test(mobile) || mobile === lastPrefilledMobile.current) return;
+    prefillTimer.current = setTimeout(async () => {
+      try {
+        setPrefill({ loading: true, note: "" });
+        const { data } = await axios.get(`${PREFILL_API}/partner/prefill`, {
+          params: { mobile },
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (data?.success && data?.found) {
+          const d = data.data;
+          setFormData((prev) => {
+            const next = { ...prev };
+            if (!next.firstName.trim() && d.firstName) next.firstName = d.firstName;
+            if (!next.lastName.trim() && d.lastName) next.lastName = d.lastName;
+            if (!next.pan.trim() && d.pan) next.pan = d.pan;
+            if (!next.gender && ["Male", "Female", "Other"].includes(d.gender)) next.gender = d.gender;
+            if (!next.email.trim() && d.email) next.email = d.email;
+            return next;
+          });
+          prefilledRef.current = true;
+          lastPrefilledMobile.current = mobile;
+          setPrefillEdited(false);
+          const when = d.pulledAt
+            ? new Date(d.pulledAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+            : "";
+          setPrefill({
+            loading: false,
+            note: `Details fetched from your ${d.bureau || ""} report${when ? ` of ${when}` : ""} — verify before generating. Failed pulls incur a nominal ₹30 fee.`,
+          });
+        } else {
+          setPrefill({ loading: false, note: "" });
+        }
+      } catch {
+        setPrefill({ loading: false, note: "" });
+      }
+    }, 2000);
+    return () => {
+      if (prefillTimer.current) clearTimeout(prefillTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.mobile]);
 
   // ============================================================
   // PINCODE CHANGE
@@ -365,6 +440,9 @@ const ExperianReport = () => {
 
         setTodayGenerated((prev) => prev + 1);
 
+        // Pull deducted from wallet server-side — refresh context balance
+        refreshWallet();
+
         // Scroll to report
         setTimeout(() => {
           document.getElementById("experian-report-result")?.scrollIntoView({
@@ -376,6 +454,8 @@ const ExperianReport = () => {
         setError(
           response.data?.message || "Unable to generate Experian report.",
         );
+        // A failure response may still carry the nominal fail fee
+        if (response.data?.failureCharge) refreshWallet();
       }
     } catch (err) {
       console.error("[REACT] Experian Report Error:", err);
@@ -387,6 +467,9 @@ const ExperianReport = () => {
       if (backendError?.message) {
         message = backendError.message;
       }
+
+      // Failed pulls can carry a nominal fail fee — sync balance
+      if (backendError?.failureCharge) refreshWallet();
 
       setError(message);
     } finally {
@@ -910,6 +993,21 @@ const ExperianReport = () => {
                       },
                     }}
                   />
+                  {prefill.loading && (
+                    <Typography variant="caption" sx={{ color: "#6366f1", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
+                      Looking up past reports…
+                    </Typography>
+                  )}
+                  {!prefill.loading && prefill.note && !prefillEdited && (
+                    <Typography variant="caption" sx={{ color: "#059669", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
+                      {prefill.note}
+                    </Typography>
+                  )}
+                  {prefillEdited && (
+                    <Typography variant="caption" sx={{ color: "#D97706", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
+                      Prefilled details were edited — please double-check before generating.
+                    </Typography>
+                  )}
                 </Grid>
 
                 {/* EMAIL */}

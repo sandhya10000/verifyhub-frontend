@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
   Button,
-  TextField,
   Alert,
   Chip,
   Grid,
   Paper,
-  InputAdornment,
   Divider,
 } from '@mui/material';
 import {
@@ -20,49 +18,135 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import useAuth from '../../context/useAuth';
+import axios from 'axios';
 
-const PRESET_AMOUNTS = [1000, 5000, 10000, 25000];
-const MIN_AMOUNT = 500;
+// Founder price table — used instantly, then refreshed from the public
+// pricing API so the page never drifts from backend truth.
+const FALLBACK_PLANS = {
+  starter: { recharge: 1000, cibil: 110, experian: 85, crif: 85, equifax: 80, cibilFailed: 80 },
+  growth: { recharge: 5000, cibil: 90, experian: 65, crif: 65, equifax: 60, cibilFailed: 70 },
+  pro: { recharge: 10000, cibil: 80, experian: 50, crif: 55, equifax: 50, cibilFailed: 60 },
+  enterprise: { recharge: 25000, cibil: 65, experian: 35, crif: 45, equifax: 40, cibilFailed: 50 },
+};
+const PLAN_META = [
+  { key: 'starter', label: 'Starter', tagline: 'Try it out' },
+  { key: 'growth', label: 'Growth', tagline: 'Most popular', highlight: true },
+  { key: 'pro', label: 'Pro', tagline: 'High volume' },
+  { key: 'enterprise', label: 'Enterprise', tagline: 'Best value' },
+];
+const planLabel = (key) => (PLAN_META.find((p) => p.key === key)?.label || key);
 const UPI_ID = 'payments@verifyhub';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const loadRazorpayScript = () => new Promise((resolve) => {
+  if (window.Razorpay) return resolve(true);
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
+
 const AddFunds = () => {
-  const { user } = useAuth();
-  const [selectedPreset, setSelectedPreset] = useState(5000);
-  const [customAmount, setCustomAmount] = useState('5000');
+  const { user, token, login } = useAuth();
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
+  const [aiTotal, setAiTotal] = useState(118);
+  const [otherFail, setOtherFail] = useState(30);
+  const [selectedPlan, setSelectedPlan] = useState('growth');
   const [activeMethod, setActiveMethod] = useState('upi');
-  const [amountError, setAmountError] = useState('');
   const [qrReady, setQrReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
 
-  const parsedAmount = parseFloat(customAmount) || 0;
+  const planAmount = plans[selectedPlan]?.recharge || 0;
 
-  const handlePresetClick = (amount) => {
-    setSelectedPreset(amount);
-    setCustomAmount(String(amount));
-    setAmountError('');
+  // Live prices (public endpoint) — silent fallback to the founder table
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/partner/pricing/plans`)
+      .then(({ data }) => {
+        if (data?.success) {
+          if (data.data?.plans) setPlans(data.data.plans);
+          if (data.data?.ai?.total != null) setAiTotal(data.data.ai.total);
+          if (data.data?.otherFailedCharge != null) setOtherFail(data.data.otherFailedCharge);
+        }
+      })
+      .catch(() => { /* fallback table stays */ });
+  }, []);
+
+  const handlePlanSelect = (key) => {
+    setSelectedPlan(key);
     setQrReady(false);
-  };
-
-  const handleCustomChange = (e) => {
-    const val = e.target.value;
-    if (/^\d*\.?\d{0,2}$/.test(val)) {
-      setCustomAmount(val);
-      setSelectedPreset(null);
-      setAmountError('');
-      setQrReady(false);
-    }
+    setPayBanner(null);
   };
 
   const handleProceed = () => {
-    const amt = parseFloat(customAmount) || 0;
-    if (amt < MIN_AMOUNT) {
-      setAmountError(`Minimum recharge amount is ₹${MIN_AMOUNT.toLocaleString('en-IN')}`);
-      return;
-    }
-    setAmountError('');
+    setPayBanner(null);
     if (activeMethod === 'upi') {
       setQrReady(true);
     } else {
-      alert(`Redirecting to payment gateway for ₹${amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      handleGatewayPay(planAmount);
+    }
+  };
+
+  const handleGatewayPay = async (amt) => {
+    try {
+      setPaying(true);
+      const sdkOk = await loadRazorpayScript();
+      if (!sdkOk || !window.Razorpay) {
+        setPayBanner({ tone: 'error', text: 'Payment gateway failed to load. Check your connection and retry.' });
+        return;
+      }
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const { data } = await axios.post(`${API_BASE_URL}/wallet-recharge/payment`, { amount: amt }, { headers });
+      if (!data?.success || !data?.orderId || !data?.keyId) {
+        setPayBanner({ tone: 'error', text: data?.message || 'Could not start payment. Please retry.' });
+        return;
+      }
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        order_id: data.orderId,
+        name: 'VerifyHub',
+        description: `Wallet recharge ₹${Number(amt).toLocaleString('en-IN')}`,
+        prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
+        theme: { color: '#3730A3' },
+        handler: async (resp) => {
+          try {
+            const verifyRes = await axios.post(`${API_BASE_URL}/verify/payment`, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            }, { headers });
+            if (verifyRes.data?.success) {
+              const newBalance = verifyRes.data.walletBalance;
+              const newPlan = verifyRes.data.activePlan;
+              if (user && token && newBalance != null) {
+                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan }, token);
+              }
+              setPayBanner({
+                tone: 'success',
+                text: `₹${Number(amt).toLocaleString('en-IN')} added. New balance ₹${Number(newBalance ?? amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}${newPlan ? ` · ${planLabel(newPlan)} plan active` : ''}.`,
+              });
+            } else {
+              setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
+            }
+          } catch (err) {
+            console.error('Verify payment error:', err);
+            setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Payment verification failed.' });
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      rzp.on('payment.failed', () => setPaying(false));
+      rzp.open();
+    } catch (err) {
+      console.error('Gateway payment error:', err);
+      setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Could not start payment. Please retry.' });
+      setPaying(false);
     }
   };
 
@@ -84,11 +168,20 @@ const AddFunds = () => {
             mb: 0.5,
           }}
         >
-          Add Funds
+          Plans
         </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1rem' }}>
-          Recharge your wallet instantly. Funds reflect within seconds of a successful payment.
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1rem' }}>
+            Top up once, pay less per report. Bigger plans unlock cheaper pulls.
+          </Typography>
+          {user?.activePlan && (
+            <Chip
+              label={`Current: ${planLabel(user.activePlan)}`}
+              size="small"
+              sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontWeight: 700 }}
+            />
+          )}
+        </Box>
       </Box>
 
       {/* Two-column layout */}
@@ -107,77 +200,78 @@ const AddFunds = () => {
             <CardContent sx={{ p: 3 }}>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 700, mb: 2.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
+                sx={{ fontWeight: 700, mb: 0.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
               >
-                Recharge Amount
+                Choose your plan
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
+                AI analysis ₹{aiTotal} on all plans · pulls deduct per-report at your plan&apos;s rates
               </Typography>
 
-              {/* Preset Amount Buttons */}
-              <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-                {PRESET_AMOUNTS.map((amount) => {
-                  const isSelected = selectedPreset === amount;
+              {/* Plan Cards */}
+              <Grid container spacing={1.5} sx={{ mb: 2, pt: 1 }}>
+                {PLAN_META.map((p) => {
+                  const row = plans[p.key] || {};
+                  const isSelected = selectedPlan === p.key;
+                  const isCurrent = user?.activePlan === p.key;
+                  const pulls = row.cibil > 0 ? Math.floor(row.recharge / row.cibil) : 0;
                   return (
-                    <Grid size={{ xs: 6, sm: 3 }} key={amount}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        onClick={() => handlePresetClick(amount)}
+                    <Grid size={{ xs: 6 }} key={p.key}>
+                      <Paper
+                        onClick={() => handlePlanSelect(p.key)}
+                        elevation={0}
                         sx={{
+                          p: 2,
                           borderRadius: '10px',
-                          fontWeight: 700,
-                          fontSize: '1rem',
-                          py: 1.5,
-                          px: 1,
+                          border: '2px solid',
                           borderColor: isSelected ? '#3730A3' : '#E2E8F0',
-                          color: isSelected ? '#3730A3' : 'text.secondary',
                           bgcolor: isSelected ? '#EEF2FF' : '#fff',
-                          fontFamily: '"Inter", sans-serif',
+                          cursor: 'pointer',
+                          position: 'relative',
                           transition: 'all 0.18s ease',
-                          '&:hover': {
-                            borderColor: '#3730A3',
-                            color: '#3730A3',
-                            bgcolor: '#EEF2FF',
-                          },
+                          '&:hover': { borderColor: '#3730A3' },
                         }}
                       >
-                        ₹{amount.toLocaleString('en-IN')}
-                      </Button>
+                        {p.highlight && (
+                          <Chip
+                            label="Most popular"
+                            size="small"
+                            sx={{ position: 'absolute', top: -11, right: 8, bgcolor: '#3730A3', color: '#fff', fontSize: '0.62rem', fontWeight: 700 }}
+                          />
+                        )}
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{p.label}</Typography>
+                          {isCurrent && (
+                            <Chip label="Current" size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontSize: '0.62rem', fontWeight: 700, height: 20 }} />
+                          )}
+                        </Box>
+                        <Typography variant="h5" sx={{ fontWeight: 800, my: 0.5 }}>
+                          ₹{Number(row.recharge || 0).toLocaleString('en-IN')}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                          {p.tagline} · ≈ {pulls} CIBIL pulls
+                        </Typography>
+                        <Divider sx={{ my: 1 }} />
+                        {[
+                          ['CIBIL', row.cibil],
+                          ['Experian', row.experian],
+                          ['CRIF', row.crif],
+                          ['Equifax', row.equifax],
+                        ].map(([name, price]) => (
+                          <Box key={name} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.25 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{name}</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>₹{price}</Typography>
+                          </Box>
+                        ))}
+                      </Paper>
                     </Grid>
                   );
                 })}
               </Grid>
 
-              {/* Custom Amount Input */}
-              <TextField
-                fullWidth
-                label="Custom amount (₹)"
-                value={customAmount}
-                onChange={handleCustomChange}
-                error={!!amountError}
-                helperText={
-                  amountError || 'Minimum recharge ₹500 · No convenience fee on UPI'
-                }
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Typography sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '1.1rem' }}>
-                          ₹
-                        </Typography>
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      fontSize: '1.15rem',
-                      fontWeight: 600,
-                      fontFamily: '"Inter", sans-serif',
-                    },
-                  },
-                  formHelperText: {
-                    sx: { color: amountError ? 'error.main' : 'text.secondary', mt: 0.75 },
-                  },
-                }}
-                sx={{ mb: 2.5 }}
-              />
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5 }}>
+                Failed pulls: CIBIL ₹{plans[selectedPlan]?.cibilFailed} on {planLabel(selectedPlan)} · others ₹{otherFail} · matched-input CIBIL retries free
+              </Typography>
 
               {/* Payment Method Tiles */}
               <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -245,47 +339,49 @@ const AddFunds = () => {
                 })}
               </Grid>
 
+              {/* Status banner */}
+              {payBanner && (
+                <Alert
+                  severity={payBanner.tone}
+                  onClose={() => setPayBanner(null)}
+                  sx={{ mb: 2, borderRadius: '10px' }}
+                >
+                  {payBanner.text}
+                </Alert>
+              )}
+
               {/* CTA Button */}
               <Button
                 fullWidth
                 size="large"
                 onClick={handleProceed}
+                disabled={paying}
                 sx={{
-                  background:
-                    parsedAmount >= MIN_AMOUNT
-                      ? '#3730A3'
-                      : '#E2E8F0',
-                  color: parsedAmount >= MIN_AMOUNT ? '#fff' : '#94A3B8',
+                  background: '#3730A3',
+                  color: '#fff',
                   py: 1.75,
                   borderRadius: '10px',
                   fontSize: '1.05rem',
                   fontWeight: 700,
                   fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                  boxShadow:
-                    parsedAmount >= MIN_AMOUNT
-                      ? '0 4px 16px rgba(55,48,163,.35)'
-                      : 'none',
+                  boxShadow: '0 4px 16px rgba(55,48,163,.35)',
                   transition: 'all 0.2s ease',
-                  cursor: parsedAmount >= MIN_AMOUNT ? 'pointer' : 'not-allowed',
                   '&:hover': {
-                    background:
-                      parsedAmount >= MIN_AMOUNT
-                        ? '#312E81'
-                        : '#E2E8F0',
-                    transform: parsedAmount >= MIN_AMOUNT ? 'translateY(-1px)' : 'none',
-                    boxShadow:
-                      parsedAmount >= MIN_AMOUNT
-                        ? '0 6px 20px rgba(55,48,163,.45)'
-                        : 'none',
+                    background: '#312E81',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 6px 20px rgba(55,48,163,.45)',
                   },
                 }}
               >
-                {parsedAmount >= MIN_AMOUNT
-                  ? `Proceed to Pay ₹${formatINR(customAmount)}`
-                  : parsedAmount > 0
-                  ? `Minimum ₹${MIN_AMOUNT.toLocaleString('en-IN')} required`
-                  : 'Enter an amount to proceed'}
+                {paying
+                  ? 'Processing payment…'
+                  : `Buy ${planLabel(selectedPlan)} — Pay ₹${Number(planAmount).toLocaleString('en-IN')}`}
               </Button>
+              {activeMethod === 'upi' && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.25, textAlign: 'center' }}>
+                  UPI top-ups credit after manual verification and don&apos;t auto-activate plan rates.
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -378,7 +474,7 @@ const AddFunds = () => {
                       }}
                     >
                       <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700, fontSize: '0.8rem' }}>
-                        ₹{formatINR(customAmount)}
+                        ₹{formatINR(String(planAmount))} · {planLabel(selectedPlan)}
                       </Typography>
                     </Box>
                   </Box>
