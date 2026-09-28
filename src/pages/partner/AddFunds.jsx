@@ -20,18 +20,32 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import useAuth from '../../context/useAuth';
+import axios from 'axios';
 
-const PRESET_AMOUNTS = [1000, 5000, 10000, 25000];
-const MIN_AMOUNT = 500;
+const PRESET_AMOUNTS = [100, 1000, 5000, 10000];
+const MIN_AMOUNT = 100; // floor moves to Pricing config later
 const UPI_ID = 'payments@verifyhub';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const loadRazorpayScript = () => new Promise((resolve) => {
+  if (window.Razorpay) return resolve(true);
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
+
 const AddFunds = () => {
-  const { user } = useAuth();
-  const [selectedPreset, setSelectedPreset] = useState(5000);
-  const [customAmount, setCustomAmount] = useState('5000');
+  const { user, token, login } = useAuth();
+  const [selectedPreset, setSelectedPreset] = useState(1000);
+  const [customAmount, setCustomAmount] = useState('1000');
   const [activeMethod, setActiveMethod] = useState('upi');
   const [amountError, setAmountError] = useState('');
   const [qrReady, setQrReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
 
   const parsedAmount = parseFloat(customAmount) || 0;
 
@@ -59,10 +73,71 @@ const AddFunds = () => {
       return;
     }
     setAmountError('');
+    setPayBanner(null);
     if (activeMethod === 'upi') {
       setQrReady(true);
     } else {
-      alert(`Redirecting to payment gateway for ₹${amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      handleGatewayPay(amt);
+    }
+  };
+
+  const handleGatewayPay = async (amt) => {
+    try {
+      setPaying(true);
+      const sdkOk = await loadRazorpayScript();
+      if (!sdkOk || !window.Razorpay) {
+        setPayBanner({ tone: 'error', text: 'Payment gateway failed to load. Check your connection and retry.' });
+        return;
+      }
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const { data } = await axios.post(`${API_BASE_URL}/wallet-recharge/payment`, { amount: amt }, { headers });
+      if (!data?.success || !data?.orderId || !data?.keyId) {
+        setPayBanner({ tone: 'error', text: data?.message || 'Could not start payment. Please retry.' });
+        return;
+      }
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        order_id: data.orderId,
+        name: 'VerifyHub',
+        description: `Wallet recharge ₹${Number(amt).toLocaleString('en-IN')}`,
+        prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
+        theme: { color: '#3730A3' },
+        handler: async (resp) => {
+          try {
+            const verifyRes = await axios.post(`${API_BASE_URL}/verify/payment`, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            }, { headers });
+            if (verifyRes.data?.success) {
+              const newBalance = verifyRes.data.walletBalance;
+              if (user && token && newBalance != null) {
+                login({ ...user, walletBalance: newBalance }, token);
+              }
+              setPayBanner({
+                tone: 'success',
+                text: `₹${Number(amt).toLocaleString('en-IN')} added. New balance ₹${Number(newBalance ?? amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}.`,
+              });
+            } else {
+              setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
+            }
+          } catch (err) {
+            console.error('Verify payment error:', err);
+            setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Payment verification failed.' });
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      rzp.on('payment.failed', () => setPaying(false));
+      rzp.open();
+    } catch (err) {
+      console.error('Gateway payment error:', err);
+      setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Could not start payment. Please retry.' });
+      setPaying(false);
     }
   };
 
@@ -155,7 +230,7 @@ const AddFunds = () => {
                 onChange={handleCustomChange}
                 error={!!amountError}
                 helperText={
-                  amountError || 'Minimum recharge ₹500 · No convenience fee on UPI'
+                  amountError || 'Minimum recharge ₹100 · ₹59 per bureau report · ₹118 per AI analysis'
                 }
                 slotProps={{
                   input: {
@@ -245,11 +320,23 @@ const AddFunds = () => {
                 })}
               </Grid>
 
+              {/* Status banner */}
+              {payBanner && (
+                <Alert
+                  severity={payBanner.tone}
+                  onClose={() => setPayBanner(null)}
+                  sx={{ mb: 2, borderRadius: '10px' }}
+                >
+                  {payBanner.text}
+                </Alert>
+              )}
+
               {/* CTA Button */}
               <Button
                 fullWidth
                 size="large"
                 onClick={handleProceed}
+                disabled={paying}
                 sx={{
                   background:
                     parsedAmount >= MIN_AMOUNT
@@ -280,7 +367,9 @@ const AddFunds = () => {
                   },
                 }}
               >
-                {parsedAmount >= MIN_AMOUNT
+                {paying
+                  ? 'Processing payment…'
+                  : parsedAmount >= MIN_AMOUNT
                   ? `Proceed to Pay ₹${formatINR(customAmount)}`
                   : parsedAmount > 0
                   ? `Minimum ₹${MIN_AMOUNT.toLocaleString('en-IN')} required`
