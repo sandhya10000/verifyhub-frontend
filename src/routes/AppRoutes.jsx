@@ -26,6 +26,8 @@ const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
+const AdminPricing = lazy(() => import("../pages/admin/Pricing"));
+const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
 
 const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
@@ -150,7 +152,7 @@ const AppRoutes = () => {
           />
           <Route
             path="pricing"
-            element={<PlaceholderPage title="Pricing Control" />}
+            element={<AdminPricing />}
           />
           <Route path="api" element={<PlaceholderPage title="API Control" />} />
           <Route
@@ -159,7 +161,7 @@ const AppRoutes = () => {
           />
           <Route
             path="transactions"
-            element={<PlaceholderPage title="Transactions" />}
+            element={<AdminTransactions />}
           />
           <Route
             path="reports"
