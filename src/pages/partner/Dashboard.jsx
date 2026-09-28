@@ -8,7 +8,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   RefreshCw, Download, FileText, BarChart3, Wallet, IndianRupee,
-  Percent, AlertTriangle, Star, Ticket, Bot, Building2, Plus, CircleDot,
+    Percent, AlertTriangle, Ticket, Bot, Building2, Plus, CircleDot,
 } from "lucide-react";
 import useAuth from "../../context/useAuth";
 import DataTable from "../../components/shared/DataTable";
@@ -164,14 +164,9 @@ const PartnerDashboard = () => {
       subtitle: `${s.failedThisMonth ?? 0} failures · not charged`,
     },
     {
-      icon: <Star size={18} />, iconBg: "#FFFBEB", iconColor: "#D97706",
-      title: "Average Score", value: err ? "—" : s.avgScore != null ? String(s.avgScore) : "—",
-      subtitle: s.scoredCount > 0 ? `Across ${s.scoredCount} scored reports` : "No scored reports yet",
-    },
-    {
       icon: <AlertTriangle size={18} />, iconBg: "#FEF2F2", iconColor: "#EF4444",
       title: "Failed Pulls", value: err ? "—" : String(s.failedThisMonth ?? 0),
-      subtitle: "Failed pulls are never charged",
+      subtitle: "Failed pulls incur a nominal fee",
     },
     {
       icon: <Ticket size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
@@ -259,12 +254,12 @@ const PartnerDashboard = () => {
 
       {/* KPI row 2 */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        {loading ? Array.from({ length: 4 }).map((_, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+        {loading ? Array.from({ length: 3 }).map((_, i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
             <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
           </Grid>
         )) : kpiRow2.map((k) => (
-          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} />
           </Grid>
         ))}

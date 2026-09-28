@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import useAuth from "../../context/useAuth";
 import {
   Box,
   Typography,
@@ -51,6 +52,7 @@ const StatCard = ({ label, value }) => (
 );
 
 const AiAnalyzer = () => {
+  const { refreshWallet } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -245,6 +247,8 @@ const AiAnalyzer = () => {
               console.log("[AiAnalyzer] Analysis COMPLETED:", result);
               setAnalysisResult(result);
               setIsAnalyzing(false);
+              // Analysis deducted server-side — refresh context balance
+              refreshWallet();
               clearInterval(intervalId);
             } else if (status === "failed") {
               console.error(
@@ -256,6 +260,8 @@ const AiAnalyzer = () => {
               setError(debugError || errorMessage || "Analysis failed");
               setIsAnalyzing(false);
               setChunkProgress(null);
+              // Fail fee deducted server-side — refresh context balance
+              refreshWallet();
               clearInterval(intervalId);
             } else {
               console.log("[AiAnalyzer] Still processing, status:", status);
