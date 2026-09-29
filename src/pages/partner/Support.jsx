@@ -18,9 +18,9 @@ import {
 import { Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ticketService } from '../../services/ticketService';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import RowActions from '../../components/shared/RowActions';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import RowActions from '../../Components/shared/RowActions';
 
 const statusLabel = (s) => {
   if (s === 'in-progress') return 'In Progress';

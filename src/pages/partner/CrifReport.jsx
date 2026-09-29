@@ -31,9 +31,9 @@ import {
   Paper,
   MenuItem,
 } from "@mui/material";
-import DataTable from "../../components/shared/DataTable";
-import TypePill from "../../components/shared/TypePill";
-import RowActions from "../../components/shared/RowActions";
+import DataTable from "../../Components/shared/DataTable";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
 
 import {
   AccountBalance,

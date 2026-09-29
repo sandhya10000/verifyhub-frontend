@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Download, FileText, TrendingUp, TrendingDown, Users, AlertTriangle, Ticket, CircleDot } from 'lucide-react';
 import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
 import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, PlanMixList, timeAgo } from '../../Components/admin/AdminWidgets';
 
 const API = (path) => {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../components/shared/DataTable";
-import StatusBadge from "../../components/shared/StatusBadge";
-import TypePill from "../../components/shared/TypePill";
-import RowActions from "../../components/shared/RowActions";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
 
 const Reports = () => {
   // ============================================================

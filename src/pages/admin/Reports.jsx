@@ -13,11 +13,11 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { Link as RouterLink } from "react-router-dom";
-import DataTable from "../../components/shared/DataTable";
-import StatusBadge from "../../components/shared/StatusBadge";
-import TypePill from "../../components/shared/TypePill";
-import RowActions from "../../components/shared/RowActions";
-import FilterBar from "../../components/shared/FilterBar";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
+import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
 
 const DATE_MIN = "1900-01-01";

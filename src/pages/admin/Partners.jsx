@@ -3,10 +3,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import RowActions from '../../components/shared/RowActions';
-import FilterBar from '../../components/shared/FilterBar';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import RowActions from '../../Components/shared/RowActions';
+import FilterBar from '../../Components/shared/FilterBar';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);

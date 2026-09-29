@@ -18,10 +18,10 @@ import { Send } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ticketService } from '../../services/ticketService';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import RowActions from '../../components/shared/RowActions';
-import FilterBar from '../../components/shared/FilterBar';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import RowActions from '../../Components/shared/RowActions';
+import FilterBar from '../../Components/shared/FilterBar';
 
 const AdminSupport = () => {
   const formatName = (name = "") => {
