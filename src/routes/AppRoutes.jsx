@@ -22,9 +22,11 @@ const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
+const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
+const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
 const AdminPricing = lazy(() => import("../pages/admin/Pricing"));
 const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
@@ -98,6 +100,10 @@ const AppRoutes = () => {
             element={<AddFunds />}
           />
           <Route
+            path="plans"
+            element={<RechargePlans />}
+          />
+          <Route
             path="credit-reports"
             element={<PlaceholderPage title="Credit Reports" />}
           />
@@ -149,6 +155,10 @@ const AppRoutes = () => {
           <Route
             path="partners"
             element={<AdminPartners />}
+          />
+          <Route
+            path="partners/:id"
+            element={<AdminPartnerDetail />}
           />
           <Route
             path="pricing"

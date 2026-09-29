@@ -107,6 +107,11 @@ const AdminLayout = () => {
     { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },
     { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com/@info.verifyhub?si=KMG9lv2oPEuIvdud', color: '#FF0033' },
   ];
+  const titleForPath = (pathname) => {
+                  if (/^\/admin\/partners\/[^/]+$/.test(pathname)) return 'Partner Profile';
+                  const seg = pathname.split('/').filter(Boolean).pop() || 'Admin';
+                  return seg.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                };
 
   const drawer = (
     <Box sx={{
@@ -188,6 +193,9 @@ const AdminLayout = () => {
             <List sx={{ px: isCollapsed ? 1 : 2, py: 1 }}>
               {group.items.map((item) => {
                 const active = location.pathname.startsWith(item.path);
+                // Friendly AppBar titles — never leak raw route params (e.g. Mongo IDs)
+                
+
                 return (
                   <ListItem
                     button
@@ -334,7 +342,7 @@ const AdminLayout = () => {
                 <MenuIcon size={20} />
               </IconButton>
               <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
-                {location.pathname.split('/').pop().replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {titleForPath(location.pathname)}
               </Typography>
             </Box>
 

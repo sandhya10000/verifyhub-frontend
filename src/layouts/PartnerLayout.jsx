@@ -133,6 +133,11 @@ const PartnerLayout = () => {
           icon: <Building2 size={16} />,
           path: "/partner/credit-reports/crif",
         },
+        {
+          text: "Recharge Plans",
+          icon: <Wallet size={16} />,
+          path: "/partner/plans",
+        },
       ],
     },
     // {
