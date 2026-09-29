@@ -23,10 +23,10 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import TypePill from '../../components/shared/TypePill';
-import RowActions from '../../components/shared/RowActions';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import TypePill from '../../Components/shared/TypePill';
+import RowActions from '../../Components/shared/RowActions';
 
 const API = () => import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_ROOT = () => API().replace(/\/api\/?$/, '');

@@ -31,7 +31,7 @@ import {
   Scale,
   Building2,
 } from "lucide-react";
-import AppSidebar from "../components/shared/AppSidebar";
+import AppSidebar from "../Components/shared/AppSidebar";
 import useAuth from '../context/useAuth';
 
 const DRAWER_WIDTH = 240;

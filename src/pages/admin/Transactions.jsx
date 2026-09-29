@@ -4,9 +4,9 @@ import {
   Button, Skeleton,
 } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../components/shared/DataTable";
-import StatusBadge from "../../components/shared/StatusBadge";
-import FilterBar from "../../components/shared/FilterBar";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
 import { TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
