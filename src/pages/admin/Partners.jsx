@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton, Menu, MenuItem, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Search, X } from 'lucide-react';
 import axios from 'axios';
 import DataTable from '../../components/shared/DataTable';
 import StatusBadge from '../../components/shared/StatusBadge';
+import RowActions from '../../components/shared/RowActions';
+import FilterBar from '../../components/shared/FilterBar';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);
@@ -20,8 +20,6 @@ const AdminPartners = () => {
 
   const limit = 50;
 
-  // Menu state for actions
-  const [anchorEl, setAnchorEl] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
 
   // Suspend/reactivate confirm + progress
@@ -94,23 +92,6 @@ const AdminPartners = () => {
     fetchPartners();
   }, [page, debouncedSearch]);
 
-  const handleMenuClick = (event, partner) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedPartner(partner);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    // keep selectedPartner until confirm dialog resolves
-    if (!confirmOpen) setSelectedPartner(null);
-  };
-
-  const handleToggleClick = () => {
-    setAnchorEl(null);
-    setToggleError(null);
-    setConfirmOpen(true);
-  };
-
   const handleConfirmClose = () => {
     setConfirmOpen(false);
     setSelectedPartner(null);
@@ -144,7 +125,6 @@ const AdminPartners = () => {
   };
 
   const handleOpenFunds = async (preset = null) => {
-    setAnchorEl(null);
     setFundsError(null);
     setFundsSuccess(null);
     setFundsAmount('');
@@ -233,10 +213,11 @@ const AdminPartners = () => {
     return null;
   })();
 
+  const openDetails = (p) => window.open(`/admin/partners/${p._id}`, '_blank', 'noopener,noreferrer');
+
   const columns = [
     {
-      header: 'Partner ID',
-      field: 'partner_id',
+      header: 'Partner ID', field: 'partner_id', nowrap: true, minWidth: 100,
       render: (row) => (
         <Typography
           component={RouterLink}
@@ -245,12 +226,8 @@ const AdminPartners = () => {
           rel="noopener noreferrer"
           title="Open partner profile in new tab"
           sx={{
-            fontFamily: 'monospace',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap',
-            color: '#3730A3',
-            textDecoration: 'none',
+            fontFamily: 'monospace', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap',
+            color: '#1D4ED8', textDecoration: 'none',
             '&:hover': { textDecoration: 'underline' },
           }}
         >
@@ -259,68 +236,74 @@ const AdminPartners = () => {
       ),
     },
     {
-      header: 'Name',
-      field: 'name',
-      render: (row) => formatName(row.name)
-    },
-    { header: 'Email', field: 'email' },
-    { header: 'Phone', field: 'phone' },
-    {
-      header: 'Total Reports',
-      field: 'totalReports',
+      header: 'Name', field: 'name', minWidth: 130,
       render: (row) => (
-        <Typography sx={{ fontWeight: 600 }}>
-          {row.totalReports.toLocaleString()}
+        <Typography title={formatName(row.name)} sx={{ fontWeight: 600, fontSize: '0.82rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {formatName(row.name)}
         </Typography>
       )
     },
     {
-      header: 'Wallet Balance',
-      field: 'walletBalance',
+      header: 'Email', field: 'email', minWidth: 170,
+      render: (row) => (
+        <Typography title={row.email} sx={{ fontSize: '0.8rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {row.email}
+        </Typography>
+      )
+    },
+    { header: 'Phone', field: 'phone', nowrap: true, minWidth: 110 },
+    {
+      header: 'Total Reports', field: 'totalReports', nowrap: true, minWidth: 90, align: 'right',
+      render: (row) => (
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+          {Number(row.totalReports || 0).toLocaleString()}
+        </Typography>
+      )
+    },
+    {
+      header: 'Wallet Balance', field: 'walletBalance', nowrap: true, minWidth: 110, align: 'right',
       render: (row) => {
         const bal = Number(row.walletBalance);
         const label = Number.isFinite(bal)
           ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(bal)
           : '—';
         return (
-          <Typography
-            sx={{
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              color: bal > 0 ? '#10B981' : 'text.primary',
-            }}
-          >{label}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', color: bal > 0 ? '#10B981' : 'text.primary' }}>
+            {label}
+          </Typography>
         );
       }
     },
     {
-      header: 'Last Report',
-      field: 'lastReportDate',
-      render: (row) => row.lastReportDate ? new Date(row.lastReportDate).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      }) : '—'
+      header: 'Last Report', field: 'lastReportDate', nowrap: true, minWidth: 110,
+      render: (row) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {row.lastReportDate ? new Date(row.lastReportDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+        </Typography>
+      )
     },
     {
-      header: 'Joined Date',
-      field: 'createdAt',
-      render: (row) => new Date(row.createdAt).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      })
+      header: 'Joined Date', field: 'createdAt', nowrap: true, minWidth: 110,
+      render: (row) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {new Date(row.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </Typography>
+      )
     },
     {
-      header: 'Status',
-      field: 'isActive',
+      header: 'Status', field: 'isActive', nowrap: true, minWidth: 110,
       render: (row) => (
         <StatusBadge status={row.isActive !== false ? 'Active' : 'Suspended'} />
       )
     },
     {
-      header: '',
-      field: 'action',
+      header: 'Actions', field: 'action', align: 'right', width: 60,
       render: (row) => (
-        <IconButton size="small" onClick={(e) => handleMenuClick(e, row)}>
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
+        <RowActions actions={[
+          { label: 'View Details', onClick: () => openDetails(row) },
+          { label: 'Add Funds', onClick: () => handleOpenFunds(row) },
+          { label: row.isActive !== false ? 'Suspend Account' : 'Reactivate Account', danger: row.isActive !== false, onClick: () => { setSelectedPartner(row); setToggleError(null); setConfirmOpen(true); } },
+        ]} />
       )
     }
   ];
@@ -341,37 +324,13 @@ const AdminPartners = () => {
         </Button>
       </Box>
 
-      <Box sx={{ mb: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search name, email, or phone…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          size="small"
-          sx={{ width: 320 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={16} color={search ? '#3730A3' : '#94A3B8'} />
-                </InputAdornment>
-              ),
-              endAdornment: search ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setSearch('')}
-                    edge="end"
-                    sx={{ color: '#94A3B8', '&:hover': { color: '#1E293B' } }}
-                    aria-label="Clear search"
-                  >
-                    <X size={15} />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }
-          }}
-        />
-      </Box>
+      <FilterBar
+        search={{
+          value: search,
+          onChange: (v) => setSearch(v),
+          placeholder: 'Search name, email, or phone…',
+        }}
+      />
 
       {/* Result count label */}
       <Box sx={{ mb: 3, minHeight: 20 }}>
@@ -414,18 +373,6 @@ const AdminPartners = () => {
           </Box>
         </>
       )}
-
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => { const p = selectedPartner; handleMenuClose(); if (p) window.open(`/admin/partners/${p._id}`, '_blank', 'noopener,noreferrer'); }}>View Details</MenuItem>
-        <MenuItem onClick={() => handleOpenFunds(selectedPartner)}>Add Funds</MenuItem>
-        <MenuItem onClick={handleToggleClick} sx={{ color: selectedPartner?.isActive !== false ? 'error.main' : 'success.main' }}>
-          {selectedPartner?.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
-        </MenuItem>
-      </Menu>
 
       <Dialog open={confirmOpen} onClose={handleConfirmClose} maxWidth="xs" fullWidth>
         <DialogTitle>

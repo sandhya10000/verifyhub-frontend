@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import axios from "axios";
 import DataTable from "../../components/shared/DataTable";
+import StatusBadge from "../../components/shared/StatusBadge";
+import TypePill from "../../components/shared/TypePill";
+import RowActions from "../../components/shared/RowActions";
 
 const Reports = () => {
   // ============================================================
@@ -523,99 +526,35 @@ const Reports = () => {
 
   const columns = [
     {
-      header: "Date",
-      field: "date",
-    },
-
-    {
-      header: "Customer",
-      field: "customer",
-    },
-
-    {
-      header: "Type",
-      field: "type",
-    },
-
-    {
-      header: "Bureau",
-      field: "bureau",
-    },
-
-    {
-      header: "Score",
-      field: "score",
-
+      header: "Date", field: "date", nowrap: true, minWidth: 150,
       render: (row) => (
-        <Typography
-          sx={{
-            fontWeight: 700,
-
-            color:
-              typeof row.score === "number" && row.score >= 750
-                ? "#12B886"
-                : typeof row.score === "number" && row.score >= 650
-                  ? "#F59E0B"
-                  : typeof row.score === "number"
-                    ? "#EF4444"
-                    : "text.disabled",
-          }}
-        >
-          {row.score}
+        <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{row.date}</Typography>
+      ),
+    },
+    {
+      header: "Type", field: "type", nowrap: true, minWidth: 150,
+      render: (row) => <TypePill type={row.type} bureau={row.bureau} />,
+    },
+    {
+      header: "Customer", field: "customer", minWidth: 130,
+      render: (row) => (
+        <Typography title={row.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {row.customer}
         </Typography>
       ),
     },
-
     {
-      header: "",
-      field: "action",
-
+      header: "Score", field: "score", nowrap: true, minWidth: 70,
+      render: (row) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{row.score}</Typography>,
+    },
+    {
+      header: "Status", field: "status", nowrap: true, minWidth: 110,
+      render: (row) => <StatusBadge status={row.status || "Success"} />,
+    },
+    {
+      header: "Actions", field: "action", align: "right", width: 60,
       render: (row) => (
-        <Box
-          component="button"
-          onClick={() => handleDownload(row)}
-          disabled={downloadingId === row.id}
-          sx={{
-            all: "unset",
-
-            color: "text.secondary",
-
-            border: "1px solid",
-
-            borderColor: "divider",
-
-            borderRadius: 1,
-
-            px: 1.5,
-
-            py: 0.5,
-
-            fontSize: "0.75rem",
-
-            fontWeight: 600,
-
-            cursor: downloadingId === row.id ? "not-allowed" : "pointer",
-
-            display: "inline-flex",
-
-            alignItems: "center",
-
-            gap: 0.5,
-
-            opacity: downloadingId === row.id ? 0.6 : 1,
-
-            "&:hover": {
-              bgcolor: "action.hover",
-              color: "text.primary",
-            },
-          }}
-        >
-          {downloadingId === row.id
-            ? "Opening..."
-            : row.rawType === "credit-report"
-              ? "PDF ↓"
-              : "HTML ↓"}
-        </Box>
+        <RowActions actions={[{ label: downloadingId === row.id ? "Downloading…" : "Download", onClick: () => handleDownload(row) }]} />
       ),
     },
   ];

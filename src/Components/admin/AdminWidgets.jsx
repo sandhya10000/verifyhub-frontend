@@ -12,9 +12,9 @@ export const KpiCard = ({
   icon, iconBg = '#EFF6FF', iconColor = '#3B82F6',
   title, value, valueColor, delta, deltaTone = 'up', subtitle, action,
 }) => (
-  <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2, height: '100%', bgcolor: 'background.paper' }}>
+  <Paper sx={{ borderRadius: 1, border: '1px solid', borderColor: '#E8EEF5', boxShadow: '0 1px 3px rgba(15,30,51,0.08)', p: 2, height: '100%', bgcolor: 'background.paper' }}>
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-      <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>
