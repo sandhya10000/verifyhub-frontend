@@ -16,7 +16,7 @@ const DATE_MAX = "2100-12-31";
 
 const TYPE_OPTIONS = ["All", "CREDIT", "DEBIT"];
 const STATUS_OPTIONS = ["All", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
-const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS"];
+const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS"];
 const TIER_OPTIONS = ["All", "startup", "starter", "growth", "pro", "enterprise"];
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api");
