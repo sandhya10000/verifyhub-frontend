@@ -33,12 +33,31 @@ const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFracti
 const AddFunds = () => {
   const { user, token, login } = useAuth();
   const [minRecharge, setMinRecharge] = useState(200);
-  const [amount, setAmount] = useState('1000');
+  const [amount, setAmount] = useState(() => {
+    // Pre-fill when arriving from Plans ("Top up ₹X+ for Y").
+    try {
+      const q = new URLSearchParams(window.location.search).get('amount');
+      if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) return q;
+    } catch { /* ignore */ }
+    return '1000';
+  });
   const [amountError, setAmountError] = useState('');
   // First funding ever -> plan auto-assigned by slab on the backend.
   const [firstTimer, setFirstTimer] = useState(true);
   const [paying, setPaying] = useState(false);
   const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
+  // Shortfall notice when arriving from Plans ("Add ₹X to activate Y").
+  const [forPlanNotice, setForPlanNotice] = useState('');
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const forPlan = (q.get('forPlan') || '').slice(0, 40);
+      const amt = q.get('amount');
+      if (forPlan && amt && Number(amt) > 0) {
+        setForPlanNotice(`Add ${inr2(Number(amt))} to activate the ${forPlan} plan — then confirm activation from Recharge Plans.`);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const parsedAmount = parseFloat(amount) || 0;
 
@@ -216,6 +235,12 @@ const AddFunds = () => {
               {firstTimer && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
                   Your first top-up auto-activates the matching plan.
+                </Alert>
+              )}
+
+              {forPlanNotice && (
+                <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                  {forPlanNotice}
                 </Alert>
               )}
 
