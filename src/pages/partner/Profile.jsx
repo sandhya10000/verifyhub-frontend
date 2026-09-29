@@ -2,562 +2,188 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Paper,
-  Grid,
+  Card,
+  CardContent,
   Avatar,
-  Chip,
   Divider,
   CircularProgress,
+  Alert,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
-
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import PhoneIcon from "@mui/icons-material/Phone";
+import BadgeIcon from "@mui/icons-material/Badge";
+import PersonOutlineIcon from "@mui/icons-material/Person";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import BoltIcon from "@mui/icons-material/Bolt";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import axios from "axios";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import {
+  fmtDate, fmtDT, inr0, initials, Dot, StatTile, InfoRow,
+} from "../../Components/shared/partnerProfile";
 
-const getInitials = (name) => {
-  if (!name) return "U";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const RANGE_LABEL = { lifetime: "Lifetime", month: "30-Day", week: "7-Day" };
 
-  const parts = String(name).trim().split(/\s+/);
-
-  if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase();
-  }
-
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-};
+const formatName = (name = "") =>
+  String(name).trim().toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 
 const Profile = () => {
-  // Right-hand vertical separator between detail cells (desktop only).
-  // Last cell in each row gets no sx, so no trailing `|` appears.
-  const dividerCellSx = {
-    borderRight: { xs: "none", md: "1px solid" },
-    borderColor: { md: "divider" },
-    pr: { md: 2 },
-  };
-
-  // ==========================================
-  // STATE
-  // ==========================================
-
-  const { user } = useAuth(); // Partner ID comes from auth context (same as PartnerLayout)
-  const [userDetails, setUserDetails] = useState(null);
+  const { user } = useAuth();
+  const [partner, setPartner] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [range, setRange] = useState("lifetime");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const formatName = (name = "") => {
-    return name
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  };
-
-  // ==========================================
-  // FIELD ROW
-  // ==========================================
-
-  const FieldRow = ({ label, value }) => {
-    const displayValue =
-      value !== null && value !== undefined && String(value).trim() !== ""
-        ? String(value)
-        : "—";
-
-    return (
-      <Box sx={{ mb: 1 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            color: "text.secondary",
-            display: "block",
-            lineHeight: 1,
-            mb: 0.5,
-            fontWeight: 600,
-          }}
-        >
-          {label}
-        </Typography>
-
-        <Typography
-          variant="body1"
-          sx={{
-            fontWeight: 600,
-            color: "text.primary",
-            wordBreak: "break-word",
-          }}
-        >
-          {displayValue}
-        </Typography>
-      </Box>
-    );
-  };
-
-  // ==========================================
-  // GET CREDIT BUREAU DETAILS
-  // ==========================================
-
   useEffect(() => {
-    const getUserDetails = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         setError("");
-
-        const response = await creditAPI.getCreditBureauDetails();
-
-        console.log("Credit Bureau Details:", response);
-
-        // API response directly returned from authService
-        if (response?.success && response?.data) {
-          const data = response.data;
-          console.log("data: ", data);
-          setUserDetails({
-            name: String(data.name || ""),
-            mobile: String(data.mobile || ""),
-            email: String(data.email || ""),
-            // partnerId null hai,
-            // isliye userId ko Partner ID ke liye use kar rahe hain
-            partnerId: String(data.partner_id || ""),
-            state: String(data.state || user?.state || ""),
-            city: String(data.city || user?.city || ""),
-            pincode: String(data.pincode || user?.pincode || ""),
+        const token = localStorage.getItem("token");
+        const [profileRes, bureauRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/partner/profile?range=${range}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => null),
+          creditAPI.getCreditBureauDetails().catch(() => null),
+        ]);
+        if (profileRes?.data?.success) {
+          const u = profileRes.data.data || {};
+          const b = bureauRes?.success ? bureauRes.data || {} : {};
+          setPartner({
+            ...u,
+            state: u.state || b.state || user?.state || "",
+            city: u.city || b.city || user?.city || "",
+            pincode: u.pincode || b.pincode || user?.pincode || "",
           });
+          setSummary(profileRes.data.summary || null);
         } else {
-          setError(response?.message || "Failed to fetch profile details");
+          setError("Unable to load profile details.");
         }
-      } catch (error) {
-        console.error("Failed to fetch credit bureau details:", error);
-
-        setError(
-          error?.response?.data?.message ||
-          error?.message ||
-          "Unable to load profile details.",
-        );
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        setError(err?.response?.data?.message || "Unable to load profile details.");
       } finally {
         setLoading(false);
       }
     };
+    load();
+  }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    getUserDetails();
-  }, []);
+  if (loading && !partner) {
+    return <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress sx={{ color: "#3730A3" }} /></Box>;
+  }
 
-  // ==========================================
-  // DISPLAY VALUES
-  // ==========================================
-
-  const displayName = formatName(userDetails?.name) || "User";
-
-  const displayPartnerId = user?.partner_id || "—";
-
-  // ==========================================
-  // UI
-  // ==========================================
+  const isActive = partner ? partner.isActive !== false : true;
+  const rangePrefix = RANGE_LABEL[range] || "Lifetime";
+  const displayName = formatName(partner?.name || user?.name || "User");
 
   return (
-    <Box
-      sx={{
-        maxWidth: 1200,
-        mx: "auto",
-        px: { xs: 1, sm: 2 },
-        py: { xs: 2, sm: 3 },
-      }}
-    >
-      {/* ==========================================
-          HEADER
-      ========================================== */}
+    <Box sx={{ maxWidth: 1200, mx: "auto", bgcolor: "#f4f6fa", minHeight: "100vh" }}>
+      {error && !partner && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 800,
-            mb: 1,
-          }}
-        >
-          Profile
-        </Typography>
+      {partner && (
+        <>
+          {/* ── Header card ── */}
+          <Card variant="outlined" sx={{ borderRadius: 0.5, mb: 2, borderColor: "#e8edf4" }}>
+            <CardContent sx={{ px: 3, pt: 2 }}>
+              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                <Avatar sx={{ width: 52, height: 52, bgcolor: "#e3edff", color: "#1d4fd1", fontWeight: 800, fontSize: "1.05rem" }}>
+                  {initials(displayName)}
+                </Avatar>
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f1e3d", lineHeight: 1.2 }}>{displayName}</Typography>
+                    <Dot tone={isActive ? "green" : "red"}>{isActive ? "Active" : "Suspended"}</Dot>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 0.75, flexWrap: { xs: "wrap", sm: "nowrap" }, color: "#64748b", fontSize: "0.85rem" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}><EmailOutlinedIcon sx={{ fontSize: 16 }} />{partner.email || "—"}</Box>
+                    <Box sx={{ width: "1px", alignSelf: "stretch", bgcolor: "#e2e8f0", flexShrink: 0, display: { xs: "none", sm: "block" } }} />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}><PhoneIcon sx={{ fontSize: 16 }} />{partner.phone || "—"}</Box>
+                    <Box sx={{ width: "1px", alignSelf: "stretch", bgcolor: "#e2e8f0", flexShrink: 0, display: { xs: "none", sm: "block" } }} />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}><BadgeIcon sx={{ fontSize: 16 }} />{partner.partner_id || "—"}</Box>
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
 
-        <Typography
-          variant="body1"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          Your personal information and credit bureau account details.
-        </Typography>
-      </Box>
+          {/* ── Key Metrics ── */}
+          <Card variant="outlined" sx={{ borderRadius: 0.5, borderColor: "#e8edf4", boxShadow: "0 1px 2px rgba(15,30,61,0.04)", overflow: "hidden", mb: 2 }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 3, py: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BarChartIcon fontSize="small" sx={{ color: "#1d4fd1" }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f1e3d" }}>Key Metrics</Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CalendarTodayIcon sx={{ fontSize: 16, color: "#64748b" }} />
+                  <FormControl size="small">
+                    <Select
+                      value={range}
+                      onChange={(e) => setRange(e.target.value)}
+                      sx={{ fontSize: "0.85rem", fontWeight: 600, borderRadius: 0.5, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e2e8f0" } }}
+                    >
+                      <MenuItem value="lifetime">Lifetime</MenuItem>
+                      <MenuItem value="month">Last 30 days</MenuItem>
+                      <MenuItem value="week">Last 7 days</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+              <Divider sx={{ borderColor: "#eef1f6" }} />
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, px: 3, py: 2.5 }}>
+                <StatTile bg="#eef4ff" iconBg="#dbe7ff" iconColor="#1d5fd1" icon={<AccountBalanceWalletOutlinedIcon />} label="Wallet Balance" value={inr0(partner.walletBalance)} />
+                <StatTile bg="#eafaf0" iconBg="#d3f2df" iconColor="#12805c" icon={<BoltIcon />} label={`${rangePrefix} Recharged`} value={inr0(summary?.totalRecharged)} />
+                <StatTile bg="#fdf3e7" iconBg="#fbe3c2" iconColor="#b26a00" icon={<AccessTimeIcon />} label={`${rangePrefix} Spent`} value={inr0(summary?.totalSpent)} />
+                <StatTile bg="#f1eafe" iconBg="#e0d2fb" iconColor="#6d3fd4" icon={<DescriptionOutlinedIcon />} label={`${rangePrefix} Reports`} value={summary?.totalReports ?? "—"} />
+              </Box>
+            </CardContent>
+          </Card>
 
-      {/* ==========================================
-          PROFILE CARD
-      ========================================== */}
-
-      <Paper
-        sx={{
-          p: { xs: 2.5, sm: 4 },
-          borderRadius: 4,
-          border: "1px solid",
-          borderColor: "divider",
-          boxShadow: "none",
-          mb: 4,
-        }}
-      >
-        {/* ==========================================
-            PROFILE HEADER
-        ========================================== */}
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: {
-              xs: "flex-start",
-              sm: "center",
-            },
-            flexDirection: {
-              xs: "column",
-              sm: "row",
-            },
-            gap: 2,
-            mb: 4,
-          }}
-        >
-          {/* USER */}
-
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2.5,
-              alignItems: "center",
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 72,
-                height: 72,
-                bgcolor: "secondary.main",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: "1.75rem",
-              }}
-            >
-              {getInitials(displayName)}
-            </Avatar>
-
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 800,
-                  mb: 0.5,
-                }}
-              >
-                {displayName}
-              </Typography>
-
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary",
-                }}
-              >
-                Partner ID: <strong>{displayPartnerId}</strong>
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* ACCOUNT STATUS */}
-
-          {/* <Chip
-            label="Credit Bureau Account"
-            sx={{
-              bgcolor: "#EEF2FF",
-              color: "#4338CA",
-              fontWeight: 700,
-              borderRadius: 6,
-              px: 1,
-              py: 2.5,
-              fontSize: "0.8rem",
-            }}
-          /> */}
-        </Box>
-
-        <Divider sx={{ mb: 4 }} />
-
-        {/* ==========================================
-            PERSONAL DETAILS
-        ========================================== */}
-
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            mb: 3,
-          }}
-        >
-          Personal Details
-        </Typography>
-
-        {/* LOADING */}
-
-        {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              py: 5,
-            }}
-          >
-            <CircularProgress size={30} />
-          </Box>
-        ) : error ? (
-          /* ERROR */
-
-          <Box
-            sx={{
-              textAlign: "center",
-              py: 5,
-            }}
-          >
-            <Typography
-              color="error"
-              sx={{
-                fontWeight: 600,
-              }}
-            >
-              {error}
-            </Typography>
-          </Box>
-        ) : userDetails ? (
-          /* DATA — row 1: identity (4 cols), row 2: location (3 cols) */
-          <>
-          {/* ROW 1 — Full Name | Email | Mobile | Partner ID */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
-              <FieldRow label="Full Name" value={formatName(userDetails.name)} />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
-              <FieldRow label="Email Address" value={userDetails.email} />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} sx={dividerCellSx}>
-              <FieldRow label="Mobile Number" value={userDetails.mobile} />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <FieldRow label="Partner ID" value={user?.partner_id} />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* ROW 2 — State | City | Pincode */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4} sx={dividerCellSx}>
-              <FieldRow label="State" value={userDetails.state} />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4} sx={dividerCellSx}>
-              <FieldRow label="City" value={userDetails.city} />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4}>
-              <FieldRow label="Pincode" value={userDetails.pincode} />
-            </Grid>
-          </Grid>
-          </>
-        ) : (
-          <Box
-            sx={{
-              textAlign: "center",
-              py: 5,
-            }}
-          >
-            <Typography color="text.secondary">
-              Unable to load profile details.
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-
-      {/* ==========================================
-          CREDIT BUREAU CARD
-      ========================================== */}
-
-      <Paper
-        sx={{
-          p: { xs: 2.5, sm: 4 },
-          borderRadius: 4,
-          border: "1px solid",
-          borderColor: "divider",
-          boxShadow: "none",
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            mb: 1,
-          }}
-        >
-          Credit Bureau Details
-        </Typography>
-
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mb: 3,
-          }}
-        >
-          Credit bureau services available for your account.
-        </Typography>
-
-        <Grid container spacing={2}>
-          {/* CIBIL */}
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                height: "100%",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  boxShadow: 2,
-                  transform: "translateY(-2px)",
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                }}
-              >
-                CIBIL
-              </Typography>
-
-              <Chip
-                label="Coming Soon"
-                size="small"
-                sx={{
-                  mt: 1.5,
-                  fontWeight: 600,
-                }}
-              />
-            </Paper>
-          </Grid>
-
-          {/* EXPERIAN */}
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                height: "100%",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  boxShadow: 2,
-                  transform: "translateY(-2px)",
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                }}
-              >
-                Experian
-              </Typography>
-
-              <Chip
-                label="Available"
-                size="small"
-                color="success"
-                sx={{
-                  mt: 1.5,
-                  fontWeight: 600,
-                }}
-              />
-            </Paper>
-          </Grid>
-
-          {/* CRIF */}
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                height: "100%",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  boxShadow: 2,
-                  transform: "translateY(-2px)",
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                }}
-              >
-                CRIF
-              </Typography>
-
-              <Chip
-                label="Available"
-                size="small"
-                color="success"
-                sx={{
-                  mt: 1.5,
-                  fontWeight: 600,
-                }}
-              />
-            </Paper>
-          </Grid>
-
-          {/* EQUIFAX */}
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                height: "100%",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  boxShadow: 2,
-                  transform: "translateY(-2px)",
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                }}
-              >
-                Equifax
-              </Typography>
-
-              <Chip
-                label="Coming Soon"
-                size="small"
-                sx={{
-                  mt: 1.5,
-                  fontWeight: 600,
-                }}
-              />
-            </Paper>
-          </Grid>
-        </Grid>
-      </Paper>
+          {/* ── Account Information ── */}
+          <Card variant="outlined" sx={{ borderRadius: 0.5, borderColor: "#e8edf4", boxShadow: "0 1px 2px rgba(15,30,61,0.04)", overflow: "hidden" }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 3, py: 2 }}>
+                <PersonOutlineIcon fontSize="small" sx={{ color: "#1d4fd1" }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f1e3d" }}>Account Information</Typography>
+              </Box>
+              <Divider sx={{ borderColor: "#eef1f6" }} />
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, px: 3, py: 2.5, columnGap: 4, rowGap: 2 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75 }}>
+                  <InfoRow label="Full Name" value={formatName(partner.name) || "—"} />
+                  <InfoRow label="Email" value={partner.email || "—"} />
+                  <InfoRow label="Phone" value={partner.phone || "—"} />
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75, borderLeft: { md: "1px solid #eef1f6" }, pl: { md: 4 } }}>
+                  <InfoRow label="Partner ID" value={partner.partner_id || "—"} />
+                  <InfoRow label="State / City" value={[partner.city, partner.state].filter(Boolean).join(", ") || "—"} />
+                  <InfoRow label="Pincode" value={partner.pincode || "—"} />
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75, borderLeft: { md: "1px solid #eef1f6" }, pl: { md: 4 } }}>
+                  <InfoRow icon={<CalendarTodayIcon sx={{ fontSize: 15, color: "#64748b" }} />} label="Date of Joining" value={fmtDate(partner.createdAt)} />
+                  <InfoRow icon={<AccessTimeIcon sx={{ fontSize: 15, color: "#64748b" }} />} label="Last Login" value={partner.lastLoginAt ? fmtDT(partner.lastLoginAt) : "—"} />
+                  <InfoRow icon={<StarBorderIcon sx={{ fontSize: 15, color: "#64748b" }} />} label="Active Plan" value={partner.activePlan ? String(partner.activePlan).toUpperCase() : "—"} />
+                  <InfoRow
+                    icon={<Box component="span" sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: isActive ? "#16a34a" : "#e05252", ml: "3px", mr: "4px" }} />}
+                    label="Account Status"
+                    value={<Dot tone={isActive ? "green" : "red"}>{isActive ? "Active" : "Suspended"}</Dot>}
+                  />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </Box>
   );
 };
