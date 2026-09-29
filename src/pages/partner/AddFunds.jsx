@@ -167,7 +167,6 @@ const AddFunds = () => {
     }
   };
 
-  const gst = Math.round(parsedAmount * 0.18 * 100) / 100;
   const agentCode = user?.partner_id || user?.partnerId || user?.id || user?._id || '—';
 
   return (
@@ -321,15 +320,14 @@ const AddFunds = () => {
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet credit</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>+{inr2(parsedAmount)}</Typography>
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>GST (18%)</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr2(gst)}</Typography>
-              </Box>
               <Divider sx={{ my: 1.5 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Total payable</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr2(parsedAmount + gst)}</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr2(parsedAmount)}</Typography>
               </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                GST-inclusive — no extra tax at checkout.
+              </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
                 {firstTimer
                   ? 'Plan auto-activates by amount on your first top-up.'

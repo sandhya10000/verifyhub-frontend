@@ -32,68 +32,7 @@ const API = () => import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_ROOT = () => API().replace(/\/api\/?$/, '');
 const authHeaders = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
-const fmtDT = (d) => {
-  if (!d) return '—';
-  const dt = new Date(d);
-  const date = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${date}, ${time}`;
-};
-const inr0 = (n) => {
-  const v = Number(n);
-  return Number.isFinite(v)
-    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v)
-    : '—';
-};
-const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '—';
-
-const TABS = ['profile', 'reports', 'payments'];
-
-// Small dot pill (matches mockup: light tint bg + colored dot + label)
-const Dot = ({ tone = 'green', children }) => {
-  const tones = {
-    green: { bg: '#e9f9f0', color: '#12805c', dot: '#16a34a' },
-    gray: { bg: '#eef1f6', color: '#5b6472', dot: '#9aa3b2' },
-    red: { bg: '#fdeeee', color: '#c24141', dot: '#e05252' },
-    blue: { bg: '#e8f1fe', color: '#1d5fd1', dot: '#2f7cf6' },
-  };
-  const t = tones[tone] || tones.gray;
-  return (
-    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, bgcolor: t.bg, color: t.color, fontWeight: 600, fontSize: '0.78rem', px: 1.5, py: 0.5, borderRadius: 999 }}>
-      <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: t.dot }} />
-      {children}
-    </Box>
-  );
-};
-
-
-
-const StatTile = ({ bg, iconBg, iconColor, icon, label, value }) => (
-  <Box sx={{ bgcolor: bg, borderRadius: 0.5, p: 2, display: 'flex', gap: 1.5, alignItems: 'center', minWidth: 0 }}>
-    <Box sx={{ bgcolor: iconBg, color: iconColor, borderRadius: 0.5, p: 1.25, display: 'flex', flexShrink: 0 }}>{icon}</Box>
-    <Box sx={{ minWidth: 0 }}>
-      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500, display: 'block', lineHeight: 1.3 }}>{label}</Typography>
-      <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', lineHeight: 1.25 }}>{value}</Typography>
-    </Box>
-  </Box>
-);
-
-const Label = ({ children }) => (
-  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500, display: 'block', mb: 0.5 }}>{children}</Typography>
-);
-const Value = ({ children }) => (
-  <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f1e3d', wordBreak: 'break-word' }}>{children}</Typography>
-);
-
-// Account-info row: fixed-width gray label + dark value, optional leading icon
-const InfoRow = ({ label, value, icon }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-    {icon && <Box sx={{ display: 'flex', width: 20, justifyContent: 'center', flexShrink: 0 }}>{icon}</Box>}
-    <Typography variant="body2" sx={{ color: '#64748b', width: 110, flexShrink: 0 }}>{label}</Typography>
-    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f1e3d', wordBreak: 'break-word' }}>{value}</Typography>
-  </Box>
-);
+import { fmtDate, fmtDT, inr0, initials, Dot, StatTile, InfoRow } from '../../Components/shared/partnerProfile';
 
 const RANGE_LABEL = { lifetime: 'Lifetime', month: '30-Day', week: '7-Day' };
 
