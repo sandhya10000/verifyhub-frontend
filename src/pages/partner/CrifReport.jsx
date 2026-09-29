@@ -28,16 +28,12 @@ import {
   Stepper,
   TextField,
   Typography,
-  TableContainer,
   Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Link,
   MenuItem,
 } from "@mui/material";
+import DataTable from "../../components/shared/DataTable";
+import TypePill from "../../components/shared/TypePill";
+import RowActions from "../../components/shared/RowActions";
 
 import {
   AccountBalance,
@@ -586,28 +582,6 @@ const CrifReport = () => {
       setLoading(false);
     }
   };
-  const getScoreColor = (score) => {
-    const numericScore = Number(score);
-
-    if (!numericScore) {
-      return "default";
-    }
-
-    if (numericScore >= 750) {
-      return "success";
-    }
-
-    if (numericScore >= 700) {
-      return "info";
-    }
-
-    if (numericScore >= 650) {
-      return "warning";
-    }
-
-    return "error";
-  };
-
   // ============================================================
   // SUBMIT ANSWER
   // ============================================================
@@ -2394,90 +2368,48 @@ const CrifReport = () => {
             >
               <CircularProgress />
             </Box>
-          ) : filteredRecentReports.length === 0 ? (
-            <Alert severity="info">No CRIF reports found.</Alert>
           ) : (
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Mobile</TableCell>
-                    <TableCell>Bureau</TableCell>
-                    <TableCell>Credit Score</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {filteredRecentReports.map((report) => {
-                    const reportId =
-                      report?._id || report?.id || report?.reportId;
-
-                    return (
-                      <TableRow key={reportId}>
-                        <TableCell>
-                          {report.fullName ||
-                            report.name ||
-                            `${report.firstName || ""} ${report.lastName || ""
-                              }`.trim() ||
-                            "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          {report.mobileNumber || report.mobile || "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          <Chip label="CRIF" size="small" variant="outlined" />
-                        </TableCell>
-
-                        <TableCell>
-                          {report.score !== null &&
-                            report.score !== undefined ? (
-                            <Chip
-                              label={report.score}
-                              color={getScoreColor(report.score)}
-                              size="small"
-                            />
-                          ) : (
-                            <Chip label="N/A" size="small" variant="outlined" />
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {formatDate(
-                            report.createdAt ||
-                            report.dateOfIssue ||
-                            report.dateOfRequest,
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {getReportUrl(report) ? (
-                            <Button
-                              size="small"
-                              startIcon={<VisibilityIcon />}
-                              component={Link}
-                              href={getReportUrl(report)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              View Report
-                            </Button>
-                          ) : (
-                            <Typography variant="caption" color="textSecondary">
-                              No PDF
-                            </Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              columns={[
+                {
+                  header: 'Name', field: 'name', minWidth: 140,
+                  render: (report) => (
+                    <Typography title={report.fullName || report.name} sx={{ fontWeight: 600, fontSize: '0.82rem', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {report.fullName || report.name || `${report.firstName || ''} ${report.lastName || ''}`.trim() || '-'}
+                    </Typography>
+                  ),
+                },
+                { header: 'Mobile', field: 'mobile', nowrap: true, minWidth: 110, render: (report) => (report.mobileNumber || report.mobile || '-') },
+                {
+                  header: 'Bureau', field: 'bureau', nowrap: true, minWidth: 130,
+                  render: () => <TypePill type="Credit Report" bureau="CRIF" />,
+                },
+                {
+                  header: 'Credit Score', field: 'score', nowrap: true, minWidth: 90,
+                  render: (report) => (
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                      {report.score !== null && report.score !== undefined ? report.score : '—'}
+                    </Typography>
+                  ),
+                },
+                {
+                  header: 'Date', field: 'date', nowrap: true, minWidth: 130,
+                  render: (report) => (
+                    <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+                      {formatDate(report.createdAt || report.dateOfIssue || report.dateOfRequest)}
+                    </Typography>
+                  ),
+                },
+                {
+                  header: 'Actions', field: 'actions', align: 'right', width: 60,
+                  render: (report) => getReportUrl(report)
+                    ? <RowActions actions={[{ label: 'View Report', onClick: () => window.open(getReportUrl(report), '_blank', 'noopener,noreferrer') }]} />
+                    : <Typography sx={{ color: '#B0B8C5', fontSize: '0.75rem' }}>No PDF</Typography>,
+                },
+              ]}
+              data={filteredRecentReports}
+              emptyMessage="No CRIF reports found."
+            />
           )}
         </DialogContent>
 

@@ -141,12 +141,7 @@ const PartnerDashboard = () => {
       icon: <Wallet size={18} />, iconBg: "#F5F3FF", iconColor: "#8B5CF6",
       title: "Wallet Balance", value: err ? "—" : inr(s.walletBalance), valueColor: "#2563EB",
       subtitle: lowWallet ? `Below ₹${LOW_BALANCE_AT} — top up soon` : "Available for pulls",
-      action: (
-        <Button size="small" variant="contained" disableElevation onClick={() => navigate("/partner/add-funds")}
-          sx={{ fontSize: "0.68rem", fontWeight: 700, borderRadius: 1.5, bgcolor: "#DBEAFE", color: "#2563EB", boxShadow: "none", "&:hover": { bgcolor: "#BFDBFE", boxShadow: "none" } }}>
-          Top up
-        </Button>
-      ),
+    
     },
     {
       icon: <IndianRupee size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
@@ -181,14 +176,27 @@ const PartnerDashboard = () => {
   ];
 
   const pullColumns = [
-    { header: "Customer", field: "customer", render: (r) => <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>{r.customer}</Typography> },
-    { header: "Bureau", field: "bureau" },
-    { header: "Score", field: "score", render: (r) => <Typography sx={{ fontWeight: 700 }}>{r.score}</Typography> },
-    { header: "Status", field: "status", render: (r) => <StatusBadge status={r.status} /> },
     {
-      header: "Pulled At", field: "createdAt",
+      header: "Customer", field: "customer", minWidth: 130,
       render: (r) => (
-        <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "nowrap" }}>
+        <Typography title={r.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {r.customer}
+        </Typography>
+      ),
+    },
+    {
+      header: "Bureau", field: "bureau", nowrap: true, minWidth: 90,
+      render: (r) => <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, whiteSpace: "nowrap" }}>{r.bureau}</Typography>,
+    },
+    {
+      header: "Score", field: "score", nowrap: true, minWidth: 70,
+      render: (r) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{r.score}</Typography>,
+    },
+    { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={r.status} /> },
+    {
+      header: "Pulled At", field: "createdAt", nowrap: true, minWidth: 170,
+      render: (r) => (
+        <Typography sx={{ fontSize: "0.75rem", color: "#8A94A6", whiteSpace: "nowrap" }}>
           {r.createdAt ? format(new Date(r.createdAt), "dd MMM yyyy, hh:mm a") : "—"}
         </Typography>
       ),

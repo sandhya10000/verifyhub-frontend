@@ -3,18 +3,8 @@ import {
   Box,
   Typography,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Badge,
   TextField,
   MenuItem,
-  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,10 +14,14 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
-import { Search, MessageCircle, Filter, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ticketService } from '../../services/ticketService';
+import DataTable from '../../components/shared/DataTable';
+import StatusBadge from '../../components/shared/StatusBadge';
+import RowActions from '../../components/shared/RowActions';
+import FilterBar from '../../components/shared/FilterBar';
 
 const AdminSupport = () => {
   const formatName = (name = "") => {
@@ -163,14 +157,54 @@ const AdminSupport = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return 'error';
-      case 'in-progress': return 'warning';
-      case 'resolved': return 'success';
-      default: return 'default';
-    }
+  const statusLabel = (s) => {
+    if (s === 'in-progress') return 'In Progress';
+    if (!s) return '—';
+    return s.charAt(0).toUpperCase() + s.slice(1);
   };
+
+  const ticketColumns = [
+    {
+      header: 'Date', field: 'createdAt', nowrap: true, minWidth: 150,
+      render: (t) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {t.createdAt ? format(new Date(t.createdAt), 'MMM dd, yyyy HH:mm') : '—'}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Partner', field: 'partner', minWidth: 170,
+      render: (t) => (
+        <Box sx={{ maxWidth: 200 }}>
+          <Typography title={t.partnerId?.name} sx={{ fontWeight: 600, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {formatName(t.partnerId?.name || 'Unknown')}
+          </Typography>
+          <Typography title={t.partnerId?.email} sx={{ fontSize: '0.7rem', color: '#8A94A6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t.partnerId?.email || 'N/A'}
+          </Typography>
+        </Box>
+      ),
+    },
+    { header: 'Category', field: 'category', minWidth: 120 },
+    {
+      header: 'Reference', field: 'reference', nowrap: true, minWidth: 110,
+      render: (t) => (
+        <Typography sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {t.reference || '–'}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Status', field: 'status', nowrap: true, minWidth: 110,
+      render: (t) => <StatusBadge status={statusLabel(t.status)} />,
+    },
+    {
+      header: 'Actions', field: 'actions', align: 'right', width: 60,
+      render: (t) => (
+        <RowActions actions={[{ label: `Open conversation (${(t.messages?.length || 0) + 1})`, onClick: () => handleOpenDialog(t) }]} />
+      ),
+    },
+  ];
 
   return (
     <Box>
@@ -178,87 +212,30 @@ const AdminSupport = () => {
         <Typography variant="h4" sx={{ fontWeight: 800 }}>Support Tickets</Typography>
       </Box>
 
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <TextField
-            placeholder="Search by partner name or email..."
-            size="small"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={16} color="#94A3B8" />
-                  </InputAdornment>
-                ),
-              }
-            }}
-            sx={{ width: 300 }}
-          />
-          <FormControl size="small" sx={{ width: 200 }}>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              displayEmpty
-            >
-              <MenuItem value="all">All Statuses</MenuItem>
-              <MenuItem value="open">Open</MenuItem>
-              <MenuItem value="in-progress">In Progress</MenuItem>
-              <MenuItem value="resolved">Resolved</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+      <FilterBar
+        search={{
+          value: search,
+          onChange: (v) => setSearch(v),
+          placeholder: 'Search by partner name or email…',
+        }}
+        selects={[{
+          name: 'status', label: 'Status', value: statusFilter, minWidth: 160,
+          options: [
+            { value: 'all', label: 'All Statuses' },
+            { value: 'open', label: 'Open' },
+            { value: 'in-progress', label: 'In Progress' },
+            { value: 'resolved', label: 'Resolved' },
+          ],
+          onChange: (v) => setStatusFilter(v),
+        }]}
+      />
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Partner</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Reference</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Replies/Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tickets.length > 0 ? tickets.map((ticket) => (
-                <TableRow key={ticket._id}>
-                  <TableCell>{format(new Date(ticket.createdAt), 'MMM dd, yyyy HH:mm')}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600}>{formatName(ticket.partnerId?.name || 'Unknown')}</Typography>
-                    <Typography variant="caption" color="textSecondary">{ticket.partnerId?.email || 'N/A'}</Typography>
-                  </TableCell>
-                  <TableCell>{ticket.category}</TableCell>
-                  <TableCell>{ticket.reference || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={ticket.status.toUpperCase()}
-                      color={getStatusColor(ticket.status)}
-                      size="small"
-                      sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton color="primary" title="Open conversation" onClick={() => handleOpenDialog(ticket)} sx={{ borderRadius: 2 }}>
-                      <Badge badgeContent={(ticket.messages?.length || 0) + 1} color="primary" max={99} overlap="circular" anchorOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 18, minWidth: 18, fontWeight: 700 } }}>
-                        <MessageCircle size={22} />
-                      </Badge>
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    No tickets found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <DataTable
+        title="Tickets"
+        columns={ticketColumns}
+        data={tickets}
+        emptyMessage="No tickets found."
+      />
 
       {/* Ticket Detail Dialog */}
       <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth TransitionProps={{ onEntered: () => scrollConversationToBottom(false) }}>

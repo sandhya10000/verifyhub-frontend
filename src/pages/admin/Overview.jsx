@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
 import DataTable from '../../components/shared/DataTable';
 import StatusBadge from '../../components/shared/StatusBadge';
-import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, ScoreBars, TopPartnersList, PlanMixList, timeAgo } from '../../Components/admin/AdminWidgets';
+import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, PlanMixList, timeAgo } from '../../Components/admin/AdminWidgets';
 
 const API = (path) => {
   const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -41,7 +41,6 @@ const AdminOverview = () => {
   const [money, setMoney] = useState([]);
   const [plans, setPlans] = useState([]);
   const [bureau, setBureau] = useState([]);
-  const [scores, setScores] = useState([]);
   const [top, setTop] = useState([]);
   const [activity, setActivity] = useState({ pulls: [], recentTickets: [], lowWallets: [] });
   const [refreshing, setRefreshing] = useState(false);
@@ -53,12 +52,11 @@ const AdminOverview = () => {
       setErr(false);
       const h = authHeaders();
       const get = (p) => fetch(API(p), { headers: h }).then((r) => r.json()).catch(() => ({ success: false }));
-      const [s, m, pl, b, sc, tp, ra] = await Promise.all([
+      const [s, m, pl, b, tp, ra] = await Promise.all([
         get('/admin/overview/summary'),
         get(`/admin/overview/money-timeseries?days=${range}`),
         get('/admin/overview/plan-distribution'),
         get('/admin/overview/bureau-split'),
-        get('/admin/overview/score-mix'),
         get('/admin/overview/top-partners?limit=5'),
         get('/admin/overview/recent-activity'),
       ]);
@@ -66,7 +64,6 @@ const AdminOverview = () => {
       if (m.success) setMoney(m.data);
       if (pl.success) setPlans(pl.data);
       if (b.success) setBureau(b.data);
-      if (sc.success) setScores(sc.data);
       if (tp.success) setTop(tp.data);
       if (ra.success) setActivity(ra.data);
       setUpdatedAt(new Date());
@@ -94,7 +91,6 @@ const AdminOverview = () => {
   };
 
   const s = summary || {};
-  const scoreTotal = scores.reduce((sum, b) => sum + (b.count || 0), 0);
   const openTotal = (s.openTickets ?? 0) + (s.inProgressTickets ?? 0);
 
   const kpiRow1 = [
@@ -134,19 +130,43 @@ const AdminOverview = () => {
   ];
 
   const pullColumns = [
-    { header: 'Customer', field: 'customer', render: (r) => <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{r.customer}</Typography> },
-    { header: 'Partner', field: 'partner' },
-    { header: 'Tier', field: 'tier', render: (r) => <Typography variant="caption" sx={{ fontWeight: 700, color: '#8B5CF6' }}>{r.tier ? (TIER_LABEL[r.tier] || r.tier) : '—'}</Typography> },
-    { header: 'Bureau', field: 'bureau' },
     {
-      header: 'Charge', field: 'charge',
-      render: (r) => <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{r.charge != null ? `₹${Number(r.charge).toLocaleString('en-IN')}` : '—'}</Typography>,
-    },
-    { header: 'Status', field: 'status', render: (r) => <StatusBadge status={r.status} /> },
-    {
-      header: 'Pulled At', field: 'createdAt',
+      header: 'Customer', field: 'customer', minWidth: 150,
       render: (r) => (
-        <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+        <Typography
+          variant="body2"
+          title={r.customer}
+          sx={{ fontWeight: 600, fontSize: '0.82rem', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {r.customer}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Partner', field: 'partner', minWidth: 120,
+      render: (r) => (
+        <Typography variant="body2" title={r.partner} sx={{ fontSize: '0.82rem', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.partner}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Tier', field: 'tier', nowrap: true, minWidth: 80,
+      render: (r) => <Typography variant="caption" sx={{ fontWeight: 700, color: '#8B5CF6', whiteSpace: 'nowrap' }}>{r.tier ? (TIER_LABEL[r.tier] || r.tier) : '—'}</Typography>,
+    },
+    {
+      header: 'Bureau', field: 'bureau', nowrap: true, minWidth: 90,
+      render: (r) => <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.bureau}</Typography>,
+    },
+    {
+      header: 'Charge', field: 'charge', nowrap: true, minWidth: 80, align: 'right',
+      render: (r) => <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{r.charge != null ? `₹${Number(r.charge).toLocaleString('en-IN')}` : '—'}</Typography>,
+    },
+    { header: 'Status', field: 'status', nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={r.status} /> },
+    {
+      header: 'Pulled At', field: 'createdAt', nowrap: true, minWidth: 170,
+      render: (r) => (
+        <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
           {r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy, hh:mm a') : '—'}
         </Typography>
       ),
@@ -225,21 +245,14 @@ const AdminOverview = () => {
         </Grid>
       </Grid>
 
-      {/* Bureau + score + top partners */}
+      {/* Bureau + top partners */}
       <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <ChartCard title="Bureau split" subtitle="Successful pulls · all time" height={200}>
             {loading ? <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} /> : <BureauDonutPanel data={bureau} />}
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <ChartCard
-            title="Score mix" subtitle={scoreTotal > 0 ? `${scoreTotal} scored reports` : 'Credit health bands'} height={200}
-          >
-            {loading ? <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} /> : <ScoreBars data={scores} />}
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <ChartCard
             title="Top partners" subtitle="By volume · lifetime spend" height={200}
             action={<Button size="small" variant="text" sx={{ fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/partners')}>View all →</Button>}
