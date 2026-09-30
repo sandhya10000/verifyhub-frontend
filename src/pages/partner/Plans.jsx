@@ -60,7 +60,7 @@ const Plans = () => {
         }
         setBanner({
           tone: 'success',
-          text: `${planLabel(data.activePlan)} plan activated · fee ₹${Number(data.planFee).toLocaleString('en-IN')} deducted from wallet. New balance ₹${Number(data.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}.`,
+          text: `${planLabel(data.activePlan)} plan selected · free, nothing deducted. Balance ₹${Number(data.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. Reports now bill at ${planLabel(data.activePlan)} rates.`,
         });
       } else {
         setBanner({ tone: 'error', text: data?.message || 'Could not activate plan.' });
@@ -75,18 +75,18 @@ const Plans = () => {
 
   const goTopUp = (min) => navigate(`/partner/add-funds${min ? `?amount=${min}` : ''}`);
 
-  // Smart plan-button flow:
-  // - wallet covers the plan fee  -> open the activate confirm dialog
-  // - wallet short                -> AddFunds prefilled with the shortfall
+  // Smart plan-button flow (plans are free — the slab is eligibility only):
+  // - wallet covers the tier slab  -> open the select confirm dialog
+  // - wallet short                  -> AddFunds prefilled with the shortfall
   //   plus an alert naming the remaining amount and the plan.
   const handlePlanButton = (planKey) => {
-    const fee = Number(plans?.[planKey]?.recharge || 0);
+    const threshold = Number(plans?.[planKey]?.recharge || 0);
     const balance = Number(user?.walletBalance || 0);
-    if (fee > 0 && balance >= fee) {
+    if (balance >= threshold) {
       setConfirmPlan(planKey);
       return;
     }
-    const shortfall = Math.max(0, Math.ceil((fee - balance) * 100) / 100);
+    const shortfall = Math.max(0, Math.ceil((threshold - balance) * 100) / 100);
     navigate(`/partner/add-funds?amount=${shortfall}&forPlan=${encodeURIComponent(planLabel(planKey))}`);
   };
 
@@ -105,7 +105,7 @@ const Plans = () => {
             Plans &amp; rates
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Top up your wallet, then activate a plan. Bigger plans unlock cheaper pulls.
+            Plans are free to select — keep the tier&apos;s balance in your wallet to unlock cheaper pulls. Only generated reports are charged.
           </Typography>
         </Box>
         <Button
@@ -248,7 +248,7 @@ const Plans = () => {
                       onClick={() => setConfirmPlan(p.key)}
                       sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.75rem', color: 'text.secondary' }}
                     >
-                      or activate {p.label} now
+                      or select {p.label} now — free
                     </Button>
                   </>
                 )}
@@ -262,9 +262,9 @@ const Plans = () => {
           <Paper elevation={0} sx={{ p: 2.5, borderRadius: 1, bgcolor: '#EEF2FF', border: '1px solid #E0E7FF', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>How plans work</Typography>
             {[
-              'Add money to your wallet on the Top-up tab.',
-              'Your plan is applied automatically, based on the amount you add.',
-              'Every report is charged at your plan\u2019s rates. A larger top-up later can move you up.',
+              'Add money to your wallet on the Top-up tab — the full amount is credited.',
+              'Select any plan your balance covers. It\u2019s free, and you can switch up or down anytime.',
+              'Every report is charged at your plan\u2019s rates. Nothing else ever leaves your wallet.',
             ].map((text, i) => (
               <Box key={i} sx={{ display: 'flex', gap: 1.25, mb: 1.5 }}>
                 <Typography sx={{ fontWeight: 800, color: '#3730A3', fontSize: '0.9rem' }}>{i + 1}</Typography>
@@ -286,34 +286,34 @@ const Plans = () => {
         Failed pulls: CIBIL charged per your plan · others {inr0(otherFail)} · matched-input CIBIL retries free. Your full top-up goes to your wallet and is spent at your plan&apos;s rates.
       </Typography>
 
-      {/* Activation confirm dialog */}
+      {/* Selection confirm dialog */}
       <Dialog open={Boolean(confirmPlan)} onClose={() => !paying && setConfirmPlan(null)} maxWidth="xs" fullWidth>
         {confirmPlan && (() => {
           const row = plans[confirmPlan] || {};
-          const dialogFee = Number(row.recharge) || 0;
+          const threshold = Number(row.recharge) || 0;
           const balance = Number(user?.walletBalance || 0);
-          const short = balance < dialogFee;
+          const short = balance < threshold;
           return (
             <>
-              <DialogTitle sx={{ fontWeight: 800 }}>Activate the {planLabel(confirmPlan)} plan?</DialogTitle>
+              <DialogTitle sx={{ fontWeight: 800 }}>Select the {planLabel(confirmPlan)} plan?</DialogTitle>
               <DialogContent dividers>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Plan fee (from wallet)</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{dialogFee.toLocaleString('en-IN')}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Required balance (not charged)</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{threshold.toLocaleString('en-IN')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet balance</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Balance after</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: short ? 'error.main' : 'text.primary' }}>
-                    ₹{(balance - dialogFee).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Deducted for the plan</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0E9F6E' }}>
+                    ₹0 — free
                   </Typography>
                 </Box>
                 {short && (
                   <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 1 }}>
-                    Short by ₹{(dialogFee - balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })} — top up first, then activate.
+                    Short by ₹{(threshold - balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })} — top up first, then select. Plans themselves are always free.
                   </Alert>
                 )}
               </DialogContent>
@@ -323,7 +323,7 @@ const Plans = () => {
                   <Button
                     variant="contained" disableElevation
                     onClick={() => {
-                      const need = Math.max(0, Math.ceil((dialogFee - balance) * 100) / 100);
+                      const need = Math.max(0, Math.ceil((threshold - balance) * 100) / 100);
                       const key = confirmPlan;
                       setConfirmPlan(null);
                       navigate(`/partner/add-funds?amount=${need}&forPlan=${encodeURIComponent(planLabel(key))}`);
@@ -338,7 +338,7 @@ const Plans = () => {
                     onClick={() => handleActivate(confirmPlan)}
                     sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
                   >
-                    {paying ? 'Processing…' : 'Confirm & Activate'}
+                    {paying ? 'Processing…' : 'Confirm & Select — Free'}
                   </Button>
                 )}
               </DialogActions>

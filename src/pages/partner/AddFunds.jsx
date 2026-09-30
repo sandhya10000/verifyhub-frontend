@@ -46,7 +46,7 @@ const AddFunds = () => {
   const [firstTimer, setFirstTimer] = useState(true);
   const [paying, setPaying] = useState(false);
   const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
-  // Shortfall notice when arriving from Plans ("Add ₹X to activate Y").
+  // Shortfall notice when arriving from Plans ("Add ₹X to select Y").
   const [forPlanNotice, setForPlanNotice] = useState('');
   useEffect(() => {
     try {
@@ -54,7 +54,7 @@ const AddFunds = () => {
       const forPlan = (q.get('forPlan') || '').slice(0, 40);
       const amt = q.get('amount');
       if (forPlan && amt && Number(amt) > 0) {
-        setForPlanNotice(`Add ${inr2(Number(amt))} to activate the ${forPlan} plan — then confirm activation from Recharge Plans.`);
+        setForPlanNotice(`Add ${inr2(Number(amt))} to reach the ${forPlan} plan balance — then select it free from Recharge Plans.`);
       }
     } catch { /* ignore */ }
   }, []);
@@ -143,7 +143,7 @@ const AddFunds = () => {
               }
               setPayBanner({
                 tone: 'success',
-                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan auto-activated` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
+                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan assigned (free)` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
               });
               if (verifyRes.data.autoAssigned) setFirstTimer(false);
             } else {
@@ -228,12 +228,12 @@ const AddFunds = () => {
                 Top up your wallet
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                Full amount lands in your wallet. Buy a plan separately from Recharge Plans.
+                Full amount lands in your wallet. Plans are free to select from Recharge Plans — only generated reports are charged.
               </Typography>
 
               {firstTimer && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
-                  Your first top-up auto-activates the matching plan.
+                  Your first top-up assigns the matching plan automatically — free, full amount credited.
                 </Alert>
               )}
 
@@ -330,8 +330,8 @@ const AddFunds = () => {
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
                 {firstTimer
-                  ? 'Plan auto-activates by amount on your first top-up.'
-                  : 'Full amount lands in your wallet. Buy plans from Recharge Plans.'}
+                  ? 'A matching plan is assigned free on your first top-up.'
+                  : 'Full amount lands in your wallet. Plans are free to select from Recharge Plans.'}
               </Typography>
             </CardContent>
           </Card>
