@@ -124,8 +124,12 @@ const AddFunds = () => {
         amount: data.amount,
         currency: data.currency || 'INR',
         order_id: data.orderId,
-        name: 'VerifyHub',
+        name: 'Verify Hub',
         description: `Wallet recharge ₹${Number(amt).toLocaleString('en-IN')}`,
+        // Absolute platform logo for the checkout header (public/Logo.jpeg —
+        // stable path; Razorpay requires an absolute URL, so derive the
+        // deployed origin at runtime). Overrides any dashboard brand logo.
+        image: `${window.location.origin}/Logo.jpeg`,
         prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
         theme: { color: '#3730A3' },
         handler: async (resp) => {
