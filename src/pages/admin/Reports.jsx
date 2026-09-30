@@ -16,15 +16,14 @@ import { Link as RouterLink } from "react-router-dom";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import TypePill from "../../Components/shared/TypePill";
-import RowActions from "../../Components/shared/RowActions";
 import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31"; // use today's date instead if future dates aren't allowed
 
-const AI_OPTION = "AI Credit Analysis";
-const BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", "CIBIL", "EQUIFAX", AI_OPTION];
+const BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", "CIBIL", "EQUIFAX"];
 const FAILED_BUREAU_OPTIONS = ["All", "EXPERIAN", "CRIF", "CIBIL", "EQUIFAX"];
 
 // Works whether VITE_API_URL is "https://host" or "https://host/api"
@@ -68,7 +67,7 @@ const AdminReports = () => {
   const [reportsData, setReportsData] = useState([]);
   const [failedData, setFailedData] = useState([]);
   const [failedTotal, setFailedTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState(0); // 0 = all reports, 1 = failed
+  const [activeTab, setActiveTab] = useState(0); // 0 = partner reports, 1 = failed
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
@@ -85,6 +84,7 @@ const AdminReports = () => {
     partnerSearch: "",
   });
 
+  // ---- Tab 0: Partner Reports = bureau credit pulls only (never AI) ----
   const fetchReports = async () => {
     try {
       setLoading(true);
@@ -92,71 +92,23 @@ const AdminReports = () => {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      // ---- Which dropdown option decides which API(s) we call ----
-      //  All                 -> AI analyses + all bureau reports
-      //  EXPERIAN / CRIF     -> bureau reports only (bureau sent to the API)
-      //  AI Credit Analysis  -> AI analyses only
-      const isAll = filters.bureau === "All";
-      const isAiOnly = filters.bureau === AI_OPTION;
-      const fetchAi = isAll || isAiOnly;
-      const fetchCredit = !isAiOnly;
-
       const queryParams = new URLSearchParams({
         page,
         limit,
-        // Only send a real bureau name; never "All" or the AI option
-        ...(!isAll && !isAiOnly && { bureau: filters.bureau }),
+        // Only send a real bureau name; never "All"
+        ...(filters.bureau !== "All" && { bureau: filters.bureau }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
         ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch }),
       }).toString();
 
-      const skipped = () => Promise.resolve({ data: { success: false } });
+      const creditRes = await axios
+        .get(`${API_BASE}/admin/reports/credit-reports?${queryParams}`, {
+          headers,
+        })
+        .catch(() => ({ data: { success: false } }));
 
-      const [aiRes, creditRes] = await Promise.all([
-        fetchAi
-          ? axios
-              .get(`${API_BASE}/admin/reports/ai-analyzer?${queryParams}`, {
-                headers,
-              })
-              .catch(() => ({ data: { success: false } }))
-          : skipped(),
-        fetchCredit
-          ? axios
-              .get(`${API_BASE}/admin/reports/credit-reports?${queryParams}`, {
-                headers,
-              })
-              .catch(() => ({ data: { success: false } }))
-          : skipped(),
-      ]);
-
-      let aiMapped = [];
       let creditMapped = [];
-
-      if (aiRes.data.success && Array.isArray(aiRes.data.data)) {
-        aiMapped = aiRes.data.data
-          .filter((r) => r.status === "completed")
-          .map((r) => ({
-            id: r._id,
-            date: formatDate(r.createdAt),
-            dateTime: formatDateTime(r.createdAt),
-            partnerName: formatName(
-              r.userId?.name || r.userId?.email || "Unknown",
-            ),
-            customer: formatName(
-              r.mergedData?.client_name ||
-                r.result?.customerName ||
-                (r.fileName || "").replace(/\.[^/.]+$/, "") ||
-                "-",
-            ),
-            type: "AI Credit Analysis",
-            bureau: "AI",
-            score: r.result?.score ?? "—",
-            status: "Completed",
-            rawType: "ai-analyzer",
-            rawReport: r,
-          }));
-      }
 
       if (creditRes.data.success && Array.isArray(creditRes.data.data)) {
         creditMapped = creditRes.data.data
@@ -184,20 +136,14 @@ const AdminReports = () => {
           }));
       }
 
-      const mapped = [...aiMapped, ...creditMapped];
-
-      mapped.sort((a, b) => {
+      creditMapped.sort((a, b) => {
         const timeA = new Date(a.rawReport.createdAt || 0).getTime();
         const timeB = new Date(b.rawReport.createdAt || 0).getTime();
         return timeB - timeA;
       });
 
-      setReportsData(mapped);
-
-      // Next page exists if any endpoint we called reports more pages
-      const aiPages = fetchAi ? aiRes.data?.pages || 1 : 1;
-      const crPages = fetchCredit ? creditRes.data?.pages || 1 : 1;
-      setHasNextPage(page < Math.max(aiPages, crPages));
+      setReportsData(creditMapped);
+      setHasNextPage(page < (creditRes.data?.pages || 1));
     } catch (err) {
       console.error("Failed to fetch admin reports:", err);
       setError("Failed to load reports. Please try again.");
@@ -216,8 +162,7 @@ const AdminReports = () => {
       const queryParams = new URLSearchParams({
         page,
         limit,
-        ...(filters.bureau !== "All" &&
-          filters.bureau !== AI_OPTION && { bureau: filters.bureau }),
+        ...(filters.bureau !== "All" && { bureau: filters.bureau }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
         ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch }),
@@ -426,12 +371,35 @@ const AdminReports = () => {
     document.body.removeChild(link);
   };
 
-  const downloadLabel = (row) =>
-    downloadingId === row.id
-      ? "Downloading…"
-      : row.rawType === "credit-report"
-        ? "Download PDF"
-        : "Download HTML";
+  // Shared borderless PDF pill (matches partner panel).
+  const FilePill = ({ label, disabled, title, onClick }) => (
+    <Button
+      size="small"
+      variant="outlined"
+      startIcon={
+        <PictureAsPdfIcon sx={{ fontSize: 16, color: "#e11d48" }} />
+      }
+      disabled={disabled}
+      onClick={onClick}
+      title={title}
+      sx={{
+        textTransform: "none",
+        borderRadius: "999px",
+        border: "none",
+        fontWeight: 700,
+        fontSize: "0.75rem",
+        color: "#33415C",
+        bgcolor: "#f1f5f9",
+        px: 1.5,
+        py: 0.5,
+        whiteSpace: "nowrap",
+        "&:hover": { bgcolor: "#e2e8f0", border: "none" },
+        "&.Mui-disabled": { border: "none" },
+      }}
+    >
+      {label}
+    </Button>
+  );
 
   const columns = [
     {
@@ -471,9 +439,13 @@ const AdminReports = () => {
       render: (row) => <StatusBadge status={row.status || "Success"} />,
     },
     {
-      header: "Actions", field: "action", align: "right", width: 60,
+      header: "Actions", field: "action", align: "right", width: 110,
       render: (row) => (
-        <RowActions actions={[{ label: downloadLabel(row), onClick: () => handleDownload(row) }]} />
+        <FilePill
+          label={downloadingId === row.id ? "…" : "PDF"}
+          title="Download PDF file"
+          onClick={() => handleDownload(row)}
+        />
       ),
     },
   ];
@@ -543,6 +515,12 @@ const AdminReports = () => {
 
   const bureauOptions = activeTab === 1 ? FAILED_BUREAU_OPTIONS : BUREAU_OPTIONS;
   const tableData = activeTab === 1 ? failedData : reportsData;
+  const tableColumns = activeTab === 1 ? failedColumns : columns;
+  const tableTitle = activeTab === 1 ? "Failed Reports" : "Partner Reports";
+  const emptyMessage =
+    activeTab === 1
+      ? "No failed reports found matching filters."
+      : "No reports found matching filters.";
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
@@ -556,10 +534,10 @@ const AdminReports = () => {
       >
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-            Admin Reports
+            Partner Reports
           </Typography>
           <Typography variant="body1" sx={{ color: "text.secondary" }}>
-            View and export reports across all partners.
+            Bureau pulls and AI analyses across all partners.
           </Typography>
         </Box>
         <Button
@@ -584,7 +562,7 @@ const AdminReports = () => {
         }}
         sx={{ mb: 3 }}
       >
-        <Tab label="All Reports" />
+        <Tab label="Partner Reports" />
         <Tab
           label={
             failedTotal > 0 ? `Failed Reports (${failedTotal})` : "Failed Reports"
@@ -624,14 +602,10 @@ const AdminReports = () => {
       ) : (
         <>
           <DataTable
-            title={activeTab === 1 ? "Failed Reports" : "All Reports"}
-            columns={activeTab === 1 ? failedColumns : columns}
+            title={tableTitle}
+            columns={tableColumns}
             data={tableData}
-            emptyMessage={
-              activeTab === 1
-                ? "No failed reports found matching filters."
-                : "No reports found matching filters."
-            }
+            emptyMessage={emptyMessage}
             pageSize={limit}
           />
           <Box
