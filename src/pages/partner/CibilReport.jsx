@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { creditAPI } from "../../services/authService";
+import useAuth from "../../context/useAuth";
 import {
   Box,
   Typography,
@@ -59,6 +60,7 @@ const FieldLabel = ({ children, required }) => (
 );
 
 const CibilReport = () => {
+  const { refreshWallet } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -197,6 +199,10 @@ const CibilReport = () => {
           data: { ...resultData, pdfAbsoluteUrl },
         });
 
+        // Wallet moved server-side (per-report debit) — sync the header
+        // balance immediately instead of waiting for a page reload.
+        refreshWallet();
+
         // Automatically download the PDF now that generation succeeded —
         // the user stays on this page and never has to click Download.
         // Programmatic file downloads are not popup-blocked. If the fetch
@@ -233,6 +239,9 @@ const CibilReport = () => {
       }
     } catch (err) {
       console.error("CIBIL Report Error:", err);
+
+      // A failure response may still carry a fail fee
+      if (err?.response?.data?.failureCharge) refreshWallet();
 
       setError(
         err?.response?.data?.message ||

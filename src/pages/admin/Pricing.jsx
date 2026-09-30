@@ -114,7 +114,7 @@ const AdminPricing = () => {
           <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>Plan tiers</Typography>
             <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>
-              Recharge = slab that activates the tier · fail column = CIBIL failure fee on that tier
+              Recharge = minimum wallet balance to select the tier (nothing deducted) · fail column = CIBIL failure fee on that tier
             </Typography>
             {TIERS.map((t, i) => (
               <Box key={t.key}>
