@@ -32,21 +32,36 @@ const AppSidebar = ({
   footerMenu = [],
 }) => {
   const [menuAnchor, setMenuAnchor] = React.useState(null);
+  const [internalOpen, setInternalOpen] = React.useState({});
   const isActive = (path) => path && activePath.startsWith(path);
 
   const renderItem = (item, depth = 0) => {
     const hasChildren = Array.isArray(item.children) && item.children.length > 0;
     const childActive = hasChildren && item.children.some((c) => activePath === c.path || activePath.startsWith(c.path));
-    const active = isActive(item.path) || childActive;
-    const open = collapsibleState?.open && hasChildren ? collapsibleState.open : false;
+    // Parent dropdowns (My Reports, Credit Reports) never show active/blue —
+    // only the selected child does.
+    const active = hasChildren ? false : Boolean(isActive(item.path));
+    // Backward compat: legacy single collapsibleState applies to the first
+    // dropdown that opts in (Credit Reports). All other dropdowns use
+    // internal state keyed by item text, auto-expanded when a child is active.
+    const isLegacyControlled = Boolean(hasChildren && collapsibleState && item.text === 'Credit Reports');
+    const open = isLegacyControlled
+      ? collapsibleState.open
+      : hasChildren
+        ? (internalOpen[item.text] ?? childActive)
+        : false;
+    const handleToggle = () => {
+      if (isLegacyControlled) collapsibleState.onToggle();
+      else setInternalOpen((p) => ({ ...p, [item.text]: !(p[item.text] ?? childActive) }));
+    };
 
     return (
       <React.Fragment key={item.text}>
         <ListItemButton
           onClick={() => {
-            if (hasChildren && collapsibleState?.onToggle) {
+            if (hasChildren) {
               if (collapsed && onToggleCollapse) onToggleCollapse(false);
-              collapsibleState.onToggle();
+              handleToggle();
             } else if (item.path && onNavigate) onNavigate(item.path);
           }}
           title={collapsed ? item.text : ''}
