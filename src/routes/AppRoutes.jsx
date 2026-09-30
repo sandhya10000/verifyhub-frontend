@@ -117,6 +117,10 @@ const AppRoutes = () => {
           />
           <Route
             path="account/reports"
+            element={<Navigate to="/partner/account/reports/cibil" replace />}
+          />
+          <Route
+            path="account/reports/:bureau"
             element={<Reports />}
           />
           <Route
