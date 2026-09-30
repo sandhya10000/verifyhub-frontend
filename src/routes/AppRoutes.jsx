@@ -117,11 +117,28 @@ const AppRoutes = () => {
           />
           <Route
             path="account/reports"
-            element={<Navigate to="/partner/account/reports/cibil" replace />}
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
           />
           <Route
             path="account/reports/:bureau"
             element={<Reports />}
+          />
+          {/* Legacy per-bureau URLs → merged credit-bureau tab */}
+          <Route
+            path="account/reports/cibil"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/experian"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/crif"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/equifax"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
           />
           <Route
             path="account/transactions"
