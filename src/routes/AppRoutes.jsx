@@ -25,6 +25,7 @@ const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
 const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
+const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
@@ -197,6 +198,10 @@ const AppRoutes = () => {
           <Route
             path="reports"
             element={<AdminReports />}
+          />
+          <Route
+            path="ai-reports"
+            element={<AdminAiReports />}
           />
           <Route
             path="support"

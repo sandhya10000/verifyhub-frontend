@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Drawer, Typography, IconButton, AppBar, Toolbar, Menu as MuiMenu, MenuItem } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, IndianRupee, RefreshCcw, Activity, Settings, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, IndianRupee, RefreshCcw, Activity, Bot, Settings, Menu as MenuIcon, LogOut } from 'lucide-react';
 import AppSidebar from '../Components/shared/AppSidebar';
 import useAuth from '../context/useAuth';
 
@@ -62,7 +62,8 @@ const AdminLayout = () => {
     {
       label: 'INSIGHTS',
       items: [
-        { text: 'Reports & Export', icon: <Activity size={20} />, path: '/admin/reports' },
+        { text: 'Partner Reports', icon: <Activity size={20} />, path: '/admin/reports' },
+        { text: 'AI Analysed Reports', icon: <Bot size={20} />, path: '/admin/ai-reports' },
         { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support', showBadge: true },
         { text: 'Settings', icon: <Settings size={20} />, path: '/admin/settings' },
       ]
