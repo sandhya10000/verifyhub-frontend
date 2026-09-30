@@ -8,11 +8,11 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   RefreshCw, Download, FileText, BarChart3, Wallet, IndianRupee,
-  Percent, AlertTriangle, Star, Ticket, Bot, Building2, Plus, CircleDot,
+    Percent, AlertTriangle, Ticket, Bot, Building2, Plus, CircleDot,
 } from "lucide-react";
 import useAuth from "../../context/useAuth";
-import DataTable from "../../components/shared/DataTable";
-import StatusBadge from "../../components/shared/StatusBadge";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
 import { KpiCard, ChartCard, TrendChart, ScoreBars, timeAgo } from "../../Components/partner/PartnerWidgets";
 
 const API = (path) => {
@@ -141,12 +141,7 @@ const PartnerDashboard = () => {
       icon: <Wallet size={18} />, iconBg: "#F5F3FF", iconColor: "#8B5CF6",
       title: "Wallet Balance", value: err ? "—" : inr(s.walletBalance), valueColor: "#2563EB",
       subtitle: lowWallet ? `Below ₹${LOW_BALANCE_AT} — top up soon` : "Available for pulls",
-      action: (
-        <Button size="small" variant="contained" disableElevation onClick={() => navigate("/partner/add-funds")}
-          sx={{ fontSize: "0.68rem", fontWeight: 700, borderRadius: 1.5, bgcolor: "#DBEAFE", color: "#2563EB", boxShadow: "none", "&:hover": { bgcolor: "#BFDBFE", boxShadow: "none" } }}>
-          Top up
-        </Button>
-      ),
+    
     },
     {
       icon: <IndianRupee size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
@@ -164,14 +159,9 @@ const PartnerDashboard = () => {
       subtitle: `${s.failedThisMonth ?? 0} failures · not charged`,
     },
     {
-      icon: <Star size={18} />, iconBg: "#FFFBEB", iconColor: "#D97706",
-      title: "Average Score", value: err ? "—" : s.avgScore != null ? String(s.avgScore) : "—",
-      subtitle: s.scoredCount > 0 ? `Across ${s.scoredCount} scored reports` : "No scored reports yet",
-    },
-    {
       icon: <AlertTriangle size={18} />, iconBg: "#FEF2F2", iconColor: "#EF4444",
       title: "Failed Pulls", value: err ? "—" : String(s.failedThisMonth ?? 0),
-      subtitle: "Failed pulls are never charged",
+      subtitle: "Failed pulls incur a nominal fee",
     },
     {
       icon: <Ticket size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
@@ -186,14 +176,27 @@ const PartnerDashboard = () => {
   ];
 
   const pullColumns = [
-    { header: "Customer", field: "customer", render: (r) => <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>{r.customer}</Typography> },
-    { header: "Bureau", field: "bureau" },
-    { header: "Score", field: "score", render: (r) => <Typography sx={{ fontWeight: 700 }}>{r.score}</Typography> },
-    { header: "Status", field: "status", render: (r) => <StatusBadge status={r.status} /> },
     {
-      header: "Pulled At", field: "createdAt",
+      header: "Customer", field: "customer", minWidth: 130,
       render: (r) => (
-        <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "nowrap" }}>
+        <Typography title={r.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {r.customer}
+        </Typography>
+      ),
+    },
+    {
+      header: "Bureau", field: "bureau", nowrap: true, minWidth: 90,
+      render: (r) => <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, whiteSpace: "nowrap" }}>{r.bureau}</Typography>,
+    },
+    {
+      header: "Score", field: "score", nowrap: true, minWidth: 70,
+      render: (r) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{r.score}</Typography>,
+    },
+    { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={r.status} /> },
+    {
+      header: "Pulled At", field: "createdAt", nowrap: true, minWidth: 170,
+      render: (r) => (
+        <Typography sx={{ fontSize: "0.75rem", color: "#8A94A6", whiteSpace: "nowrap" }}>
           {r.createdAt ? format(new Date(r.createdAt), "dd MMM yyyy, hh:mm a") : "—"}
         </Typography>
       ),
@@ -259,12 +262,12 @@ const PartnerDashboard = () => {
 
       {/* KPI row 2 */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        {loading ? Array.from({ length: 4 }).map((_, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+        {loading ? Array.from({ length: 3 }).map((_, i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
             <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
           </Grid>
         )) : kpiRow2.map((k) => (
-          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} />
           </Grid>
         ))}

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Alert, TextField, Button, IconButton, Menu, MenuItem, InputAdornment } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Search, X } from 'lucide-react';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import axios from 'axios';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import RowActions from '../../Components/shared/RowActions';
+import FilterBar from '../../Components/shared/FilterBar';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);
@@ -18,9 +21,48 @@ const AdminPartners = () => {
 
   const limit = 50;
 
-  // Menu state for actions
-  const [anchorEl, setAnchorEl] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
+
+  // Suspend/reactivate confirm + progress
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState(null);
+
+  // Add Funds modal
+  const [fundsOpen, setFundsOpen] = useState(false);
+  const [fundsOptions, setFundsOptions] = useState([]);
+  const [fundsLoading, setFundsLoading] = useState(false);
+  const [fundsPartner, setFundsPartner] = useState(null);
+  const [fundsAmount, setFundsAmount] = useState('');
+  const [fundsNote, setFundsNote] = useState('');
+  const [fundsSubmitting, setFundsSubmitting] = useState(false);
+  const [fundsError, setFundsError] = useState(null);
+  const [fundsSuccess, setFundsSuccess] = useState(null);
+
+  const inr0 = (n) => {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '—';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
+  };
+  const fundsAmountNum = Math.round(Number(fundsAmount) * 100) / 100;
+  const fundsPreview = fundsPartner && Number.isFinite(fundsAmountNum) && fundsAmountNum > 0
+    ? Number(fundsPartner.walletBalance || 0) + fundsAmountNum
+    : null;
+
+  // Deduct Funds modal
+  const [deductOpen, setDeductOpen] = useState(false);
+  const [deductPartner, setDeductPartner] = useState(null);
+  const [deductAmount, setDeductAmount] = useState('');
+  const [deductNote, setDeductNote] = useState('');
+  const [deductSubmitting, setDeductSubmitting] = useState(false);
+  const [deductError, setDeductError] = useState(null);
+  const [deductSuccess, setDeductSuccess] = useState(null);
+
+  const deductAmountNum = Math.round(Number(deductAmount) * 100) / 100;
+  const deductBalance = deductPartner != null ? Number(deductPartner.walletBalance || 0) : null;
+  const deductValid = deductPartner && Number.isFinite(deductAmountNum) && deductAmountNum > 0;
+  const deductExceeds = deductValid && deductBalance != null && deductAmountNum > deductBalance;
+  const deductPreview = deductValid && !deductExceeds ? deductBalance - deductAmountNum : null;
 
   // 300ms debounce
   useEffect(() => {
@@ -66,14 +108,187 @@ const AdminPartners = () => {
     fetchPartners();
   }, [page, debouncedSearch]);
 
-  const handleMenuClick = (event, partner) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedPartner(partner);
+  const handleConfirmClose = () => {
+    setConfirmOpen(false);
+    setSelectedPartner(null);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleConfirmToggle = async () => {
+    if (!selectedPartner) return;
+    const nextActive = !(selectedPartner.isActive !== false);
+    setToggling(true);
+    setToggleError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.patch(
+        `${API_BASE_URL}/admin/partners/${selectedPartner._id}/status`,
+        { isActive: nextActive },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setPartners((prev) => prev.map((p) => (p._id === selectedPartner._id ? { ...p, isActive: nextActive } : p)));
+        setConfirmOpen(false);
+        setSelectedPartner(null);
+      } else {
+        setToggleError(res.data?.message || 'Failed to update status.');
+      }
+    } catch (err) {
+      setToggleError(err.response?.data?.message || 'Failed to update status. Please try again.');
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleOpenFunds = async (preset = null) => {
+    setFundsError(null);
+    setFundsSuccess(null);
+    setFundsAmount('');
+    setFundsNote('');
+    setFundsPartner(preset || null);
+    setFundsOpen(true);
+    // Load a wide option list for the dropdown (first page, big limit)
+    setFundsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?page=1&limit=500`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setFundsOptions(res.data.data);
+        if (preset) {
+          const fresh = res.data.data.find((p) => p._id === preset._id);
+          if (fresh) setFundsPartner(fresh);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load partners for top-up:', err);
+    } finally {
+      setFundsLoading(false);
+    }
+  };
+
+  const handleCloseFunds = () => {
+    if (fundsSubmitting) return;
+    setFundsOpen(false);
+    setFundsPartner(null);
     setSelectedPartner(null);
+  };
+
+  const handleOpenDeduct = (preset = null) => {
+    setDeductError(null);
+    setDeductSuccess(null);
+    setDeductAmount('');
+    setDeductNote('');
+    // Reuse the already-loaded partner list when available so the dropdown
+    // is instant; fall back to the preset row for row-menu opens.
+    setDeductPartner(preset || null);
+    setDeductOpen(true);
+    if (fundsOptions.length === 0) {
+      handleOpenFundsList();
+    }
+  };
+
+  const handleOpenFundsList = async () => {
+    setFundsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?page=1&limit=500`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setFundsOptions(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load partners for deduct:', err);
+    } finally {
+      setFundsLoading(false);
+    }
+  };
+
+  const handleCloseDeduct = () => {
+    if (deductSubmitting) return;
+    setDeductOpen(false);
+    setDeductPartner(null);
+    setSelectedPartner(null);
+  };
+
+  const handleSubmitDeduct = async () => {
+    if (!deductPartner || !(deductAmountNum > 0)) {
+      setDeductError('Select a partner and enter a positive amount.');
+      return;
+    }
+    if (!deductNote.trim()) {
+      setDeductError('A reason is required for audit.');
+      return;
+    }
+    if (deductExceeds) {
+      setDeductError(`Amount exceeds wallet balance (${inr0(deductBalance)}).`);
+      return;
+    }
+    setDeductSubmitting(true);
+    setDeductError(null);
+    setDeductSuccess(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.post(
+        `${API_BASE_URL}/admin/partners/${deductPartner._id}/deduct-funds`,
+        { amount: deductAmountNum, note: deductNote.trim() || undefined },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const { walletBalance, deducted } = res.data.data;
+        setDeductPartner((prev) => (prev ? { ...prev, walletBalance } : prev));
+        setFundsOptions((prev) => prev.map((p) => (p._id === deductPartner._id ? { ...p, walletBalance } : p)));
+        setPartners((prev) => prev.map((p) => (p._id === deductPartner._id ? { ...p, walletBalance } : p)));
+        setDeductSuccess(`${inr0(deducted)} deducted. New balance ${inr0(walletBalance)}. Partner notified by email.`);
+        setDeductAmount('');
+        setDeductNote('');
+      } else {
+        setDeductError(res.data?.message || 'Failed to deduct funds.');
+      }
+    } catch (err) {
+      setDeductError(err.response?.data?.message || 'Failed to deduct funds. Please try again.');
+    } finally {
+      setDeductSubmitting(false);
+    }
+  };
+
+  const handleSubmitFunds = async () => {
+    if (!fundsPartner || !(fundsAmountNum > 0)) {
+      setFundsError('Select a partner and enter a positive amount.');
+      return;
+    }
+    setFundsSubmitting(true);
+    setFundsError(null);
+    setFundsSuccess(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.post(
+        `${API_BASE_URL}/admin/partners/${fundsPartner._id}/add-funds`,
+        { amount: fundsAmountNum, note: fundsNote.trim() || undefined },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const { walletBalance, credited } = res.data.data;
+        setFundsPartner((prev) => (prev ? { ...prev, walletBalance } : prev));
+        setFundsOptions((prev) => prev.map((p) => (p._id === fundsPartner._id ? { ...p, walletBalance } : p)));
+        setPartners((prev) => prev.map((p) => (p._id === fundsPartner._id ? { ...p, walletBalance } : p)));
+        setFundsSuccess(`${inr0(credited)} added. New balance ${inr0(walletBalance)}. Receipt mailed to the partner.`);
+        setFundsAmount('');
+        setFundsNote('');
+      } else {
+        setFundsError(res.data?.message || 'Failed to add funds.');
+      }
+    } catch (err) {
+      setFundsError(err.response?.data?.message || 'Failed to add funds. Please try again.');
+    } finally {
+      setFundsSubmitting(false);
+    }
   };
 
   const formatName = (name = "") => {
@@ -95,17 +310,22 @@ const AdminPartners = () => {
     return null;
   })();
 
+  const openDetails = (p) => window.open(`/admin/partners/${p._id}`, '_blank', 'noopener,noreferrer');
+
   const columns = [
     {
-      header: 'Partner ID',
-      field: 'partner_id',
+      header: 'Partner ID', field: 'partner_id', nowrap: true, minWidth: 100,
       render: (row) => (
         <Typography
+          component={RouterLink}
+          to={`/admin/partners/${row._id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open partner profile in new tab"
           sx={{
-            fontFamily: 'monospace',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap',
+            fontFamily: 'monospace', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap',
+            color: '#1D4ED8', textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
           }}
         >
           {row.partner_id || '—'}
@@ -113,65 +333,77 @@ const AdminPartners = () => {
       ),
     },
     {
-      header: 'Name',
-      field: 'name',
-      render: (row) => formatName(row.name)
-    },
-    { header: 'Email', field: 'email' },
-    { header: 'Phone', field: 'phone' },
-    {
-      header: 'Total Reports',
-      field: 'totalReports',
+      header: 'Name', field: 'name', minWidth: 130,
       render: (row) => (
-        <Typography sx={{ fontWeight: 600 }}>
-          {row.totalReports.toLocaleString()}
+        <Typography title={formatName(row.name)} sx={{ fontWeight: 600, fontSize: '0.82rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {formatName(row.name)}
         </Typography>
       )
     },
     {
-      header: 'Wallet Balance',
-      field: 'walletBalance',
+      header: 'Email', field: 'email', minWidth: 170,
+      render: (row) => (
+        <Typography title={row.email} sx={{ fontSize: '0.8rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {row.email}
+        </Typography>
+      )
+    },
+    { header: 'Phone', field: 'phone', nowrap: true, minWidth: 110 },
+    {
+      header: 'Total Reports', field: 'totalReports', nowrap: true, minWidth: 90, align: 'right',
+      render: (row) => (
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+          {Number(row.totalReports || 0).toLocaleString()}
+        </Typography>
+      )
+    },
+    {
+      header: 'Wallet Balance', field: 'walletBalance', nowrap: true, minWidth: 110, align: 'right',
       render: (row) => {
-        return(
-          <Typography
-            sx={{
-              fontWeight: 700,
-              color: row.walletBalance > 0 ? '#10B981' : 'text.primary'
-            }}
-          >-</Typography>
+        const bal = Number(row.walletBalance);
+        const label = Number.isFinite(bal)
+          ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(bal)
+          : '—';
+        return (
+          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', color: bal > 0 ? '#10B981' : 'text.primary' }}>
+            {label}
+          </Typography>
         );
       }
     },
     {
-      header: 'Last Report',
-      field: 'lastReportDate',
-      render: (row) => row.lastReportDate ? new Date(row.lastReportDate).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      }) : '—'
+      header: 'Last Report', field: 'lastReportDate', nowrap: true, minWidth: 110,
+      render: (row) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {row.lastReportDate ? new Date(row.lastReportDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+        </Typography>
+      )
     },
     {
-      header: 'Joined Date',
-      field: 'createdAt',
-      render: (row) => new Date(row.createdAt).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      })
+      header: 'Joined Date', field: 'createdAt', nowrap: true, minWidth: 110,
+      render: (row) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {new Date(row.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </Typography>
+      )
     },
-    // {
-    //   header: 'Status',
-    //   field: 'isActive',
-    //   render: (row) => (
-    //     <StatusBadge status={row.isActive ? 'Active' : 'Suspended'} />
-    //   )
-    // },
-    // {
-    //   header: '',
-    //   field: 'action',
-    //   render: (row) => (
-    //     <IconButton size="small" onClick={(e) => handleMenuClick(e, row)}>
-    //       <MoreVertIcon fontSize="small" />
-    //     </IconButton>
-    //   )
-    // }
+    {
+      header: 'Status', field: 'isActive', nowrap: true, minWidth: 110,
+      render: (row) => (
+        <StatusBadge status={row.isActive !== false ? 'Active' : 'Suspended'} />
+      )
+    },
+    {
+      header: 'Actions', field: 'action', align: 'right', width: 60,
+      render: (row) => (
+        <RowActions actions={[
+          { label: 'View Details', onClick: () => openDetails(row) },
+          { label: 'Add Funds', onClick: () => handleOpenFunds(row) },
+          { label: 'Deduct Funds', danger: true, onClick: () => handleOpenDeduct(row) },
+          { label: row.isActive !== false ? 'Suspend Account' : 'Reactivate Account', danger: row.isActive !== false, onClick: () => { setSelectedPartner(row); setToggleError(null); setConfirmOpen(true); } },
+        ]} />
+      )
+    }
   ];
 
   return (
@@ -185,39 +417,23 @@ const AdminPartners = () => {
             Manage and view all registered partners.
           </Typography>
         </Box>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenFunds()} sx={{ whiteSpace: 'nowrap' }}>
+            Add Funds
+          </Button>
+          <Button variant="outlined" color="error" startIcon={<RemoveIcon />} onClick={() => handleOpenDeduct()} sx={{ whiteSpace: 'nowrap' }}>
+            Deduct Funds
+          </Button>
+        </Box>
       </Box>
 
-      <Box sx={{ mb: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search name, email, or phone…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          size="small"
-          sx={{ width: 320 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={16} color={search ? '#3730A3' : '#94A3B8'} />
-                </InputAdornment>
-              ),
-              endAdornment: search ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setSearch('')}
-                    edge="end"
-                    sx={{ color: '#94A3B8', '&:hover': { color: '#1E293B' } }}
-                    aria-label="Clear search"
-                  >
-                    <X size={15} />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }
-          }}
-        />
-      </Box>
+      <FilterBar
+        search={{
+          value: search,
+          onChange: (v) => setSearch(v),
+          placeholder: 'Search name, email, or phone…',
+        }}
+      />
 
       {/* Result count label */}
       <Box sx={{ mb: 3, minHeight: 20 }}>
@@ -261,16 +477,157 @@ const AdminPartners = () => {
         </>
       )}
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleMenuClose}>View Details</MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
-          {selectedPartner?.isActive ? 'Suspend Account' : 'Reactivate Account'}
-        </MenuItem>
-      </Menu>
+      <Dialog open={confirmOpen} onClose={handleConfirmClose} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {selectedPartner?.isActive !== false ? 'Suspend partner?' : 'Reactivate partner?'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {selectedPartner?.isActive !== false ? (
+              <>Suspending <b>{selectedPartner?.name || selectedPartner?.email}</b> signs them out immediately — they cannot log in or pull reports until reactivated. Wallet balance and history are preserved.</>
+            ) : (
+              <>Reactivating <b>{selectedPartner?.name || selectedPartner?.email}</b> restores their access immediately.</>
+            )}
+          </DialogContentText>
+          {toggleError && (
+            <Alert severity="error" sx={{ mt: 2 }}>{toggleError}</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmClose} disabled={toggling}>Cancel</Button>
+          <Button
+            onClick={handleConfirmToggle}
+            disabled={toggling}
+            color={selectedPartner?.isActive !== false ? 'error' : 'success'}
+            variant="contained"
+          >
+            {toggling ? 'Please wait…' : selectedPartner?.isActive !== false ? 'Suspend' : 'Reactivate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={fundsOpen} onClose={handleCloseFunds} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Funds to Partner Wallet</DialogTitle>
+        <DialogContent dividers>
+          <DialogContentText sx={{ mb: 2 }}>
+            Top-up is credited in full — no GST. The partner gets a receipt by email.
+          </DialogContentText>
+          {fundsError && <Alert severity="error" sx={{ mb: 2 }}>{fundsError}</Alert>}
+          {fundsSuccess && <Alert severity="success" sx={{ mb: 2 }}>{fundsSuccess}</Alert>}
+          <Autocomplete
+            options={fundsOptions}
+            loading={fundsLoading}
+            value={fundsPartner}
+            onChange={(_, v) => setFundsPartner(v)}
+            getOptionLabel={(p) => `${p.name || ''} · ${p.email || ''} · ${p.partner_id || ''}`}
+            isOptionEqualToValue={(a, b) => a._id === b._id}
+            renderInput={(params) => <TextField {...params} label="Select partner" size="small" fullWidth />}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          {fundsPartner && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, borderRadius: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Current balance</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr0(fundsPartner.walletBalance)}</Typography>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Balance after top-up</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: fundsPreview != null ? '#10B981' : 'text.primary' }}>
+                  {fundsPreview != null ? inr0(fundsPreview) : '—'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <TextField
+            label="Top-up amount (₹)"
+            type="number"
+            size="small"
+            fullWidth
+            value={fundsAmount}
+            onChange={(e) => setFundsAmount(e.target.value)}
+            inputProps={{ min: 1, step: 'any' }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Note (optional)"
+            size="small"
+            fullWidth
+            value={fundsNote}
+            onChange={(e) => setFundsNote(e.target.value)}
+            placeholder="e.g. Goodwill credit for downtime"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseFunds} disabled={fundsSubmitting}>Close</Button>
+          <Button onClick={handleSubmitFunds} disabled={fundsSubmitting || !fundsPartner || !(fundsAmountNum > 0)} variant="contained">
+            {fundsSubmitting ? 'Adding…' : 'Add Funds'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deductOpen} onClose={handleCloseDeduct} maxWidth="sm" fullWidth>
+        <DialogTitle>Deduct Funds from Partner Wallet</DialogTitle>
+        <DialogContent dividers>
+          <DialogContentText sx={{ mb: 2 }}>
+            Deduction is final — no GST. The balance can never go negative, and the partner gets a notice by email.
+          </DialogContentText>
+          {deductError && <Alert severity="error" sx={{ mb: 2 }}>{deductError}</Alert>}
+          {deductSuccess && <Alert severity="success" sx={{ mb: 2 }}>{deductSuccess}</Alert>}
+          <Autocomplete
+            options={fundsOptions}
+            loading={fundsLoading}
+            value={deductPartner}
+            onChange={(_, v) => setDeductPartner(v)}
+            getOptionLabel={(p) => `${p.name || ''} · ${p.email || ''} · ${p.partner_id || ''}`}
+            isOptionEqualToValue={(a, b) => a._id === b._id}
+            renderInput={(params) => <TextField {...params} label="Select partner" size="small" fullWidth />}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          {deductPartner && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Current balance</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr0(deductBalance)}</Typography>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Balance after deduction</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: deductPreview != null ? '#DC2626' : 'text.primary' }}>
+                  {deductPreview != null ? inr0(deductPreview) : '—'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <TextField
+            label="Deduction amount (₹)"
+            type="number"
+            size="small"
+            fullWidth
+            value={deductAmount}
+            onChange={(e) => setDeductAmount(e.target.value)}
+            inputProps={{ min: 1, step: 'any' }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Reason (required for audit)"
+            size="small"
+            fullWidth
+            value={deductNote}
+            onChange={(e) => setDeductNote(e.target.value)}
+            placeholder="e.g. Chargeback for duplicate top-up"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeduct} disabled={deductSubmitting}>Close</Button>
+          <Button
+            onClick={handleSubmitDeduct}
+            disabled={deductSubmitting || !deductPartner || !(deductAmountNum > 0) || deductExceeds || !deductNote.trim()}
+            variant="contained"
+            color="error"
+          >
+            {deductSubmitting ? 'Deducting…' : 'Deduct Funds'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

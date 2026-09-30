@@ -1,7 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import { useParams } from "react-router-dom";
 import axios from "axios";
-import DataTable from "../../components/shared/DataTable";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
+import FilterBar from "../../Components/shared/FilterBar";
+
+const REPORT_TABS = [
+  { key: "cibil", label: "CIBIL Reports", bureau: "CIBIL" },
+  { key: "experian", label: "Experian Reports", bureau: "EXPERIAN" },
+  { key: "crif", label: "CRIF Reports", bureau: "CRIF" },
+  { key: "equifax", label: "Equifax Reports", bureau: "EQUIFAX" },
+  { key: "ai", label: "AI Analysed Reports", bureau: "AI" },
+];
 
 const Reports = () => {
   // ============================================================
@@ -33,6 +46,12 @@ const Reports = () => {
    */
   const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
+  const { bureau: bureauParam } = useParams();
+  const activeKey = REPORT_TABS.some((t) => t.key === (bureauParam || "").toLowerCase())
+    ? bureauParam.toLowerCase()
+    : "cibil";
+  const activeTab = REPORT_TABS.find((t) => t.key === activeKey);
+
   // ============================================================
   // STATES
   // ============================================================
@@ -41,6 +60,18 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  // Reset filters when switching tabs
+  useEffect(() => {
+    setSearch("");
+    setFromDate("");
+    setToDate("");
+  }, [activeKey]);
 
   // ============================================================
   // CONVERT BACKEND LOCAL PATH TO PUBLIC URL
@@ -211,6 +242,8 @@ const Reports = () => {
                 year: "numeric",
               }),
 
+              createdAt: r.createdAt,
+
               customer: formatName(
                 r.mergedData?.client_name ||
                   r.result?.customerName ||
@@ -245,6 +278,8 @@ const Reports = () => {
               month: "short",
               year: "numeric",
             }),
+
+            createdAt: r.createdAt,
 
             customer: formatName(
               r.fullName ||
@@ -356,6 +391,46 @@ const Reports = () => {
 
     fetchReports();
   }, []);
+
+  // ============================================================
+  // TAB + SEARCH + DATE FILTERING
+  // ============================================================
+
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
+    const to = toDate ? new Date(`${toDate}T23:59:59.999`) : null;
+    return reportsData.filter((r) => {
+      // Bureau tab
+      if (activeTab.bureau === "AI") {
+        if (r.rawType !== "ai-analyzer") return false;
+      } else {
+        if (r.rawType === "ai-analyzer") return false;
+        const b = String(r.rawReport?.bureau || r.bureau || "").toUpperCase();
+        if (b !== activeTab.bureau) return false;
+      }
+      // Search (customer / score)
+      if (q) {
+        const hay = `${r.customer || ""} ${r.score ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      // Date range
+      if (from || to) {
+        const t = r.createdAt ? new Date(r.createdAt).getTime() : NaN;
+        if (Number.isNaN(t)) return false;
+        if (from && t < from.getTime()) return false;
+        if (to && t > to.getTime()) return false;
+      }
+      return true;
+    });
+  }, [reportsData, activeTab, search, fromDate, toDate]);
+
+  const hasActiveFilters = search.trim() !== "" || fromDate !== "" || toDate !== "";
+  const clearFilters = () => {
+    setSearch("");
+    setFromDate("");
+    setToDate("");
+  };
 
   // ============================================================
   // BASE64 DOWNLOAD
@@ -523,99 +598,35 @@ const Reports = () => {
 
   const columns = [
     {
-      header: "Date",
-      field: "date",
-    },
-
-    {
-      header: "Customer",
-      field: "customer",
-    },
-
-    {
-      header: "Type",
-      field: "type",
-    },
-
-    {
-      header: "Bureau",
-      field: "bureau",
-    },
-
-    {
-      header: "Score",
-      field: "score",
-
+      header: "Date", field: "date", nowrap: true, minWidth: 150,
       render: (row) => (
-        <Typography
-          sx={{
-            fontWeight: 700,
-
-            color:
-              typeof row.score === "number" && row.score >= 750
-                ? "#12B886"
-                : typeof row.score === "number" && row.score >= 650
-                  ? "#F59E0B"
-                  : typeof row.score === "number"
-                    ? "#EF4444"
-                    : "text.disabled",
-          }}
-        >
-          {row.score}
+        <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{row.date}</Typography>
+      ),
+    },
+    {
+      header: "Type", field: "type", nowrap: true, minWidth: 150,
+      render: (row) => <TypePill type={row.type} bureau={row.bureau} />,
+    },
+    {
+      header: "Customer", field: "customer", minWidth: 130,
+      render: (row) => (
+        <Typography title={row.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {row.customer}
         </Typography>
       ),
     },
-
     {
-      header: "",
-      field: "action",
-
+      header: "Score", field: "score", nowrap: true, minWidth: 70,
+      render: (row) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{row.score}</Typography>,
+    },
+    {
+      header: "Status", field: "status", nowrap: true, minWidth: 110,
+      render: (row) => <StatusBadge status={row.status || "Success"} />,
+    },
+    {
+      header: "Actions", field: "action", align: "right", width: 60,
       render: (row) => (
-        <Box
-          component="button"
-          onClick={() => handleDownload(row)}
-          disabled={downloadingId === row.id}
-          sx={{
-            all: "unset",
-
-            color: "text.secondary",
-
-            border: "1px solid",
-
-            borderColor: "divider",
-
-            borderRadius: 1,
-
-            px: 1.5,
-
-            py: 0.5,
-
-            fontSize: "0.75rem",
-
-            fontWeight: 600,
-
-            cursor: downloadingId === row.id ? "not-allowed" : "pointer",
-
-            display: "inline-flex",
-
-            alignItems: "center",
-
-            gap: 0.5,
-
-            opacity: downloadingId === row.id ? 0.6 : 1,
-
-            "&:hover": {
-              bgcolor: "action.hover",
-              color: "text.primary",
-            },
-          }}
-        >
-          {downloadingId === row.id
-            ? "Opening..."
-            : row.rawType === "credit-report"
-              ? "PDF ↓"
-              : "HTML ↓"}
-        </Box>
+        <RowActions actions={[{ label: downloadingId === row.id ? "Downloading…" : "Download", onClick: () => handleDownload(row) }]} />
       ),
     },
   ];
@@ -639,7 +650,7 @@ const Reports = () => {
         mx: "auto",
       }}
     >
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography
           variant="h4"
           sx={{
@@ -647,7 +658,7 @@ const Reports = () => {
             mb: 1,
           }}
         >
-          Reports
+          {activeTab.label}
         </Typography>
 
         <Typography
@@ -682,13 +693,24 @@ const Reports = () => {
           />
         </Box>
       ) : (
-        <DataTable
-          title="All Reports"
-          columns={columns}
-          data={reportsData}
-          emptyMessage="No reports available yet"
-          pageSize={10}
-        />
+        <>
+          <FilterBar
+            search={{ value: search, onChange: setSearch, placeholder: `Search ${activeTab.label.toLowerCase()}…` }}
+            dates={[
+              { name: "from", label: "From", value: fromDate, onChange: setFromDate, max: toDate || undefined },
+              { name: "to", label: "To", value: toDate, onChange: setToDate, min: fromDate || undefined },
+            ]}
+            onClear={clearFilters}
+            showClear={hasActiveFilters}
+          />
+          <DataTable
+            title={`${activeTab.label} (${filteredData.length})`}
+            columns={columns}
+            data={filteredData}
+            emptyMessage={hasActiveFilters ? "No reports match your filters" : `No ${activeTab.label.toLowerCase()} yet`}
+            pageSize={10}
+          />
+        </>
       )}
     </Box>
   );

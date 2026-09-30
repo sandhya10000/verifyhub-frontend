@@ -1,331 +1,331 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, CircularProgress, Skeleton } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Grid, Paper, Skeleton, Button, Chip, List, ListItem, ListItemText, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw, Download, FileText, TrendingUp, TrendingDown, Users, AlertTriangle, Ticket, CircleDot } from 'lucide-react';
+import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
-import StatCard from '../../components/shared/StatCard';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { CircleDot, Wallet } from 'lucide-react';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, PlanMixList, timeAgo } from '../../Components/admin/AdminWidgets';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const API = (path) => {
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+};
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+const inrShort = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
   return 'Good evening';
 };
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+const arrowDelta = (pct) => {
+  if (pct == null) return '';
+  return `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%`;
+};
 
-const Dashboard = () => {
+const TIER_LABEL = { startup: 'Start-Up', starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
+
+const AdminOverview = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [summary, setSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
+  const [range, setRange] = useState(14);
+  const [money, setMoney] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [bureau, setBureau] = useState([]);
+  const [top, setTop] = useState([]);
+  const [activity, setActivity] = useState({ pulls: [], recentTickets: [], lowWallets: [] });
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setSummaryLoading(true);
-        setSummaryError(false);
-        const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await fetch(`${API_BASE_URL}/admin/overview/summary`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setSummary(data.data);
-        } else {
-          setSummaryError(true);
-        }
-      } catch (err) {
-        console.error('Failed to fetch overview summary:', err);
-        setSummaryError(true);
-      } finally {
-        setSummaryLoading(false);
-      }
-    };
-    fetchSummary();
-  }, []);
+  const fetchAll = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      setErr(false);
+      const h = authHeaders();
+      const get = (p) => fetch(API(p), { headers: h }).then((r) => r.json()).catch(() => ({ success: false }));
+      const [s, m, pl, b, tp, ra] = await Promise.all([
+        get('/admin/overview/summary'),
+        get(`/admin/overview/money-timeseries?days=${range}`),
+        get('/admin/overview/plan-distribution'),
+        get('/admin/overview/bureau-split'),
+        get('/admin/overview/top-partners?limit=5'),
+        get('/admin/overview/recent-activity'),
+      ]);
+      if (s.success) setSummary(s.data); else setErr(true);
+      if (m.success) setMoney(m.data);
+      if (pl.success) setPlans(pl.data);
+      if (b.success) setBureau(b.data);
+      if (tp.success) setTop(tp.data);
+      if (ra.success) setActivity(ra.data);
+      setUpdatedAt(new Date());
+    } catch (e) {
+      console.error('Admin overview fetch failed:', e);
+      setErr(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [range]);
 
-  const recentPulls  = [];
-  const activityFeed = [];
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const walletBalance = summary != null
-    ? `₹${Number(summary.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-    : summaryLoading
-      ? null
-      : '₹0.00';
+  const exportCsv = () => {
+    const rows = [
+      ['Date', 'Collected', 'Consumed', 'Reports'],
+      ...money.map((d) => [d.date, d.collected, d.consumed, d.reports]),
+    ].map((r) => r.join(',')).join('\n');
+    const blob = new Blob([rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'money-timeseries.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
 
-  const columns = [
+  const s = summary || {};
+  const openTotal = (s.openTickets ?? 0) + (s.inProgressTickets ?? 0);
+
+  const kpiRow1 = [
     {
-      header: 'Customer',
-      field: 'customerName',
-      render: (row) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.customerName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', letterSpacing: 1 }}>{row.pan}</Typography>
-        </Box>
-      ),
+      icon: <FileText size={18} />, iconBg: '#EFF6FF', iconColor: '#3B82F6',
+      title: 'Reports', value: err ? '—' : `${s.reportsToday ?? 0} / ${s.reportsThisMonth ?? 0}`,
+      delta: arrowDelta(s.todayDeltaPct), deltaTone: (s.todayDeltaPct ?? 0) >= 0 ? 'up' : 'down',
+      subtitle: `Today / This month · ${s.failedThisMonth ?? 0} failed`,
     },
-    { header: 'Bureau', field: 'bureau' },
     {
-      header: 'Score',
-      field: 'score',
-      render: (row) => (
-        <Typography sx={{ fontWeight: 700, color: row.score ? 'text.primary' : 'text.disabled' }}>
-          {row.score || '—'}
+      icon: <TrendingUp size={18} />, iconBg: '#ECFDF5', iconColor: '#10B981',
+      title: 'Collected This Month', value: err ? '—' : inrShort(s.collectedMonth), valueColor: '#059669',
+      delta: arrowDelta(s.collectedDeltaPct), deltaTone: (s.collectedDeltaPct ?? 0) >= 0 ? 'up' : 'down',
+      subtitle: 'Successful recharges',
+    },
+    {
+      icon: <TrendingDown size={18} />, iconBg: '#F5F3FF', iconColor: '#8B5CF6',
+      title: 'Consumed This Month', value: err ? '—' : inrShort(s.consumedMonth),
+      delta: arrowDelta(s.consumedDeltaPct), deltaTone: (s.consumedDeltaPct ?? 0) >= 0 ? 'down' : 'up',
+      subtitle: `Incl. ${inrShort(s.failFeeMonth)} fail fees`,
+    },
+  ];
+
+  const kpiRow2 = [
+    {
+      icon: <Users size={18} />, iconBg: '#F5F3FF', iconColor: '#8B5CF6',
+      title: 'Partners', value: err ? '—' : `${s.newPartnersToday ?? 0} / ${s.totalPartners ?? 0}`,
+      delta: `+${s.newPartnersWeek ?? 0} this week`, deltaTone: 'up',
+      subtitle: 'Added today / Total till now',
+    },
+    {
+      icon: <Ticket size={18} />, iconBg: '#FFF7ED', iconColor: '#F59E0B',
+      title: 'Open Tickets', value: err ? '—' : String(openTotal),
+      subtitle: `${s.openTickets ?? 0} open · ${s.inProgressTickets ?? 0} in progress`,
+      action: <Button size="small" variant="text" sx={{ fontSize: '0.68rem', minWidth: 0 }} onClick={() => navigate('/admin/support')}>Open →</Button>,
+    },
+  ];
+
+  const pullColumns = [
+    {
+      header: 'Customer', field: 'customer', minWidth: 150,
+      render: (r) => (
+        <Typography
+          variant="body2"
+          title={r.customer}
+          sx={{ fontWeight: 600, fontSize: '0.82rem', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {r.customer}
         </Typography>
       ),
     },
     {
-      header: 'Status',
-      field: 'status',
-      render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <StatusBadge status={row.status} />
-          {row.status === 'Failed' && (
-            <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
-              -₹{row.fee}
-            </Typography>
-          )}
-        </Box>
+      header: 'Partner', field: 'partner', minWidth: 120,
+      render: (r) => (
+        <Typography variant="body2" title={r.partner} sx={{ fontSize: '0.82rem', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.partner}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Tier', field: 'tier', nowrap: true, minWidth: 80,
+      render: (r) => <Typography variant="caption" sx={{ fontWeight: 700, color: '#8B5CF6', whiteSpace: 'nowrap' }}>{r.tier ? (TIER_LABEL[r.tier] || r.tier) : '—'}</Typography>,
+    },
+    {
+      header: 'Bureau', field: 'bureau', nowrap: true, minWidth: 90,
+      render: (r) => <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.bureau}</Typography>,
+    },
+    {
+      header: 'Charge', field: 'charge', nowrap: true, minWidth: 80, align: 'right',
+      render: (r) => <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{r.charge != null ? `₹${Number(r.charge).toLocaleString('en-IN')}` : '—'}</Typography>,
+    },
+    { header: 'Status', field: 'status', nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={r.status} /> },
+    {
+      header: 'Pulled At', field: 'createdAt', nowrap: true, minWidth: 170,
+      render: (r) => (
+        <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+          {r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy, hh:mm a') : '—'}
+        </Typography>
       ),
     },
   ];
 
+  const lowWallets = activity.lowWallets || [];
+  const recentTickets = activity.recentTickets || [];
+
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-      {/* ── Greeting ── */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          {getGreeting()}, {user?.name || 'Partner'}
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Credit report pulls, wallet and activity — updated in real time.
-        </Typography>
+    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ mb: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
+            {getGreeting()}, {user?.name || 'Admin'}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+            Revenue, float, partners &amp; support{updatedAt ? ` · updated ${updatedAt.toLocaleTimeString()}` : ''}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
+          {[7, 14, 30].map((d) => (
+            <Chip key={d} label={`${d}D`} clickable size="small"
+              color={range === d ? 'primary' : 'default'} variant={range === d ? 'filled' : 'outlined'}
+              onClick={() => setRange(d)} sx={{ fontWeight: 600, fontSize: '0.7rem', height: 30, borderRadius: 2 }} />
+          ))}
+          <Button size="small" variant="text" startIcon={<RefreshCw size={13} />} onClick={fetchAll} disabled={refreshing} sx={{ fontSize: '0.75rem' }}>
+            {refreshing ? 'Refreshing' : 'Refresh'}
+          </Button>
+          <Button size="small" variant="text" startIcon={<Download size={13} />} onClick={exportCsv} disabled={!money.length} sx={{ fontSize: '0.75rem' }}>
+            Export
+          </Button>
+        </Box>
       </Box>
 
-      {/* ── Stat Cards ── */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Reports Today */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          {summaryLoading ? (
-            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
-          ) : (
-            <StatCard
-              title="REPORTS DOWNLOADED · TODAY"
-              value={summaryError ? '—' : String(summary?.reportsToday ?? 0)}
-              subtitle={
-                summaryError
-                  ? 'Could not load data'
-                  : summary?.reportsToday > 0
-                    ? `${summary.reportsToday} report${summary.reportsToday !== 1 ? 's' : ''} pulled today`
-                    : 'No reports pulled yet'
-              }
-              decoration={
-                <Box sx={{ color: '#8B5CF6', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
-          )}
+      {/* KPI rows */}
+      {[kpiRow1, kpiRow2].map((row, ri) => (
+        <Grid container spacing={2} sx={{ mb: 2 }} key={ri}>
+          {loading ? Array.from({ length: row.length }).map((_, i) => (
+            <Grid key={i} size={{ xs: 12, sm: 6, md: 12 / row.length }}>
+              <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
+            </Grid>
+          )) : row.map((k) => (
+            <Grid key={k.title} size={{ xs: 12, sm: 6, md: 12 / row.length }}>
+              <KpiCard {...k} subtitle={err ? 'Could not load' : k.subtitle} />
+            </Grid>
+          ))}
         </Grid>
+      ))}
 
-        {/* Reports This Month */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          {summaryLoading ? (
-            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
-          ) : (
-            <StatCard
-              title="REPORTS DOWNLOADED · THIS MONTH"
-              value={summaryError ? '—' : String(summary?.reportsThisMonth ?? 0)}
-              subtitle={
-                summaryError
-                  ? 'Could not load data'
-                  : summary?.reportsThisMonth > 0
-                    ? `${summary.reportsThisMonth} report${summary.reportsThisMonth !== 1 ? 's' : ''} this month`
-                    : 'No reports this month yet'
-              }
-              decoration={
-                <Box sx={{ color: '#10B981', opacity: 0.8 }}>
-                  <svg width="120" height="32" viewBox="0 0 120 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))' }}>
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
-          )}
+      {/* Money hero + plan mix */}
+      <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
+        <Grid size={{ xs: 12, md: 8 }}>
+          <ChartCard title="Collected vs consumed" subtitle={`Last ${range} days · the profit pulse`} height={220}>
+            {loading ? <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} /> : (
+              money.some((d) => (d.collected || 0) + (d.consumed || 0) > 0)
+                ? <MoneyTrend data={money} />
+                : (
+                  <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                      No transactions in the last {range} days
+                    </Typography>
+                  </Box>
+                )
+            )}
+          </ChartCard>
         </Grid>
-
-        {/* Wallet Balance */}
         <Grid size={{ xs: 12, md: 4 }}>
-          {summaryLoading ? (
-            <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
-          ) : (
-            <StatCard
-              variant="dark"
-              title="WALLET BALANCE AVAILABLE"
-              value={summaryError ? '—' : (walletBalance ?? '₹0.00')}
-              subtitle={
-                summaryError
-                  ? 'Could not load data'
-                  : summary?.hasRecentRecharge
-                    ? 'Recharged this month'
-                    : 'No recharge history yet'
-              }
-              chipLabel=""
-              decoration={
-                <Box sx={{ transform: 'translate(5px, 5px)', opacity: 0.35 }}>
-                  <svg width="90" height="90" viewBox="0 0 100 100" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))' }}>
-                    <path d="M 45 15 L 85 28 L 78 40 L 38 27 Z" strokeOpacity="0.5" fill="rgba(99, 102, 241, 0.1)" />
-                    <path d="M 35 25 L 75 38 L 70 50 L 30 37 Z" strokeOpacity="0.8" fill="rgba(99, 102, 241, 0.1)" />
-                    <path d="M 10 45 L 70 65 L 65 95 L 5 75 Z" fill="rgba(30, 41, 59, 0.8)" />
-                    <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
-                    <path d="M 10 45 L 70 65" strokeWidth="3" />
-                    <path d="M 55 60 L 65 63 L 63 78 L 53 75 Z" fill="rgba(99, 102, 241, 0.2)" />
-                    <path d="M 60 72 L 60.01 72" strokeWidth="4" />
-                  </svg>
-                </Box>
-              }
-            />
-          )}
+          <ChartCard
+            title="Plan mix" subtitle="Partners · collected per tier" height={220}
+            action={<Button size="small" variant="text" sx={{ fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/pricing')}>Pricing →</Button>}
+          >
+            {loading ? <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} /> : <PlanMixList data={plans} />}
+          </ChartCard>
         </Grid>
       </Grid>
 
-      {/* ── Main Content: Table + Activity ── */}
-      {/* <Grid container spacing={3}>
-       
+      {/* Bureau + top partners */}
+      <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ChartCard title="Bureau split" subtitle="Successful pulls · all time" height={200}>
+            {loading ? <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} /> : <BureauDonutPanel data={bureau} />}
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ChartCard
+            title="Top partners" subtitle="By volume · lifetime spend" height={200}
+            action={<Button size="small" variant="text" sx={{ fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/partners')}>View all →</Button>}
+          >
+            {loading ? <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} /> : <TopPartnersList data={top} />}
+          </ChartCard>
+        </Grid>
+      </Grid>
+
+      {/* Pulls + ops stack */}
+      <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
         <Grid size={{ xs: 12, md: 8 }}>
           <DataTable
-            title="Recent Report Pulls"
-            actionLabel="All reports"
-            onAction={() => navigate('/partner/account/reports')}
-            columns={columns}
-            data={recentPulls}
-            emptyMessage="No reports are available yet"
+            title="Recent report pulls" actionLabel="All reports" onAction={() => navigate('/admin/reports')}
+            columns={pullColumns} data={loading ? [] : (activity.pulls || [])}
+            emptyMessage={loading ? 'Loading…' : 'No reports yet'}
           />
         </Grid>
-
-        
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper
-            sx={{
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 'none',
-              height: '100%',
-            }}
-          >
-
-            <Box
-              sx={{
-                p: 2.5,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Activity</Typography>
-              <Typography
-                component="span"
-                onClick={() => navigate('/partner/account/activity')}
-                sx={{
-                  color: 'primary.main',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
-                View all &rarr;
-              </Typography>
-            </Box>
-
-
-            {activityFeed.length === 0 ? (
-              <Box
-                sx={{
-                  py: 6,
-                  px: 3,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <CircleDot size={28} color="#CBD5E1" />
-                <Typography variant="body2" sx={{ color: 'text.disabled', textAlign: 'center' }}>
-                  No activity found
-                </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.25 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Low wallets</Typography>
+                <Button size="small" variant="text" sx={{ ml: 'auto', fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/partners')}>View all →</Button>
               </Box>
-            ) : (
-              <List sx={{ p: 0 }}>
-                {activityFeed.map((activity, idx) => (
-                  <React.Fragment key={activity.id}>
-                    <ListItem sx={{ py: 2, alignItems: 'flex-start' }}>
-                      <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                        <CircleDot
-                          size={12}
-                          color={
-                            activity.type === 'pull'    ? '#12B886' :
-                            activity.type === 'fail'    ? '#EF4444' :
-                            activity.type === 'ai'      ? '#3B82F6' : '#F59E0B'
-                          }
-                          fill="currentColor"
-                        />
-                      </ListItemIcon>
+              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                {lowWallets.length > 0 ? `${lowWallets.length} accounts need attention` : 'All partners funded ✓'}
+              </Typography>
+              <List dense sx={{ mt: 0.5, py: 0 }}>
+                {lowWallets.map((w, i) => (
+                  <Box key={w._id || i}>
+                    <ListItem sx={{ px: 0, py: 0.6 }}>
                       <ListItemText
-                        disableTypography
-                        primary={
-                          <Typography variant="body2" fontWeight={600} mb={0.5}>
-                            {activity.message}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {new Date(activity.timestamp).toLocaleDateString() === new Date().toLocaleDateString()
-                                ? 'Today'
-                                : new Date(activity.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              {' · '}
-                              {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Typography>
-                            {activity.amount !== 0 && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: activity.amount > 0 ? 'success.main' : 'text.disabled',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {activity.amount > 0 ? '+' : ''}
-                                {activity.amount === 0 ? '—' : `₹${Math.abs(activity.amount).toLocaleString('en-IN')}`}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
+                        primary={<Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }} noWrap>{w.name || w.email}</Typography>}
+                        secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{w.activePlan ? `${TIER_LABEL[w.activePlan] || w.activePlan} · ` : ''}{w.email || ''}</Typography>}
                       />
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{inr(w.walletBalance)}</Typography>
                     </ListItem>
-                    {idx < activityFeed.length - 1 && <Divider component="li" />}
-                  </React.Fragment>
+                    {i < lowWallets.length - 1 && <Divider />}
+                  </Box>
                 ))}
               </List>
-            )}
-          </Paper>
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>Support</Typography>
+                <Button size="small" variant="text" sx={{ ml: 'auto', fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/support')}>Open →</Button>
+              </Box>
+              {(recentTickets || []).length === 0
+                ? <Typography variant="caption" sx={{ color: 'text.disabled' }}>No recent tickets</Typography>
+                : (recentTickets || []).map((t) => (
+                  <Box key={t._id} sx={{ display: 'flex', gap: 1, alignItems: 'center', py: 0.4 }}>
+                    <CircleDot size={10} color={t.status === 'open' ? '#EF4444' : t.status === 'resolved' ? '#10B981' : '#F59E0B'} fill="currentColor" />
+                    <Typography variant="caption" sx={{ flex: 1, fontSize: '0.75rem' }} noWrap>{t.category} · {t.partnerId?.name || 'Partner'}</Typography>
+                    <StatusBadge status={t.status} />
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', flexShrink: 0 }}>{timeAgo(t.createdAt)}</Typography>
+                  </Box>
+                ))}
+            </Paper>
+            <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2, bgcolor: '#F8FAFF' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <AlertTriangle size={16} color="#8B5CF6" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Failed pulls</Typography>
+              </Box>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                <b>{s.failedThisMonth ?? 0}</b> this month · <b>{inrShort(s.failFeeMonth)}</b> fail-fee earned
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>Success rate {s.successRate ?? 100}%</Typography>
+            </Paper>
+          </Box>
         </Grid>
-      </Grid> */}
+      </Grid>
     </Box>
   );
 };
 
-export default Dashboard;
+export default AdminOverview;
