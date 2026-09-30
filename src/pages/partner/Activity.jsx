@@ -6,6 +6,17 @@ import { timeAgo } from '../../Components/admin/AdminWidgets';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+const fmtDateTime = (v) => {
+  if (!v) return '';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '';
+  return (
+    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ', ' +
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+  );
+};
+
 const TYPE_META = {
   pull: { bg: '#E7F8F0', fg: '#0E9F6E', Icon: FileCheck2, label: 'Report' },
   fail: { bg: '#FDECEC', fg: '#E02424', Icon: FileX2, label: 'Failed' },
@@ -122,7 +133,7 @@ const Activity = () => {
                       <Chip label={meta.label} size="small" sx={{ height: 20, fontSize: '0.62rem', fontWeight: 800, bgcolor: meta.bg, color: meta.fg, flexShrink: 0 }} />
                     </Box>
                     <Typography variant="caption" sx={{ color: '#8A94A6', display: 'block', mt: 0.25 }}>
-                      {activity.sub ? `${activity.sub} · ` : ''}{timeAgo(activity.timestamp)}
+                      {activity.sub ? `${activity.sub} · ` : ''}{timeAgo(activity.timestamp)} · {fmtDateTime(activity.timestamp)}
                       {activity.detail ? ` · ${activity.detail}` : ''}
                     </Typography>
                   </Box>

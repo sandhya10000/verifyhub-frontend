@@ -140,10 +140,7 @@ const PartnerLayout = () => {
       text: "My Reports",
       icon: <BarChart2 size={18} />,
       children: [
-        { text: "CIBIL Reports", icon: <ShieldCheck size={16} />, path: "/partner/account/reports/cibil" },
-        { text: "Experian Reports", icon: <TrendingUp size={16} />, path: "/partner/account/reports/experian" },
-        { text: "CRIF Reports", icon: <Building2 size={16} />, path: "/partner/account/reports/crif" },
-        { text: "Equifax Reports", icon: <Scale size={16} />, path: "/partner/account/reports/equifax" },
+        { text: "Credit Bureau Reports", icon: <ShieldCheck size={16} />, path: "/partner/account/reports/credit-bureau" },
         { text: "AI Analysed Reports", icon: <Bot size={16} />, path: "/partner/account/reports/ai" },
       ],
     },
