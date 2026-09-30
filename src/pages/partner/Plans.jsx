@@ -2,44 +2,31 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Button,
   Alert,
   Chip,
   Grid,
   Paper,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import {
-  CurrencyRupee,
-  AccountBalanceWallet,
-  GridView,
-  CardMembership,
-  ReceiptLong,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
-import { FALLBACK_PLANS, PLAN_META, planLabel, inr2 } from './planConfig';
+import {
+  FALLBACK_PLANS, PLAN_META, planLabel, inr0, inr2,
+  TIER_RANGES, tierRangeLabel, nextTier, savingVsStartup, pullsAtMinimum,
+} from './planConfig';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const GUIDE_STEPS = [
-  { icon: <CurrencyRupee sx={{ fontSize: 26 }} />, title: 'Step 1', text: 'Add fund using Razorpay', bg: '#EEF2FF', fg: '#4F46E5' },
-  { icon: <AccountBalanceWallet sx={{ fontSize: 26 }} />, title: 'Step 2', text: 'Money added to Main Wallet', bg: '#EFF6FF', fg: '#2563EB' },
-  { icon: <GridView sx={{ fontSize: 26 }} />, title: 'Step 3', text: 'Choose a recharge plan', bg: '#FAF5FF', fg: '#9333EA' },
-  { icon: <CardMembership sx={{ fontSize: 26 }} />, title: 'Step 4', text: 'Activate plan from wallet', bg: '#FFFBEB', fg: '#D97706' },
-  { icon: <ReceiptLong sx={{ fontSize: 26 }} />, title: 'Step 5', text: 'Generate bureau reports', bg: '#ECFDF5', fg: '#059669' },
-];
+
 
 const Plans = () => {
   const navigate = useNavigate();
-  const { user, token, login } = useAuth();
+  const { user, token, login, refreshWallet } = useAuth();
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [aiTotal, setAiTotal] = useState(118);
   const [otherFail, setOtherFail] = useState(30);
@@ -48,6 +35,8 @@ const Plans = () => {
   const [confirmPlan, setConfirmPlan] = useState(null);
 
   useEffect(() => {
+    // Refresh balance + active plan (stored login payload may predate them).
+    refreshWallet?.();
     axios.get(`${API_BASE_URL}/partner/pricing/plans`)
       .then(({ data }) => {
         if (data?.success) {
@@ -84,98 +73,151 @@ const Plans = () => {
     }
   };
 
+  const goTopUp = (min) => navigate(`/partner/add-funds${min ? `?amount=${min}` : ''}`);
+
+  // Smart plan-button flow:
+  // - wallet covers the plan fee  -> open the activate confirm dialog
+  // - wallet short                -> AddFunds prefilled with the shortfall
+  //   plus an alert naming the remaining amount and the plan.
+  const handlePlanButton = (planKey) => {
+    const fee = Number(plans?.[planKey]?.recharge || 0);
+    const balance = Number(user?.walletBalance || 0);
+    if (fee > 0 && balance >= fee) {
+      setConfirmPlan(planKey);
+      return;
+    }
+    const shortfall = Math.max(0, Math.ceil((fee - balance) * 100) / 100);
+    navigate(`/partner/add-funds?amount=${shortfall}&forPlan=${encodeURIComponent(planLabel(planKey))}`);
+  };
+
+  const activeRow = (user?.activePlan && plans[user.activePlan]) || null;
+  const next = nextTier(user?.activePlan);
+  const nextHint = next
+    ? `Next tier: ${planLabel(next.key)}. Top up ${inr0(next.min)} or more in one go.`
+    : user?.activePlan ? 'You are on the highest tier.' : `Top up ${inr0(TIER_RANGES[0].min)} or more to get started.`;
+
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', color: 'text.primary' }}
-          >
-            Recharge Plans
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
+            Plans &amp; rates
           </Typography>
-          {user?.activePlan && (
-            <Chip label={`Current: ${planLabel(user.activePlan)}`} size="small" sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontWeight: 700 }} />
-          )}
-          {user?.walletBalance != null && (
-            <Chip
-              label={`Wallet: ${inr2(user.walletBalance)}`}
-              size="small"
-              sx={{ bgcolor: '#ECFDF5', color: '#059669', fontWeight: 700 }}
-            />
-          )}
+          <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            Top up your wallet, then activate a plan. Bigger plans unlock cheaper pulls.
+          </Typography>
         </Box>
-        <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1rem', mt: 0.5 }}>
-          Top up your wallet, then activate a plan. Bigger plans unlock cheaper pulls.
-        </Typography>
+        <Button
+          variant="contained" disableElevation
+          onClick={() => goTopUp()}
+          sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2.5, py: 1 }}
+        >
+          Top up wallet
+        </Button>
       </Box>
 
       {banner && (
-        <Alert severity={banner.tone} onClose={() => setBanner(null)} sx={{ mb: 2.5, borderRadius: '10px' }}>
+        <Alert severity={banner.tone} onClose={() => setBanner(null)} sx={{ mb: 2.5, borderRadius: 1 }}>
           {banner.text}
         </Alert>
       )}
 
-      {/* Usage guide */}
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', boxShadow: '0 2px 12px rgba(15,27,45,.06)', mb: 3 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
-            Wallet → Report Usage Guide
+      {/* Status strip */}
+      <Paper elevation={0} sx={{ border: '1px solid #E8EEF5', borderRadius: 1, px: 3, py: 2, mb: 2, display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ minWidth: 120 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Active plan</Typography>
+          <Typography sx={{ fontWeight: 800 }}>{user?.activePlan ? planLabel(user.activePlan) : '—'}</Typography>
+        </Box>
+        <Box sx={{ minWidth: 120 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Wallet balance</Typography>
+          <Typography sx={{ fontWeight: 800 }}>{user?.walletBalance != null ? inr2(user.walletBalance) : '—'}</Typography>
+        </Box>
+        <Box sx={{ minWidth: 140 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Your CIBIL rate</Typography>
+          <Typography sx={{ fontWeight: 800 }}>
+            {activeRow ? `${inr0(activeRow.cibil)} per report` : '—'}
           </Typography>
-          <Grid container spacing={1.5}>
-            {GUIDE_STEPS.map((s) => (
-              <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={s.title}>
-                <Paper
-                  elevation={0}
-                  sx={{ p: 2, borderRadius: '10px', bgcolor: s.bg, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75 }}
-                >
-                  <Box sx={{ color: s.fg, display: 'flex' }}>{s.icon}</Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: s.fg }}>{s.title}</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>{s.text}</Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </CardContent>
-      </Card>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 200, textAlign: { xs: 'left', md: 'right' } }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{nextHint}</Typography>
+        </Box>
+      </Paper>
 
-      {/* Plan cards */}
+      {/* Tier ladder */}
+      <Paper elevation={0} sx={{ border: '1px solid #E8EEF5', borderRadius: 1, mb: 2.5, overflow: 'hidden' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' } }}>
+          {TIER_RANGES.map((t) => {
+            const isHere = user?.activePlan === t.key;
+            return (
+              <Box
+                key={t.key}
+                sx={{
+                  px: 2.5, py: 1.75,
+                  borderTop: isHere ? '3px solid #3730A3' : '3px solid transparent',
+                  borderLeft: { xs: 'none', md: '1px solid #EEF1F6' },
+                  '&:first-of-type': { borderLeft: 'none' },
+                  bgcolor: isHere ? '#F5F3FF' : '#fff',
+                }}
+              >
+                {isHere && (
+                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', color: '#3730A3', mb: 0.25 }}>
+                    YOU ARE HERE
+                  </Typography>
+                )}
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em', color: 'text.secondary' }}>
+                  TIER {t.tier}
+                </Typography>
+                <Typography sx={{ fontWeight: 800 }}>{planLabel(t.key)}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{tierRangeLabel(t.key)}</Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      </Paper>
+
+      {/* Plan cards + how-it-works */}
       <Grid container spacing={2}>
         {PLAN_META.map((p) => {
           const row = plans[p.key] || {};
           const isCurrent = user?.activePlan === p.key;
-          const pulls = row.cibil > 0 ? Math.floor(row.recharge / row.cibil) : 0;
+          const saving = savingVsStartup(plans, p.key);
+          const pulls = pullsAtMinimum(plans, p.key);
+          const range = TIER_RANGES.find((t) => t.key === p.key);
+          const topUpLabel = range.max == null
+            ? `Top up ${inr0(range.min)} and above`
+            : `Top up ${inr0(range.min)} – ${inr0(range.max)}`;
           return (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={p.key}>
               <Paper
                 elevation={0}
                 sx={{
-                  p: 2.5, borderRadius: '12px', border: '2px solid',
-                  borderColor: isCurrent ? '#10B981' : '#E2E8F0',
+                  p: 2.5, borderRadius: 1, border: '2px solid',
+                  borderColor: isCurrent ? '#3730A3' : '#E8EEF5',
                   bgcolor: '#fff', position: 'relative', height: '100%',
-                  transition: 'all 0.18s ease', '&:hover': { borderColor: '#3730A3' },
+                  display: 'flex', flexDirection: 'column',
                 }}
               >
-                {p.highlight && (
-                  <Chip label="Most popular" size="small"
-                    sx={{ position: 'absolute', top: -11, right: 12, bgcolor: '#3730A3', color: '#fff', fontSize: '0.62rem', fontWeight: 700 }} />
-                )}
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{p.label}</Typography>
-                  {isCurrent && (
-                    <Chip label="Current" size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontSize: '0.62rem', fontWeight: 700, height: 20 }} />
-                  )}
+                  {isCurrent ? (
+                    <Chip label="ACTIVE" size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontSize: '0.62rem', fontWeight: 800, height: 22 }} />
+                  ) : p.highlight ? (
+                    <Chip label="Most popular" size="small" sx={{ bgcolor: '#3730A3', color: '#fff', fontSize: '0.62rem', fontWeight: 700, height: 22 }} />
+                  ) : null}
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>
-                  ₹{Number(row.recharge || 0).toLocaleString('en-IN')}
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>CIBIL report</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, my: 0.25 }}>
+                  {inr0(row.cibil)}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-                  {p.tagline} · ≈ {pulls} CIBIL pulls
+                <Typography variant="caption" sx={{ color: saving > 0 ? '#0E9F6E' : 'text.secondary', fontWeight: saving > 0 ? 700 : 400, display: 'block', mb: 1.5 }}>
+                  {saving > 0 ? `Save ${inr0(saving)} per CIBIL report vs Start-Up` : 'Standard rates'}
                 </Typography>
-                <Divider sx={{ my: 1 }} />
+                <Box sx={{ bgcolor: '#F4F6FA', borderRadius: 1, px: 1.5, py: 1, mb: 1.5 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{topUpLabel}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>≈ {pulls} CIBIL pulls at the minimum</Typography>
+                </Box>
                 {[
-                  ['CIBIL Report', row.cibil],
                   ['Experian Report', row.experian],
                   ['CRIF Report', row.crif],
                   ['Equifax Report', row.equifax],
@@ -183,32 +225,65 @@ const Plans = () => {
                 ].map(([name, price]) => (
                   <Box key={name} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.4 }}>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.82rem' }}>{name}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{Number(price || 0).toLocaleString('en-IN')}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr0(price)}</Typography>
                   </Box>
                 ))}
-                <Button
-                  fullWidth
-                  variant={isCurrent ? 'outlined' : 'contained'}
-                  disableElevation
-                  disabled={isCurrent}
-                  onClick={() => setConfirmPlan(p.key)}
-                  sx={{
-                    mt: 2, borderRadius: '8px', fontWeight: 700, textTransform: 'none', py: 1.25,
-                    ...(isCurrent
-                      ? { borderColor: '#A7F3D0', color: '#059669' }
-                      : { bgcolor: '#3730A3', '&:hover': { bgcolor: '#312E81' } }),
-                  }}
-                >
-                  {isCurrent ? 'Active plan' : `Recharge ₹${Number(row.recharge || 0).toLocaleString('en-IN')}`}
-                </Button>
+                <Box sx={{ flexGrow: 1 }} />
+                {isCurrent ? (
+                  <Button fullWidth variant="outlined" disabled sx={{ mt: 2, borderRadius: 1, fontWeight: 700, textTransform: 'none', py: 1.25 }}>
+                    Your current plan
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      onClick={() => handlePlanButton(p.key)}
+                      sx={{ mt: 2, borderRadius: 1, fontWeight: 700, textTransform: 'none', py: 1.25, borderColor: '#3730A3', color: '#3730A3' }}
+                    >
+                      {`Top up ${inr0(range.min)}+ for ${p.label}`}
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => setConfirmPlan(p.key)}
+                      sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.75rem', color: 'text.secondary' }}
+                    >
+                      or activate {p.label} now
+                    </Button>
+                  </>
+                )}
               </Paper>
             </Grid>
           );
         })}
+
+        {/* How plans work */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 1, bgcolor: '#EEF2FF', border: '1px solid #E0E7FF', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>How plans work</Typography>
+            {[
+              'Add money to your wallet on the Top-up tab.',
+              'Your plan is applied automatically, based on the amount you add.',
+              'Every report is charged at your plan\u2019s rates. A larger top-up later can move you up.',
+            ].map((text, i) => (
+              <Box key={i} sx={{ display: 'flex', gap: 1.25, mb: 1.5 }}>
+                <Typography sx={{ fontWeight: 800, color: '#3730A3', fontSize: '0.9rem' }}>{i + 1}</Typography>
+                <Typography variant="body2" sx={{ color: '#33415C', fontSize: '0.85rem' }}>{text}</Typography>
+              </Box>
+            ))}
+            <Box sx={{ flexGrow: 1 }} />
+            <Button
+              onClick={() => goTopUp()}
+              sx={{ textTransform: 'none', fontWeight: 700, color: '#3730A3', justifyContent: 'flex-start', p: 0, minWidth: 0 }}
+            >
+              Go to Wallet &amp; Top-up →
+            </Button>
+          </Paper>
+        </Grid>
       </Grid>
 
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 2 }}>
-        Failed pulls: CIBIL charged per your plan · others ₹{otherFail} · matched-input CIBIL retries free. Plan fee is deducted from wallet balance.
+        Failed pulls: CIBIL charged per your plan · others {inr0(otherFail)} · matched-input CIBIL retries free. Your full top-up goes to your wallet and is spent at your plan&apos;s rates.
       </Typography>
 
       {/* Activation confirm dialog */}
@@ -237,7 +312,7 @@ const Plans = () => {
                   </Typography>
                 </Box>
                 {short && (
-                  <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2 }}>
+                  <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 1 }}>
                     Short by ₹{(dialogFee - balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })} — top up first, then activate.
                   </Alert>
                 )}
@@ -247,8 +322,13 @@ const Plans = () => {
                 {short ? (
                   <Button
                     variant="contained" disableElevation
-                    onClick={() => { setConfirmPlan(null); navigate('/partner/add-funds'); }}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
+                    onClick={() => {
+                      const need = Math.max(0, Math.ceil((dialogFee - balance) * 100) / 100);
+                      const key = confirmPlan;
+                      setConfirmPlan(null);
+                      navigate(`/partner/add-funds?amount=${need}&forPlan=${encodeURIComponent(planLabel(key))}`);
+                    }}
+                    sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
                   >
                     Top Up Now
                   </Button>
@@ -256,7 +336,7 @@ const Plans = () => {
                   <Button
                     variant="contained" disableElevation disabled={paying}
                     onClick={() => handleActivate(confirmPlan)}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
+                    sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3' }}
                   >
                     {paying ? 'Processing…' : 'Confirm & Activate'}
                   </Button>

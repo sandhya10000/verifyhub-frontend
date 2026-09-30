@@ -16,7 +16,6 @@ import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalance
 import BarChartIcon from '@mui/icons-material/BarChart';
 import BoltIcon from '@mui/icons-material/Bolt';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import CallMadeIcon from '@mui/icons-material/CallMade';
@@ -24,87 +23,20 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
+import DataTable from '../../Components/shared/DataTable';
+import StatusBadge from '../../Components/shared/StatusBadge';
+import TypePill from '../../Components/shared/TypePill';
+import RowActions from '../../Components/shared/RowActions';
 
 const API = () => import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_ROOT = () => API().replace(/\/api\/?$/, '');
 const authHeaders = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
-const fmtDT = (d) => {
-  if (!d) return '—';
-  const dt = new Date(d);
-  const date = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${date}, ${time}`;
-};
-const inr0 = (n) => {
-  const v = Number(n);
-  return Number.isFinite(v)
-    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v)
-    : '—';
-};
-const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '—';
-
-const TABS = ['profile', 'reports', 'payments'];
-
-// Small dot pill (matches mockup: light tint bg + colored dot + label)
-const Dot = ({ tone = 'green', children }) => {
-  const tones = {
-    green: { bg: '#e9f9f0', color: '#12805c', dot: '#16a34a' },
-    gray: { bg: '#eef1f6', color: '#5b6472', dot: '#9aa3b2' },
-    red: { bg: '#fdeeee', color: '#c24141', dot: '#e05252' },
-    blue: { bg: '#e8f1fe', color: '#1d5fd1', dot: '#2f7cf6' },
-  };
-  const t = tones[tone] || tones.gray;
-  return (
-    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, bgcolor: t.bg, color: t.color, fontWeight: 600, fontSize: '0.78rem', px: 1.5, py: 0.5, borderRadius: 999 }}>
-      <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: t.dot }} />
-      {children}
-    </Box>
-  );
-};
-
-const statusTone = (s) => {
-  const v = String(s || '').toLowerCase();
-  if (['success', 'completed', 'successful'].includes(v)) return 'green';
-  if (['failed', 'failure'].includes(v)) return 'red';
-  return 'gray';
-};
-
-const StatTile = ({ bg, iconBg, iconColor, icon, label, value }) => (
-  <Box sx={{ bgcolor: bg, borderRadius: 1, p: 2, display: 'flex', gap: 1.5, alignItems: 'center', minWidth: 0 }}>
-    <Box sx={{ bgcolor: iconBg, color: iconColor, borderRadius: 1.5, p: 1.25, display: 'flex', flexShrink: 0 }}>{icon}</Box>
-    <Box sx={{ minWidth: 0 }}>
-      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500, display: 'block', lineHeight: 1.3 }}>{label}</Typography>
-      <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', lineHeight: 1.25 }}>{value}</Typography>
-    </Box>
-  </Box>
-);
-
-const Label = ({ children }) => (
-  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500, display: 'block', mb: 0.5 }}>{children}</Typography>
-);
-const Value = ({ children }) => (
-  <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f1e3d', wordBreak: 'break-word' }}>{children}</Typography>
-);
-
-// Account-info row: fixed-width gray label + dark value, optional leading icon
-const InfoRow = ({ label, value, icon }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-    {icon && <Box sx={{ display: 'flex', width: 20, justifyContent: 'center', flexShrink: 0 }}>{icon}</Box>}
-    <Typography variant="body2" sx={{ color: '#64748b', width: 110, flexShrink: 0 }}>{label}</Typography>
-    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f1e3d', wordBreak: 'break-word' }}>{value}</Typography>
-  </Box>
-);
+import { fmtDate, fmtDT, inr0, initials, Dot, StatTile, InfoRow } from '../../Components/shared/partnerProfile';
 
 const RANGE_LABEL = { lifetime: 'Lifetime', month: '30-Day', week: '7-Day' };
 
-const Th = ({ children, right }) => (
-  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', textAlign: right ? 'right' : 'left' }}>
-    {children}
-  </Typography>
-);
-const rowSx = { display: 'grid', alignItems: 'center', gap: 1, py: 1.4, borderBottom: '1px solid #eef1f6', '&:last-child': { borderBottom: 'none' } };
+
 
 const PartnerDetail = () => {
   const { id } = useParams();
@@ -295,13 +227,91 @@ const PartnerDetail = () => {
   const visibleReports = q
     ? reports.filter((r) => `${r.customer || ''} ${r.bureau || ''} ${r.kind || ''} ${r.status || ''}`.toLowerCase().includes(q))
     : reports;
-  const reportGrid = '1.3fr 1fr 1.6fr 0.6fr 0.9fr 0.6fr 0.5fr';
-  const txnGrid = '1.2fr 1.2fr 0.7fr 0.7fr 0.5fr 0.7fr 0.9fr 0.8fr';
+  const reportStatusLabel = (s) => {
+    const v = String(s || '');
+    if (!v) return '—';
+    return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+  };
+  const txnStatusLabel = (s) => {
+    const t = String(s || '').toUpperCase();
+    if (t === 'SUCCESS') return 'Success';
+    if (t === 'FAILED') return 'Failed';
+    if (t === 'PENDING') return 'Pending';
+    return s || '—';
+  };
+
+  const reportColumns = [
+    {
+      header: 'Date', field: 'createdAt', nowrap: true, minWidth: 150,
+      render: (r) => <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>{fmtDT(r.createdAt)}</Typography>,
+    },
+    {
+      header: 'Type', field: 'kind', nowrap: true, minWidth: 140,
+      render: (r) => <TypePill type={r.kind === 'ai' ? 'AI Credit Analysis' : 'Credit Report'} bureau={r.kind === 'ai' ? 'AI' : r.bureau} />,
+    },
+    {
+      header: 'Customer', field: 'customer', minWidth: 130,
+      render: (r) => (
+        <Typography title={r.customer} sx={{ fontSize: '0.82rem', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customer}</Typography>
+      ),
+    },
+    {
+      header: 'Score', field: 'score', nowrap: true, minWidth: 70,
+      render: (r) => <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{r.score ?? '—'}</Typography>,
+    },
+    {
+      header: 'Status', field: 'status', nowrap: true, minWidth: 110,
+      render: (r) => <StatusBadge status={reportStatusLabel(r.status)} />,
+    },
+    {
+      header: 'Charge', field: 'charge', nowrap: true, minWidth: 90, align: 'right',
+      render: (r) => <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{r.charge != null ? inr0(r.charge) : '—'}</Typography>,
+    },
+    {
+      header: 'Actions', field: 'file', align: 'right', width: 60,
+      render: (r) => r.hasFile
+        ? <RowActions actions={[{ label: downloading === String(r.id) ? 'Downloading…' : 'Download', onClick: () => handleDownload(r) }]} />
+        : <Typography sx={{ color: '#B0B8C5' }}>—</Typography>,
+    },
+  ];
+
+  const txnColumns = [
+    {
+      header: 'Date', field: 'createdAt', nowrap: true, minWidth: 150,
+      render: (t) => <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>{fmtDT(t.createdAt)}</Typography>,
+    },
+    { header: 'Purpose', field: 'purpose', minWidth: 150, render: (t) => <Typography sx={{ fontSize: '0.8rem' }}>{(t.purpose || '—').replace(/_/g, ' ')}</Typography> },
+    {
+      header: 'Type', field: 'type', nowrap: true, minWidth: 80,
+      render: (t) => (
+        <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: t.type === 'CREDIT' ? '#16A34A' : '#E02424', whiteSpace: 'nowrap' }}>
+          {t.type === 'CREDIT' ? 'Credit' : 'Debit'}
+        </Typography>
+      ),
+    },
+    {
+      header: 'Amount', field: 'amount', nowrap: true, minWidth: 100, align: 'right',
+      render: (t) => <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{inr0(t.amount)}</Typography>,
+    },
+    {
+      header: 'GST', field: 'gstAmount', nowrap: true, minWidth: 90, align: 'right',
+      render: (t) => <Typography sx={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{inr0(t.gstAmount || 0)}</Typography>,
+    },
+    {
+      header: 'Total', field: 'total', nowrap: true, minWidth: 100, align: 'right',
+      render: (t) => <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{inr0(t.totalAmount ?? t.amount)}</Typography>,
+    },
+    {
+      header: 'Status', field: 'status', nowrap: true, minWidth: 110,
+      render: (t) => <StatusBadge status={txnStatusLabel(t.status)} />,
+    },
+    { header: 'Gateway', field: 'gateway', nowrap: true, minWidth: 100 },
+  ];
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3, bgcolor: '#f4f6fa', minHeight: '100vh' }}>
       {/* ── Header card ── */}
-      <Card variant="outlined" sx={{ borderRadius: 1.5, mb: 2, borderColor: '#e8edf4' }}>
+      <Card variant="outlined" sx={{ borderRadius: 0.5, mb: 2, borderColor: '#e8edf4' }}>
         <CardContent sx={{ pb: 0, px: 3, pt: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
             <Box>
@@ -367,7 +377,7 @@ const PartnerDetail = () => {
       {activeTab === 'profile' && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Key Metrics */}
-          <Card variant="outlined" sx={{ borderRadius: 1.5, borderColor: '#e8edf4', boxShadow: '0 1px 2px rgba(15,30,61,0.04)', overflow: 'hidden' }}>
+          <Card variant="outlined" sx={{ borderRadius: 0.5, borderColor: '#e8edf4', boxShadow: '0 1px 2px rgba(15,30,61,0.04)', overflow: 'hidden' }}>
             <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -380,7 +390,7 @@ const PartnerDetail = () => {
                     <Select
                       value={range}
                       onChange={(e) => setRange(e.target.value)}
-                      sx={{ fontSize: '0.85rem', fontWeight: 600, borderRadius: 1.5, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
+                      sx={{ fontSize: '0.85rem', fontWeight: 600, borderRadius: 0.5, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
                     >
                       <MenuItem value="lifetime">Lifetime</MenuItem>
                       <MenuItem value="month">Last 30 days</MenuItem>
@@ -400,7 +410,7 @@ const PartnerDetail = () => {
           </Card>
 
           {/* Account Information */}
-          <Card variant="outlined" sx={{ borderRadius: 1.5, borderColor: '#e8edf4', boxShadow: '0 1px 2px rgba(15,30,61,0.04)', overflow: 'hidden' }}>
+          <Card variant="outlined" sx={{ borderRadius: 0.5, borderColor: '#e8edf4', boxShadow: '0 1px 2px rgba(15,30,61,0.04)', overflow: 'hidden' }}>
             <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -411,7 +421,7 @@ const PartnerDetail = () => {
                   size="small"
                   startIcon={<EditIcon fontSize="small" />}
                   onClick={openEdit}
-                  sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#e8f1fe', color: '#1d5fd1', borderRadius: 1.5, px: 2, '&:hover': { bgcolor: '#d9e7fd' } }}
+                  sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#e8f1fe', color: '#1d5fd1', borderRadius: 0.5, px: 2, '&:hover': { bgcolor: '#d9e7fd' } }}
                 >
                   Edit Details
                 </Button>
@@ -467,7 +477,7 @@ const PartnerDetail = () => {
 
       {/* ── Reports tab ── */}
       {activeTab === 'reports' && (
-        <Card variant="outlined" sx={{ borderRadius: 1.5 }}>
+        <Card variant="outlined" sx={{ borderRadius: 0.5 }}>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -490,38 +500,11 @@ const PartnerDetail = () => {
                 {q ? `No reports match "${reportQuery}"` : 'No reports yet.'}
               </Typography>
             ) : (
-              <Box>
-                <Box sx={{ ...rowSx, gridTemplateColumns: reportGrid, borderBottom: '1px solid #e5e9f2', py: 1 }}>
-                  <Th>Date</Th><Th>Type</Th><Th>Customer</Th><Th>Score</Th><Th>Status</Th><Th>Charge</Th><Th right>File</Th>
-                </Box>
-                {visibleReports.map((r) => (
-                  <Box key={`${r.kind}-${r.id}`} sx={{ ...rowSx, gridTemplateColumns: reportGrid }}>
-                    <Typography variant="body2">{fmtDT(r.createdAt)}</Typography>
-                    <Box><Chip size="small" variant="outlined" label={r.kind === 'ai' ? 'AI Analysis' : `Credit · ${r.bureau || ''}`} /></Box>
-                    <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customer}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.score ?? '—'}</Typography>
-                    <Box><Dot tone={statusTone(r.status)}>{r.status}</Dot></Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.charge != null ? inr0(r.charge) : '—'}</Typography>
-                    <Box sx={{ textAlign: 'right' }}>
-                      {r.hasFile ? (
-                        <IconButton
-                          size="small"
-                          title="Download report"
-                          disabled={downloading === String(r.id)}
-                          onClick={() => handleDownload(r)}
-                          sx={{ border: '1px solid #e5e9f2' }}
-                        >
-                          {downloading === String(r.id)
-                            ? <CircularProgress size={16} />
-                            : <FileDownloadOutlinedIcon fontSize="small" />}
-                        </IconButton>
-                      ) : (
-                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>—</Typography>
-                      )}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
+              <DataTable
+                columns={reportColumns}
+                data={visibleReports}
+                emptyMessage={q ? `No reports match "${reportQuery}"` : 'No reports yet.'}
+              />
             )}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2, alignItems: 'center' }}>
               <Button size="small" disabled={reportsPage === 1} onClick={() => setReportsPage((p) => p - 1)}>Previous</Button>
@@ -534,7 +517,7 @@ const PartnerDetail = () => {
 
       {/* ── Payment history tab ── */}
       {activeTab === 'payments' && (
-        <Card variant="outlined" sx={{ borderRadius: 1.5 }}>
+        <Card variant="outlined" sx={{ borderRadius: 0.5 }}>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -553,33 +536,11 @@ const PartnerDetail = () => {
             ) : txns.length === 0 ? (
               <Typography variant="body2" sx={{ color: 'text.disabled', textAlign: 'center', py: 5 }}>No transactions yet.</Typography>
             ) : (
-              <Box>
-                <Box sx={{ ...rowSx, gridTemplateColumns: txnGrid, borderBottom: '1px solid #e5e9f2', py: 1 }}>
-                  <Th>Date</Th><Th>Purpose</Th><Th>Type</Th><Th>Amount</Th><Th>GST</Th><Th>Total</Th><Th>Status</Th><Th>Gateway</Th>
-                </Box>
-                {txns.map((t) => (
-                  <Box key={t._id} sx={{ ...rowSx, gridTemplateColumns: txnGrid }}>
-                    <Typography variant="body2">{fmtDT(t.createdAt)}</Typography>
-                    <Typography variant="body2">{(t.purpose || '—').replace(/_/g, ' ')}</Typography>
-                    <Box>
-                      <Chip
-                        size="small"
-                        label={t.type}
-                        sx={{
-                          fontWeight: 700, fontSize: '0.7rem',
-                          bgcolor: t.type === 'CREDIT' ? '#5b8def' : '#e05252',
-                          color: '#fff',
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="body2">{inr0(t.amount)}</Typography>
-                    <Typography variant="body2">{inr0(t.gstAmount || 0)}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr0(t.totalAmount ?? t.amount)}</Typography>
-                    <Box><Dot tone={statusTone(t.status)}>{t.status}</Dot></Box>
-                    <Typography variant="body2">{t.gateway || '—'}</Typography>
-                  </Box>
-                ))}
-              </Box>
+              <DataTable
+                columns={txnColumns}
+                data={txns}
+                emptyMessage="No transactions yet."
+              />
             )}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2, alignItems: 'center' }}>
               <Button size="small" disabled={txnsPage === 1} onClick={() => setTxnsPage((p) => p - 1)}>Previous</Button>

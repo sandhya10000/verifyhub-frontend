@@ -28,16 +28,12 @@ import {
   Stepper,
   TextField,
   Typography,
-  TableContainer,
   Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Link,
   MenuItem,
 } from "@mui/material";
+import DataTable from "../../Components/shared/DataTable";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
 
 import {
   AccountBalance,
@@ -250,7 +246,7 @@ const CrifReport = () => {
 
       console.log("[CRIF GET] Fetching saved report:", reportId);
 
-      const response = await creditAPI.getCrifReport(reportId);
+      const response = await creditAPI.generateCrifReport(reportId);
 
       console.log("[CRIF GET RESPONSE]:", response);
 
@@ -622,28 +618,6 @@ const CrifReport = () => {
       setLoading(false);
     }
   };
-  const getScoreColor = (score) => {
-    const numericScore = Number(score);
-
-    if (!numericScore) {
-      return "default";
-    }
-
-    if (numericScore >= 750) {
-      return "success";
-    }
-
-    if (numericScore >= 700) {
-      return "info";
-    }
-
-    if (numericScore >= 650) {
-      return "warning";
-    }
-
-    return "error";
-  };
-
   // ============================================================
   // SUBMIT ANSWER
   // ============================================================

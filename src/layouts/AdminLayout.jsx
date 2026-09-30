@@ -1,24 +1,20 @@
 import React, { useState } from 'react';
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, IconButton, AppBar, Toolbar, Chip, Button, Divider, Menu as MuiMenu, MenuItem, Badge } from '@mui/material';
+import { Box, Drawer, Typography, IconButton, AppBar, Toolbar, Menu as MuiMenu, MenuItem } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, IndianRupee, Settings2, Wallet, RefreshCcw, Activity, Download, Settings, Menu as MenuIcon, ExternalLink, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
-import Logo from '../components/shared/Logo';
-import wordmarkImg from '../assets/wordmark.png';
-import { FaLinkedin, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
-import { FaThreads } from 'react-icons/fa6';
+import { LayoutDashboard, Users, IndianRupee, RefreshCcw, Activity, Settings, Menu as MenuIcon, LogOut } from 'lucide-react';
+import AppSidebar from '../Components/shared/AppSidebar';
 import useAuth from '../context/useAuth';
 
-const DRAWER_WIDTH = 280;
+const DRAWER_WIDTH = 240;
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [avatarAnchorEl, setAvatarAnchorEl] = useState(null);
-  const currentDrawerWidth = isCollapsed ? 88 : DRAWER_WIDTH;
+  const currentDrawerWidth = DRAWER_WIDTH;
 
   React.useEffect(() => {
     const fetchUnread = async () => {
@@ -59,7 +55,7 @@ const AdminLayout = () => {
     {
       label: 'MONEY',
       items: [
-        { text: 'Wallets & Recharges', icon: <Wallet size={20} />, path: '/admin/wallets' },
+        // { text: 'Wallets & Recharges', icon: <Wallet size={20} />, path: '/admin/wallets' },
         { text: 'Transactions', icon: <RefreshCcw size={20} />, path: '/admin/transactions' },
       ]
     },
@@ -100,234 +96,48 @@ const AdminLayout = () => {
     window.location.href = '/';
   };
 
-  const socialLinks = [
-    { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: 'https://www.linkedin.com/company/infoverifyhub/', color: '#0A66C2' },
-    { icon: <FaThreads size={15} />, label: 'Threads', href: 'https://www.threads.com/@info.verifyhub?invite=0', color: '#000000' },
-    { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=m93h8jz', color: '#E1306C' },
-    { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },
-    { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com/@info.verifyhub?si=KMG9lv2oPEuIvdud', color: '#FF0033' },
-  ];
   const titleForPath = (pathname) => {
                   if (/^\/admin\/partners\/[^/]+$/.test(pathname)) return 'Partner Profile';
                   const seg = pathname.split('/').filter(Boolean).pop() || 'Admin';
                   return seg.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
                 };
 
+  const sidebarGroups = navGroups.map((g) => ({
+    ...g,
+    items: (g.items || []).map((it) => (it.showBadge ? { ...it, badge: unreadTickets } : it)),
+  }));
+
   const drawer = (
-    <Box sx={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      bgcolor: 'secondary.main',
-      color: 'primary.contrastText',
-      overflowY: "auto",
-      overflowX: "hidden",
-      position: 'relative',
-      '&::-webkit-scrollbar': { width: '6px' },
-      '&::-webkit-scrollbar-track': { background: 'transparent' },
-      '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.1)', borderRadius: '10px' },
-      '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(255,255,255,0.2)' },
-    }}>
-      <Box sx={{ px: isCollapsed ? 1 : 1.5, pt: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-        {/* Toggle Button */}
-        <Box sx={{ alignSelf: 'flex-end', display: { xs: 'none', md: 'block' } }}>
-          <IconButton onClick={() => setIsCollapsed(!isCollapsed)} size="small" sx={{ color: '#8FA3BF', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </IconButton>
-        </Box>
-
-        {/* Logo */}
-        <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', width: '100%', my: 0, lineHeight: 0 }}>
-          {isCollapsed ? (
-            <img
-              src={wordmarkImg}
-              alt="VerifyHub"
-              style={{ height: 44, width: 'auto', display: 'block', objectFit: 'contain' }}
-            />
-          ) : (
-            <Logo height={50} alt="VerifyHub" style={{ boxShadow: 'none', filter: 'none', display: 'block', margin: 0, padding: 0 }} />
-          )}
-        </Box>
-
-        {/* Text stack */}
-        {!isCollapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mt: 0.5 }}>
-            <Typography
-              sx={{
-                color: '#8FA3BF',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                lineHeight: 1.2,
-              }}
-            >
-              ADMIN CONSOLE
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {/* Gradient divider */}
-      <Box
-        sx={{
-          height: '1px',
-          background: 'linear-gradient(90deg, #8B5CF6 0%, #10B981 100%)',
-          width: '100%',
-          mt: 1.5,
-          mb: 1,
-          opacity: 0.75,
-          flexShrink: 0,
-        }}
+    <Box sx={{ height: '100%' }}>
+      <AppSidebar
+        navGroups={sidebarGroups}
+        user={{ name: user?.name || 'Super Admin', role: 'Admin' }}
+        collapsed={false}
+        activePath={location.pathname}
+        onNavigate={(path) => navigate(path)}
+        footerMenu={[{ label: 'Sign Out', danger: true, onClick: handleLogout }]}
       />
-
-      <Box sx={{ flexGrow: 1 }}>
-        {navGroups.map((group, idx) => (
-          <React.Fragment key={idx}>
-            {group.label && !isCollapsed && (
-              <Box sx={{ mt: 3, mb: 0.5, px: 2 }}>
-                <Typography variant="overline" sx={{ color: 'text.disabled', letterSpacing: "0.06em", fontSize: "0.65rem" }}>{group.label}</Typography>
-              </Box>
-            )}
-            {group.label && isCollapsed && idx > 0 && <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />}
-            <List sx={{ px: isCollapsed ? 1 : 2, py: 1 }}>
-              {group.items.map((item) => {
-                const active = location.pathname.startsWith(item.path);
-                // Friendly AppBar titles — never leak raw route params (e.g. Mongo IDs)
-                
-
-                return (
-                  <ListItem
-                    button
-                    key={item.text}
-                    onClick={() => navigate(item.path)}
-                    title={isCollapsed ? item.text : ''}
-                    sx={{
-                      py: 1,
-                      px: isCollapsed ? 1 : 2,
-                      mb: 0.5,
-                      borderRadius: '8px',
-                      bgcolor: active ? "#3730A3" : "transparent",
-                      color: active ? "#fff" : "#8FA3BF",
-                      justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      "&:hover": {
-                        bgcolor: active ? "#3730A3" : "rgba(255, 255, 255, 0.05)",
-                        color: "#fff",
-                      }
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: isCollapsed ? 'auto' : 36, color: active ? '#fff' : '#8FA3BF', display: 'flex', justifyContent: 'center' }}>
-                      {/* When collapsed, wrap icon in a Badge dot so the count is still visible */}
-                      {item.showBadge && isCollapsed && unreadTickets > 0 ? (
-                        <Badge
-                          badgeContent={unreadTickets > 99 ? '99+' : unreadTickets}
-                          sx={{
-                            '& .MuiBadge-badge': {
-                              bgcolor: '#EF4444',
-                              color: '#fff',
-                              fontSize: '0.6rem',
-                              fontWeight: 700,
-                              minWidth: 16,
-                              height: 16,
-                              padding: '0 3px',
-                            }
-                          }}
-                        >
-                          {item.icon}
-                        </Badge>
-                      ) : item.icon}
-                    </ListItemIcon>
-                    {!isCollapsed && (
-                      <ListItemText
-                        primary={item.text}
-                        slotProps={{
-                          primary: {
-                            fontSize: "0.82rem",
-                            fontWeight: active ? 600 : 500,
-                            style: {
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            },
-                          },
-                        }}
-                      />
-                    )}
-                    {/* Expanded sidebar: show a Chip badge (hidden when count is 0 or sidebar is collapsed) */}
-                    {!isCollapsed && item.showBadge && unreadTickets > 0 && (
-                      <Chip
-                        label={unreadTickets > 99 ? '99+' : unreadTickets}
-                        size="small"
-                        sx={{ bgcolor: '#EF4444', color: '#fff', height: 20, fontSize: '0.72rem', fontWeight: 700, ml: 0.5 }}
-                      />
-                    )}
-                  </ListItem>
-                )
-              })}
-            </List>
-          </React.Fragment>
-        ))}
-      </Box>
-
-      <Box sx={{ px: isCollapsed ? 1 : 2.5, pt: 2, pb: 3, borderTop: "1px solid rgba(255,255,255,0.05)", bgcolor: 'transparent', display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'flex-start' }}>
-        {!isCollapsed && (
-          <Typography
-            variant="overline"
-            sx={{
-              color: "text.disabled",
-              display: "block",
-              mb: 1.5,
-              fontSize: "0.65rem",
-              letterSpacing: "0.06em"
-            }}
-          >
-            FOLLOW US
-          </Typography>
-        )}
-        <Box sx={{ display: "flex", gap: 1, alignItems: 'center', flexDirection: isCollapsed ? 'column' : 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {socialLinks.map((social) => (
-            <IconButton
-              key={social.label}
-              component="a"
-              href={social.href}
-              title={social.label}
-              sx={{
-                bgcolor: social.color,
-                color: '#fff',
-                width: 30,
-                height: 30,
-                borderRadius: '7px',
-                '&:hover': {
-                  bgcolor: social.color,
-                  opacity: 0.85,
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {social.icon}
-            </IconButton>
-          ))}
-        </Box>
-      </Box>
     </Box>
   );
 
+  const drawerPaper = { boxSizing: 'border-box', width: DRAWER_WIDTH, bgcolor: '#1B2A4A', border: 'none' };
+  const drawerPaperDesktop = { boxSizing: 'border-box', width: currentDrawerWidth, bgcolor: '#1B2A4A', border: 'none', transition: 'width 0.3s ease', overflowX: 'hidden' };
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', overflowX: "hidden" }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F4F6FB', overflowX: "hidden" }}>
       <Box component="nav" sx={{ width: { xs: 0, md: currentDrawerWidth }, flexShrink: 0, transition: 'width 0.3s ease' }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
-          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH } }}
+          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': drawerPaper }}
         >
           {drawer}
         </Drawer>
         <Drawer
           variant="permanent"
-          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: currentDrawerWidth, borderRight: 'none', transition: 'width 0.3s ease', overflowX: 'hidden' } }}
+          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': drawerPaperDesktop }}
           open
         >
           {drawer}

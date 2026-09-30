@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box, Typography, CircularProgress, Alert, Snackbar, Grid,
-  TextField, MenuItem, Button, InputAdornment, Skeleton,
+  Button, Skeleton,
 } from "@mui/material";
 import axios from "axios";
-import DataTable from "../../components/shared/DataTable";
+import DataTable from "../../Components/shared/DataTable";
+import StatusBadge from "../../Components/shared/StatusBadge";
+import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
-import { Search, TrendingUp, Wallet, Scale } from "lucide-react";
+import { TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
 
 const DATE_MIN = "1900-01-01";
@@ -14,7 +16,7 @@ const DATE_MAX = "2100-12-31";
 
 const TYPE_OPTIONS = ["All", "CREDIT", "DEBIT"];
 const STATUS_OPTIONS = ["All", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
-const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS"];
+const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS"];
 const TIER_OPTIONS = ["All", "startup", "starter", "growth", "pro", "enterprise"];
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api");
@@ -29,19 +31,12 @@ const fmtDateTime = (v) =>
   ", " + new Date(v).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
-const STATUS_STYLE = {
-  SUCCESS: { bg: "#DCFCE7", fg: "#16A34A" },
-  FAILED: { bg: "#FEE2E2", fg: "#DC2626" },
-  PENDING: { bg: "#FEF3C7", fg: "#D97706" },
-  REFUNDED: { bg: "#F1F5F9", fg: "#64748B" },
-};
-const StatusPill = ({ status }) => {
-  const t = STATUS_STYLE[status] || STATUS_STYLE.PENDING;
-  return (
-    <Box sx={{ bgcolor: t.bg, color: t.fg, fontSize: "0.68rem", fontWeight: 700, px: 1.25, py: 0.35, borderRadius: 1.5, display: "inline-block", whiteSpace: "nowrap" }}>
-      {status}
-    </Box>
-  );
+const statusLabel = (s) => {
+  const t = String(s || '').toUpperCase();
+  if (t === 'SUCCESS') return 'Success';
+  if (t === 'FAILED') return 'Failed';
+  if (t === 'PENDING') return 'Pending';
+  return s || '—';
 };
 
 const AdminTransactions = () => {
@@ -123,59 +118,59 @@ const AdminTransactions = () => {
 
   const columns = [
     {
-      header: "Date", field: "createdAt",
-      render: (r) => <Typography variant="caption" sx={{ whiteSpace: "nowrap" }}>{r.createdAt ? fmtDateTime(r.createdAt) : "—"}</Typography>,
+      header: "Date", field: "createdAt", nowrap: true, minWidth: 165,
+      render: (r) => <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{r.createdAt ? fmtDateTime(r.createdAt) : "—"}</Typography>,
     },
     {
-      header: "Partner", field: "partner",
+      header: "Partner", field: "partner", minWidth: 150,
       render: (r) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>{fmtName(r.userId)}</Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>{r.userId?.email || ""}</Typography>
+        <Box sx={{ maxWidth: 180 }}>
+          <Typography title={fmtName(r.userId)} sx={{ fontWeight: 600, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fmtName(r.userId)}</Typography>
+          <Typography title={r.userId?.email || ""} sx={{ fontSize: "0.7rem", color: "#8A94A6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.userId?.email || ""}</Typography>
         </Box>
       ),
     },
     {
-      header: "Tier", field: "planTier",
+      header: "Tier", field: "planTier", nowrap: true, minWidth: 80,
       render: (r) => (
-        <Typography variant="caption" sx={{ fontWeight: 700, color: r.planTier ? "#8B5CF6" : "text.disabled", textTransform: "capitalize" }}>
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: r.planTier ? "#8B5CF6" : "#B0B8C5", textTransform: "capitalize", whiteSpace: "nowrap" }}>
           {r.planTier || "—"}
         </Typography>
       ),
     },
     {
-      header: "Type", field: "type",
+      header: "Type", field: "type", nowrap: true, minWidth: 80,
       render: (r) => (
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.8rem", color: r.type === "CREDIT" ? "#16A34A" : "#4F46E5" }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: r.type === "CREDIT" ? "#16A34A" : "#4F46E5", whiteSpace: "nowrap" }}>
           {r.type === "CREDIT" ? "Credit" : "Debit"}
         </Typography>
       ),
     },
     {
-      header: "Purpose", field: "purpose",
+      header: "Purpose", field: "purpose", minWidth: 150,
       render: (r) => (
-        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+        <Typography sx={{ fontSize: "0.78rem", fontWeight: 600 }}>
           {(r.purpose || "").replace(/_/g, " ")}
           {r.purpose === "REPORT_FAIL_CHARGE" ? " · fail fee" : ""}
         </Typography>
       ),
     },
     {
-      header: "Amount", field: "amount",
+      header: "Amount", field: "amount", nowrap: true, minWidth: 100, align: "right",
       render: (r) => {
         const val = r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount);
         return (
-          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.82rem", color: r.type === "CREDIT" ? "#16A34A" : "text.primary" }}>
+          <Typography sx={{ fontWeight: 800, fontSize: "0.82rem", color: r.type === "CREDIT" ? "#16A34A" : "text.primary", whiteSpace: "nowrap" }}>
             {r.type === "CREDIT" ? "+" : "−"}{inr(val)}
           </Typography>
         );
       },
     },
-    { header: "Status", field: "status", render: (r) => <StatusPill status={r.status} /> },
+    { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={statusLabel(r.status)} /> },
     {
-      header: "Reference", field: "orderId",
+      header: "Reference", field: "orderId", nowrap: true, minWidth: 130,
       render: (r) => (
-        <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.68rem", color: "text.secondary" }} title={`Order: ${r.orderId || ""}\nPayment: ${r.paymentId || ""}`}>
+        <Typography sx={{ fontFamily: "monospace", fontSize: "0.72rem", color: "#8A94A6", whiteSpace: "nowrap" }} title={`Order: ${r.orderId || ""}\nPayment: ${r.paymentId || ""}`}>
           {(r.paymentId || r.orderId || "—").slice(0, 20)}
         </Typography>
       ),
@@ -213,28 +208,31 @@ const AdminTransactions = () => {
       </Grid>
 
       {/* Filters */}
-      <Box sx={{ mb: 3, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-        <TextField
-          label="Search Partner" name="partnerSearch" value={filters.partnerSearch}
-          onChange={handleFilterChange} size="small" sx={{ minWidth: 220 }}
-          slotProps={{ input: { startAdornment: (<InputAdornment position="start"><Search size={16} color="#94A3B8" /></InputAdornment>) } }}
-        />
-        {[
-          { name: "type", label: "Type", options: TYPE_OPTIONS },
-          { name: "status", label: "Status", options: STATUS_OPTIONS },
-          { name: "purpose", label: "Purpose", options: PURPOSE_OPTIONS },
-          { name: "tier", label: "Tier", options: TIER_OPTIONS },
-        ].map((f) => (
-          <TextField key={f.name} select label={f.label} name={f.name} value={filters[f.name]}
-            onChange={handleFilterChange} size="small" sx={{ minWidth: 140 }}>
-            {f.options.map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-          </TextField>
-        ))}
-        <TextField type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} size="small"
-          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: DATE_MIN, max: filters.endDate || DATE_MAX } }} />
-        <TextField type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} size="small"
-          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: filters.startDate || DATE_MIN, max: DATE_MAX } }} />
-      </Box>
+      <FilterBar
+        singleRow
+        searchWidth={200}
+        search={{
+          value: filters.partnerSearch,
+          onChange: (v) => { setFilters((prev) => ({ ...prev, partnerSearch: v })); setPage(1); },
+          placeholder: "Search partner…",
+        }}
+        selects={[
+          { name: "type", label: "Type", value: filters.type, options: TYPE_OPTIONS, minWidth: 110,
+            onChange: (v) => { setFilters((prev) => ({ ...prev, type: v })); setPage(1); } },
+          { name: "status", label: "Status", value: filters.status, options: STATUS_OPTIONS, minWidth: 120,
+            onChange: (v) => { setFilters((prev) => ({ ...prev, status: v })); setPage(1); } },
+          { name: "purpose", label: "Purpose", value: filters.purpose, options: PURPOSE_OPTIONS, minWidth: 140,
+            onChange: (v) => { setFilters((prev) => ({ ...prev, purpose: v })); setPage(1); } },
+          { name: "tier", label: "Tier", value: filters.tier, options: TIER_OPTIONS, minWidth: 110,
+            onChange: (v) => { setFilters((prev) => ({ ...prev, tier: v })); setPage(1); } },
+        ]}
+        dates={[
+          { name: "startDate", value: filters.startDate, min: DATE_MIN, max: filters.endDate || DATE_MAX,
+            onChange: (v) => handleFilterChange({ target: { name: "startDate", value: v } }) },
+          { name: "endDate", value: filters.endDate, min: filters.startDate || DATE_MIN, max: DATE_MAX,
+            onChange: (v) => handleFilterChange({ target: { name: "endDate", value: v } }) },
+        ]}
+      />
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
