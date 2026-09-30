@@ -50,7 +50,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 // ============================================================
 
 const getReportUrl = (report) => {
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   if (report?.localPath) {
     const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
 
@@ -129,7 +129,6 @@ const ExperianReport = () => {
   const [success, setSuccess] = useState("");
   const [reportData, setReportData] = useState(null);
 
-
   // ============================================================
   // STATS
   // ============================================================
@@ -145,7 +144,10 @@ const ExperianReport = () => {
     const { name, value } = e.target;
 
     // User touched a prefilled field — remind them to double-check
-    if (prefilledRef.current && ["firstName", "lastName", "pan", "gender", "email"].includes(name)) {
+    if (
+      prefilledRef.current &&
+      ["firstName", "lastName", "pan", "gender", "email"].includes(name)
+    ) {
       setPrefillEdited(true);
     }
 
@@ -208,7 +210,8 @@ const ExperianReport = () => {
   // fields the user hasn't typed yet. Never overwrites input.
   // ============================================================
 
-  const PREFILL_API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const PREFILL_API =
+    import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const [prefill, setPrefill] = useState({ loading: false, note: "" });
   const [prefillEdited, setPrefillEdited] = useState(false);
   const prefilledRef = useRef(false);
@@ -218,7 +221,8 @@ const ExperianReport = () => {
   useEffect(() => {
     const mobile = formData.mobile;
     if (prefillTimer.current) clearTimeout(prefillTimer.current);
-    if (!/^[6-9]\d{9}$/.test(mobile) || mobile === lastPrefilledMobile.current) return;
+    if (!/^[6-9]\d{9}$/.test(mobile) || mobile === lastPrefilledMobile.current)
+      return;
     prefillTimer.current = setTimeout(async () => {
       try {
         setPrefill({ loading: true, note: "" });
@@ -230,10 +234,12 @@ const ExperianReport = () => {
           const d = data.data;
           setFormData((prev) => {
             const next = { ...prev };
-            if (!next.firstName.trim() && d.firstName) next.firstName = d.firstName;
+            if (!next.firstName.trim() && d.firstName)
+              next.firstName = d.firstName;
             if (!next.lastName.trim() && d.lastName) next.lastName = d.lastName;
             if (!next.pan.trim() && d.pan) next.pan = d.pan;
-            if (!next.gender && ["Male", "Female", "Other"].includes(d.gender)) next.gender = d.gender;
+            if (!next.gender && ["Male", "Female", "Other"].includes(d.gender))
+              next.gender = d.gender;
             if (!next.email.trim() && d.email) next.email = d.email;
             return next;
           });
@@ -241,7 +247,11 @@ const ExperianReport = () => {
           lastPrefilledMobile.current = mobile;
           setPrefillEdited(false);
           const when = d.pulledAt
-            ? new Date(d.pulledAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+            ? new Date(d.pulledAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
             : "";
           setPrefill({
             loading: false,
@@ -423,24 +433,39 @@ const ExperianReport = () => {
 
       console.log("[REACT] Experian Response:", response.data);
 
+      const responseData = response?.data;
+
+      // ========================================================
+      // DUPLICATE PAN
+      // ========================================================
+
+      if (responseData?.status === "duplicate") {
+        setError(
+          responseData?.message ||
+            "An Experian credit report already exists for this PAN.",
+        );
+
+        return;
+      }
+
       // ========================================================
       // SUCCESS
       // ========================================================
 
-      if (response.data?.success) {
-        const data = response.data || {};
+      if (responseData?.success) {
+        const data = responseData || {};
 
         setReportData(data);
 
         setSuccess(
-          response.data?.message || "Experian report generated successfully.",
+          responseData?.message || "Experian report generated successfully.",
         );
 
         setTotalGenerated((prev) => prev + 1);
 
         setTodayGenerated((prev) => prev + 1);
 
-        // Pull deducted from wallet server-side — refresh context balance
+        // Pull deducted from wallet server-side
         refreshWallet();
 
         // Scroll to report
@@ -452,15 +477,35 @@ const ExperianReport = () => {
         }, 200);
       } else {
         setError(
-          response.data?.message || "Unable to generate Experian report.",
+          responseData?.message || "Unable to generate Experian report.",
         );
+
         // A failure response may still carry the nominal fail fee
-        if (response.data?.failureCharge) refreshWallet();
+        if (responseData?.failureCharge) {
+          refreshWallet();
+        }
       }
     } catch (err) {
       console.error("[REACT] Experian Report Error:", err);
 
       const backendError = err?.response?.data;
+
+      // ========================================================
+      // DUPLICATE PAN FROM HTTP 409
+      // ========================================================
+
+      if (backendError?.status === "duplicate") {
+        setError(
+          backendError?.message ||
+            "An Experian credit report already exists for this PAN.",
+        );
+
+        return;
+      }
+
+      // ========================================================
+      // OTHER ERRORS
+      // ========================================================
 
       let message = "Unable to generate Experian report. Please try again.";
 
@@ -468,8 +513,10 @@ const ExperianReport = () => {
         message = backendError.message;
       }
 
-      // Failed pulls can carry a nominal fail fee — sync balance
-      if (backendError?.failureCharge) refreshWallet();
+      // Failed pulls can carry a nominal fail fee
+      if (backendError?.failureCharge) {
+        refreshWallet();
+      }
 
       setError(message);
     } finally {
@@ -502,7 +549,6 @@ const ExperianReport = () => {
     setError("");
     setSuccess("");
   };
-
 
   // ============================================================
   // DOWNLOAD PDF / REPORT
@@ -591,9 +637,9 @@ const ExperianReport = () => {
 
   const handleViewReport = () => {
     if (!reportData) return;
-    
+
     const finalUrl = getReportUrl(reportData);
-    
+
     if (finalUrl) {
       window.open(finalUrl, "_blank", "noopener,noreferrer");
     } else {
@@ -605,7 +651,9 @@ const ExperianReport = () => {
 
       if (reportBase64) {
         try {
-          const base64Data = reportBase64.includes(",") ? reportBase64.split(",")[1] : reportBase64;
+          const base64Data = reportBase64.includes(",")
+            ? reportBase64.split(",")[1]
+            : reportBase64;
           const cleanBase64 = base64Data.replace(/\s/g, "");
           const byteCharacters = atob(cleanBase64);
           const byteNumbers = new Array(byteCharacters.length);
@@ -625,7 +673,6 @@ const ExperianReport = () => {
       }
     }
   };
-
 
   // ============================================================
   // RENDER
@@ -717,8 +764,6 @@ const ExperianReport = () => {
                 Get your Experian credit summary securely and hassle-free.
               </Typography>
             </Box>
-
-
           </Box>
         </Box>
 
@@ -825,22 +870,6 @@ const ExperianReport = () => {
           )}
 
           {/* ==================================================
-              ERROR
-          ================================================== */}
-
-          {error && (
-            <Alert
-              severity="error"
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-              }}
-            >
-              {error}
-            </Alert>
-          )}
-
-          {/* ==================================================
               CUSTOMER FORM
           ================================================== */}
 
@@ -861,7 +890,20 @@ const ExperianReport = () => {
               }}
             >
               {/* CUSTOMER DETAILS */}
-
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 2,
+                    justifyContent: "center",
+                    textAlign: "center",
+                    width: "fit-content",
+                    mx: "auto",
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
               <Box mb={3}>
                 <Typography
                   sx={{
@@ -994,18 +1036,43 @@ const ExperianReport = () => {
                     }}
                   />
                   {prefill.loading && (
-                    <Typography variant="caption" sx={{ color: "#6366f1", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6366f1",
+                        fontSize: "0.7rem",
+                        mt: 0.5,
+                        display: "block",
+                      }}
+                    >
                       Looking up past reports…
                     </Typography>
                   )}
                   {!prefill.loading && prefill.note && !prefillEdited && (
-                    <Typography variant="caption" sx={{ color: "#059669", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#059669",
+                        fontSize: "0.7rem",
+                        mt: 0.5,
+                        display: "block",
+                      }}
+                    >
                       {prefill.note}
                     </Typography>
                   )}
                   {prefillEdited && (
-                    <Typography variant="caption" sx={{ color: "#D97706", fontSize: "0.7rem", mt: 0.5, display: "block" }}>
-                      Prefilled details were edited — please double-check before generating.
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#D97706",
+                        fontSize: "0.7rem",
+                        mt: 0.5,
+                        display: "block",
+                      }}
+                    >
+                      Prefilled details were edited — please double-check before
+                      generating.
                     </Typography>
                   )}
                 </Grid>
@@ -1462,13 +1529,30 @@ const ExperianReport = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1.5,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
                     <Button
                       variant="outlined"
                       startIcon={<VisibilityIcon />}
                       onClick={handleViewReport}
                       size="small"
-                      sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600, color: 'text.secondary', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}
+                      sx={{
+                        textTransform: "none",
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        color: "text.secondary",
+                        borderColor: "divider",
+                        "&:hover": {
+                          bgcolor: "action.hover",
+                          color: "text.primary",
+                        },
+                      }}
                     >
                       View Report
                     </Button>
@@ -1659,35 +1743,33 @@ const ExperianReport = () => {
                   reportData?.experianReport ||
                   reportData?.reportBase64 ||
                   reportData?.pdfBase64) && (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      startIcon={<DownloadIcon />}
-                      onClick={handleDownloadReport}
-                      sx={{
-                        mt: 3,
-                        py: 1.5,
-                        borderRadius: 2,
-                        backgroundColor: "#16a34a",
-                        textTransform: "none",
-                        fontWeight: 700,
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadReport}
+                    sx={{
+                      mt: 3,
+                      py: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: "#16a34a",
+                      textTransform: "none",
+                      fontWeight: 700,
+                      boxShadow: "none",
+                      "&:hover": {
+                        backgroundColor: "#15803d",
                         boxShadow: "none",
-                        "&:hover": {
-                          backgroundColor: "#15803d",
-                          boxShadow: "none",
-                        },
-                      }}
-                    >
-                      Download Experian Report
-                    </Button>
-                  )}
+                      },
+                    }}
+                  >
+                    Download Experian Report
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
         </Box>
       </Box>
-
-
     </Box>
   );
 };

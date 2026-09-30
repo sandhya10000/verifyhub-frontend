@@ -8,116 +8,157 @@ import {
   CardContent,
   Button,
   Chip,
-  Grid,
-  Stack,
   Alert,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import {
   UploadCloud,
   Lock,
   Sparkles,
   ArrowDownToLine,
-  Save,
-  BarChart2,
+  FileSpreadsheet,
+  Mail,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 
-const StatCard = ({ label, value }) => (
+const LANGUAGE_OPTIONS = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "हिन्दी — Hindi" },
+  { code: "ta", label: "தமிழ் — Tamil" },
+  { code: "te", label: "తెలుగు — Telugu" },
+  { code: "kn", label: "ಕನ್ನಡ — Kannada" },
+  { code: "mr", label: "मराठी — Marathi" },
+  { code: "bn", label: "বাংলা — Bengali" },
+  { code: "gu", label: "ગુજરાતી — Gujarati" },
+];
+
+const INCLUDED_FEATURES = [
+  {
+    title: "Executive Summary",
+    desc: "Score band, what helps & what hurts",
+  },
+  {
+    title: "Risk Factors & Portfolio",
+    desc: "Ranked risks and every account analysed",
+  },
+  {
+    title: "Account Health & DPD",
+    desc: "Health scores and month-wise payment history",
+  },
+  {
+    title: "90-Day Action Plan",
+    desc: "Step-by-step plan with projected score",
+  },
+];
+
+const riskColors = (level) => {
+  if (level === "Low Risk") return { bg: "#DCFCE7", fg: "#15803D" };
+  if (level === "Medium Risk") return { bg: "#FEF3C7", fg: "#92400E" };
+  return { bg: "#FEE2E2", fg: "#991B1B" };
+};
+
+const SummaryItem = ({ label, value }) => (
   <Box
     sx={{
-      p: 2,
-      bgcolor: "#F8FAFC",
+      bgcolor: "#FFFFFF",
+      border: "1px solid #E2E8F0",
       borderRadius: 2,
-      border: "1px solid",
-      borderColor: "divider",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
+      p: 1.5,
     }}
   >
     <Typography
-      variant="overline"
-      sx={{ display: "block", mb: 0.5, lineHeight: 1.2 }}
+      variant="caption"
+      sx={{
+        display: "block",
+        fontWeight: 700,
+        letterSpacing: "0.05em",
+        color: "#64748B",
+        textTransform: "uppercase",
+        fontSize: "0.68rem",
+        mb: 0.25,
+      }}
     >
       {label}
     </Typography>
-    <Typography
-      variant="body1"
-      sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2 }}
-    >
-      {value}
+    <Typography variant="body2" sx={{ fontWeight: 700, color: "#0F172A" }}>
+      {value ?? "—"}
     </Typography>
   </Box>
 );
 
+const primaryBtnSx = {
+  bgcolor: "#2563EB",
+  color: "#FFFFFF",
+  fontWeight: 700,
+  py: 1.5,
+  borderRadius: 2,
+  textTransform: "none",
+  fontSize: "0.95rem",
+  boxShadow: "0 2px 6px rgba(37,99,235,0.2)",
+  "&:hover": { bgcolor: "#1D4ED8" },
+  "&.Mui-disabled": { bgcolor: "#E2E8F0", color: "#94A3B8", boxShadow: "none" },
+};
+
+const secondaryBtnSx = {
+  borderColor: "#E2E8F0",
+  color: "#334155",
+  textTransform: "none",
+  fontWeight: 600,
+  borderRadius: 2,
+  py: 1,
+  "&:hover": { borderColor: "#CBD5E1", bgcolor: "#F8FAFC" },
+};
+
 const AiAnalyzer = () => {
   const { refreshWallet } = useAuth();
+
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisId, setAnalysisId] = useState(null);
+
   const [error, setError] = useState(null);
-  // Download-specific states — separate from the main upload error so
-  // a download failure doesn't reset the on-screen result cards.
+  // Download-specific states — separate so a download failure doesn't
+  // wipe the on-screen result.
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isGeneratingHtml, setIsGeneratingHtml] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
+
   const [chunkProgress, setChunkProgress] = useState(null);
+
   const fileInputRef = useRef(null);
+
+  const resetForNewFile = (file) => {
+    setSelectedFile(file);
+    setError(null);
+    setDownloadError(null);
+    setAnalysisResult(null);
+    setAnalysisId(null);
+    setChunkProgress(null);
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      console.log(
-        "[AiAnalyzer] File selected:",
-        file.name,
-        file.type,
-        file.size,
-        "bytes",
-      );
-      // Reset all stale state so a retry always starts clean
-      setSelectedFile(file);
-      setError(null);
-      setAnalysisResult(null);
-      setAnalysisId(null);
-      setChunkProgress(null);
+      resetForNewFile(e.target.files[0]);
     }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
+    if (isAnalyzing || isUploading) return;
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      console.log(
-        "[AiAnalyzer] File dropped:",
-        file.name,
-        file.type,
-        file.size,
-        "bytes",
-      );
-      setSelectedFile(file);
-      setError(null);
-      setAnalysisResult(null);
-      setAnalysisId(null);
-      setChunkProgress(null);
+      resetForNewFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleUpload = async () => {
-    console.log(
-      "[AiAnalyzer] Generate button clicked — selectedFile:",
-      selectedFile,
-      "| isUploading:",
-      isUploading,
-      "| isAnalyzing:",
-      isAnalyzing,
-    );
-
     if (!selectedFile) {
-      console.warn("[AiAnalyzer] Blocked: no file selected");
-      setError("Please select a file first.");
+      setError("Please select a credit report file first.");
       return;
     }
 
@@ -129,67 +170,37 @@ const AiAnalyzer = () => {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
+    formData.append("language", selectedLanguage);
 
     const token = localStorage.getItem("token");
-    console.log(
-      "[AiAnalyzer] Token from localStorage:",
-      token ? `${token.slice(0, 20)}...` : "MISSING",
-    );
-    console.log(
-      "[AiAnalyzer] Sending POST /ai-analyzer/upload with file:",
-      selectedFile.name,
-    );
 
     try {
       const API_BASE_URL =
         import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+      // Do NOT set Content-Type — axios sets multipart boundary automatically.
       const response = await axios.post(
         `${API_BASE_URL}/ai-analyzer/upload`,
         formData,
-        {
-          headers: {
-            // Do NOT set Content-Type here — axios sets it automatically with the
-            // correct multipart/form-data; boundary=... when body is FormData.
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      console.log(
-        "[AiAnalyzer] Upload response:",
-        response.status,
-        response.data,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         setAnalysisId(response.data.analysisId);
         setIsUploading(false);
         setIsAnalyzing(true);
-        console.log(
-          "[AiAnalyzer] Upload accepted, analysisId:",
-          response.data.analysisId,
-          "— beginning polling",
-        );
       }
     } catch (err) {
-      console.error(
-        "[AiAnalyzer] Upload FAILED:",
-        err.response?.status,
-        err.response?.data || err.message,
-      );
+      console.error("[AiAnalyzer] Upload error:", err);
       setError(err.response?.data?.message || "Upload failed");
       setIsUploading(false);
     }
   };
 
-  // ── beforeunload guard ──────────────────────────────────────────────────
-  // Intercepts tab close / browser back / hard-refresh while analysing.
-  // Must be removed once analysis finishes so it doesn't linger.
+  // Guard against navigating away during active analysis
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       e.preventDefault();
-      // Modern browsers show their own generic message; setting returnValue
-      // is required to trigger the native dialog in older Chrome/Firefox.
       e.returnValue = "";
     };
 
@@ -204,25 +215,20 @@ const AiAnalyzer = () => {
     };
   }, [isAnalyzing]);
 
+  // Status polling (deps kept identical to original file on purpose)
   useEffect(() => {
     let intervalId;
 
     if (isAnalyzing && analysisId) {
-      console.log("[AiAnalyzer] Starting poll for analysisId:", analysisId);
       intervalId = setInterval(async () => {
-        console.log("[AiAnalyzer] Polling GET  /ai-analyzer/", analysisId);
-
         try {
-          const token = localStorage.getItem('token');
-          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-          const response = await axios.get(`${API_BASE_URL}/ai-analyzer/${analysisId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const token = localStorage.getItem("token");
+          const API_BASE_URL =
+            import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-          console.log(
-            "[AiAnalyzer] Poll response:",
-            response.data.status,
-            response.data,
+          const response = await axios.get(
+            `${API_BASE_URL}/ai-analyzer/${analysisId}`,
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           if (response.data.success) {
@@ -244,35 +250,22 @@ const AiAnalyzer = () => {
             }
 
             if (status === "completed") {
-              console.log("[AiAnalyzer] Analysis COMPLETED:", result);
               setAnalysisResult(result);
               setIsAnalyzing(false);
               // Analysis deducted server-side — refresh context balance
               refreshWallet();
               clearInterval(intervalId);
             } else if (status === "failed") {
-              console.error(
-                "[AiAnalyzer] Analysis FAILED — backend errorMessage:",
-                errorMessage,
-                "debugError:",
-                debugError,
-              );
               setError(debugError || errorMessage || "Analysis failed");
               setIsAnalyzing(false);
               setChunkProgress(null);
               // Fail fee deducted server-side — refresh context balance
               refreshWallet();
               clearInterval(intervalId);
-            } else {
-              console.log("[AiAnalyzer] Still processing, status:", status);
             }
           }
         } catch (err) {
-          console.error(
-            "[AiAnalyzer] Polling request error:",
-            err.response?.status,
-            err.message,
-          );
+          console.error("[AiAnalyzer] Polling error:", err);
           setError("Failed to fetch analysis status");
           setIsAnalyzing(false);
           clearInterval(intervalId);
@@ -281,194 +274,61 @@ const AiAnalyzer = () => {
     }
 
     return () => {
-      if (intervalId) {
-        console.log("[AiAnalyzer] Clearing poll interval");
-        clearInterval(intervalId);
-      }
+      if (intervalId) clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAnalyzing, analysisId]);
-
-  useEffect(() => {
-    let intervalId;
-
-    if (isGeneratingHtml && analysisId) {
-      console.log(
-        "[AiAnalyzer] Starting HTML generation poll for analysisId:",
-        analysisId,
-      );
-      let attempts = 0;
-      const MAX_ATTEMPTS = 100;
-
-      intervalId = setInterval(async () => {
-        attempts++;
-        console.log(
-          `[AiAnalyzer] Polling HTML status (${attempts}/${MAX_ATTEMPTS})`,
-        );
-
-        if (attempts > MAX_ATTEMPTS) {
-          console.error(
-            "[AiAnalyzer] Max polling attempts reached for HTML generation",
-          );
-          setDownloadError(
-            "Report generation took too long. Please try again.",
-          );
-          setIsGeneratingHtml(false);
-          setIsDownloading(false);
-          clearInterval(intervalId);
-          return;
-        }
-
-        try {
-
-          const token = localStorage.getItem('token');
-          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-          const response = await axios.get(`${API_BASE_URL}/ai-analyzer/${analysisId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-
-          if (response.data.success) {
-            const { htmlStatus } = response.data;
-
-            if (htmlStatus === "completed") {
-              console.log(
-                "[AiAnalyzer] HTML generation COMPLETED, fetching file...",
-              );
-              clearInterval(intervalId);
-
-              try {
-                const pdfResponse = await axios.get(
-                  `${API_BASE_URL}/ai-analyzer/${analysisId}/download-pdf`,
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                    responseType: "blob",
-                  },
-                );
-
-                const url = window.URL.createObjectURL(
-                  new Blob([pdfResponse.data], { type: "text/html" }),
-                );
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute(
-                  "download",
-                  `credit-analysis-${analysisId}.html`,
-                );
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode.removeChild(link);
-                window.URL.revokeObjectURL(url);
-                setIsGeneratingHtml(false);
-                setIsDownloading(false);
-              } catch (downloadErr) {
-                console.error(
-                  "[AiAnalyzer] Failed to download completed HTML:",
-                  downloadErr,
-                );
-                setDownloadError("Failed to download the generated report.");
-                setIsGeneratingHtml(false);
-                setIsDownloading(false);
-              }
-            } else if (htmlStatus === "failed") {
-              console.error("[AiAnalyzer] HTML generation FAILED on backend");
-              setDownloadError(
-                "Failed to generate the full HTML report. Please try again.",
-              );
-              setIsGeneratingHtml(false);
-              setIsDownloading(false);
-              clearInterval(intervalId);
-            } else {
-              console.log(
-                "[AiAnalyzer] HTML still generating, status:",
-                htmlStatus,
-              );
-            }
-          }
-        } catch (err) {
-          console.error(
-            "[AiAnalyzer] HTML polling request error:",
-            err.message,
-          );
-        }
-      }, 3000);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isGeneratingHtml, analysisId]);
 
   const handleDownloadPdf = async () => {
     if (!analysisId) return;
+
     setIsDownloading(true);
-    setIsGeneratingHtml(true);
     setDownloadError(null);
 
     const token = localStorage.getItem("token");
 
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_BASE_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
       const response = await axios.get(
         `${API_BASE_URL}/ai-analyzer/${analysisId}/download-pdf`,
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 } // Omit blob to allow 202 JSON parsing cleanly; 60s safety timeout
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 60000,
+          responseType: "blob",
+        },
       );
 
-      // If it returned 200, the HTML is ready (cached path A)
-      if (response.status === 200) {
-        console.log("[AiAnalyzer] Download endpoint returned HTML directly");
-        const url = window.URL.createObjectURL(
-          new Blob([response.data], { type: "text/html" }),
-        );
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `credit-analysis-${analysisId}.html`);
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        setIsDownloading(false);
-        setIsGeneratingHtml(false);
-      } else if (response.status === 202) {
-        console.log(
-          "[AiAnalyzer] Backend returned 202 Accepted, starting polling...",
-        );
-        // The useEffect will pick up isGeneratingHtml = true and start polling
-      }
-    } catch (err) {
-      const status = err.response?.status;
+      // Backend returns the report as HTML
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "text/html" }),
+      );
 
-      if (status === 429) {
-        setDownloadError(
-          "Report generation failed recently. Please wait a moment before trying again.",
-        );
-      } else {
-        setDownloadError("Failed to initiate report generation.");
-      }
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `credit-analysis-${analysisId}.html`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       setIsDownloading(false);
-      setIsGeneratingHtml(false);
+    } catch (err) {
+      console.error("[AiAnalyzer] Download failed:", err);
+      setDownloadError("Failed to download analysis report.");
+      setIsDownloading(false);
     }
   };
 
-  const languages = [
-    { native: "हिन्दी", english: "Hindi" },
-    { native: "தமிழ்", english: "Tamil" },
-    { native: "తెలుగు", english: "Telugu" },
-    { native: "ಕನ್ನಡ", english: "Kannada" },
-    { native: "मराठी", english: "Marathi" },
-    { native: "বাংলা", english: "Bengali" },
-    { native: "ગુજરાતી", english: "Gujarati" },
-    { native: "ਪੰਜਾਬੀ", english: "Punjabi" },
-    { native: "മലയാളം", english: "Malayalam" },
-    { native: "ଓଡ଼ିଆ", english: "Odia" },
-    { native: "অসমীয়া", english: "Assamese" },
-    { native: "اردو", english: "Urdu" },
-  ];
+  const busy = isUploading || isAnalyzing;
+  const risk = analysisResult?.riskLevel
+    ? riskColors(analysisResult.riskLevel)
+    : null;
 
   return (
-    <Box sx={{ pb: 6 }}>
-      {/* ── Analysis-in-progress warning banner (fixed, top of viewport) ── */}
+    <Box sx={{ pb: 8 }}>
+      {/* Analysis-in-progress warning banner */}
       {isAnalyzing && (
         <Box
           role="alert"
@@ -482,7 +342,7 @@ const AiAnalyzer = () => {
             borderBottom: "2px solid #F59E0B",
             color: "#78350F",
             px: 3,
-            py: 1,
+            py: 1.25,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -492,7 +352,6 @@ const AiAnalyzer = () => {
             boxShadow: "0 2px 8px rgba(245,158,11,.18)",
           }}
         >
-          {/* Amber pulsing dot */}
           <Box
             sx={{
               width: 8,
@@ -502,7 +361,7 @@ const AiAnalyzer = () => {
               flexShrink: 0,
               "@keyframes pulse": {
                 "0%,100%": { opacity: 1 },
-                "50%": { opacity: 0.4 },
+                "50%": { opacity: 0.3 },
               },
               animation: "pulse 1.4s ease-in-out infinite",
             }}
@@ -517,557 +376,393 @@ const AiAnalyzer = () => {
         </Box>
       )}
 
-      {/* ── Page Header ── */}
+      {/* Page Header */}
       <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2 }}>
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            bgcolor: "#EEF2FF",
+            bgcolor: "#EFF6FF",
+            color: "#2563EB",
             width: 48,
             height: 48,
             borderRadius: 3,
             flexShrink: 0,
+            border: "1px solid #DBEAFE",
           }}
         >
-          <Sparkles color="#3730A3" size={24} />
+          <Sparkles size={24} />
         </Box>
+
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-            <Box component="span" sx={{ color: "#3730A3" }}>
-              AI
-            </Box>{" "}
-            Credit Report Analyzer
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}
+          >
+            AI Credit Report Analyzer
           </Typography>
-          <Typography variant="body1" sx={{ color: "text.secondary" }}>
-            Turn any bureau report into a plain-language risk summary and
-            lending recommendation.
+          <Typography variant="body2" sx={{ color: "#64748B", mt: 0.25 }}>
+            Turn any bureau report into a plain-language risk summary,
+            obligation map, and download-ready lending recommendation.
           </Typography>
         </Box>
       </Box>
 
-      {/* Two-Column Layout */}
-      <Grid container spacing={2} sx={{ mb: 4, mt: 1 }}>
-        {/* LEFT CARD */}
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Card
+      {/* Main Card */}
+      <Box sx={{ maxWidth: 840, mx: "auto" }}>
+        <Card
+          sx={{
+            borderRadius: 3,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            bgcolor: "#FFFFFF",
+          }}
+        >
+          <CardContent
             sx={{
-              height: "100%",
+              p: { xs: 2.5, sm: 3.5 },
               display: "flex",
               flexDirection: "column",
-              borderRadius: 2,
+              gap: 3,
             }}
           >
-            <CardContent
+            {/* Card Header */}
+            <Box
               sx={{
-                p: 2.5,
                 display: "flex",
-                flexDirection: "column",
-                height: "100%",
-                gap: 2.5,
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              {/* Left Card Title */}
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 700, color: "#0F172A" }}
+              >
                 Upload a Credit Report
               </Typography>
-              {/* Upload Dropzone */}
+            </Box>
+
+            {/* Upload Dropzone */}
+            <Box
+              onClick={() => !busy && fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              sx={{
+                border: "1.5px dashed #CBD5E1",
+                borderRadius: 2.5,
+                p: { xs: 3, sm: 5 },
+                textAlign: "center",
+                bgcolor: "#F8FAFC",
+                cursor: busy ? "not-allowed" : "pointer",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  borderColor: busy ? "#CBD5E1" : "#2563EB",
+                  bgcolor: busy ? "#F8FAFC" : "#EFF6FF",
+                },
+              }}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept=".pdf,.json"
+                disabled={busy}
+                onChange={handleFileChange}
+              />
+
               <Box
-                onClick={() => fileInputRef.current.click()}
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
                 sx={{
-                  border: "1px dashed #CBD5E1",
-                  borderRadius: 3,
-                  p: 4,
-                  textAlign: "center",
-                  bgcolor: "#F8FAFC",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    borderColor: "success.main",
-                    bgcolor: "success.light",
-                  },
+                  width: 44,
+                  height: 44,
+                  mx: "auto",
+                  mb: 1.5,
+                  borderRadius: "50%",
+                  bgcolor: "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  border: "1px solid #E2E8F0",
                 }}
               >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  style={{ display: "none" }}
-                  accept=".pdf,.json"
-                  onChange={handleFileChange}
+                <UploadCloud size={22} color="#2563EB" />
+              </Box>
+
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
+              >
+                {selectedFile
+                  ? selectedFile.name
+                  : "↑ Upload credit report (PDF / JSON)"}
+              </Typography>
+
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#64748B",
+                  display: "block",
+                  maxWidth: 420,
+                  mx: "auto",
+                  lineHeight: 1.4,
+                }}
+              >
+                CIBIL, Experian, Equifax and CRIF reports supported — including
+                reports pulled outside VerifyHub
+              </Typography>
+            </Box>
+
+            {/* Error Alerts */}
+            {error && (
+              <Alert
+                severity="error"
+                sx={{ borderRadius: 2 }}
+                onClose={() => setError(null)}
+              >
+                {error}
+              </Alert>
+            )}
+
+            {downloadError && (
+              <Alert
+                severity="error"
+                sx={{ borderRadius: 2 }}
+                onClose={() => setDownloadError(null)}
+              >
+                {downloadError}
+              </Alert>
+            )}
+
+            {/* Password Warning */}
+            <Box
+              sx={{
+                bgcolor: "#FFFBEB",
+                border: "1px solid #FDE68A",
+                color: "#92400E",
+                p: 2,
+                borderRadius: 2,
+                display: "flex",
+                gap: 1.5,
+                alignItems: "flex-start",
+              }}
+            >
+              <Lock
+                size={18}
+                style={{ flexShrink: 0, marginTop: 2, color: "#D97706" }}
+              />
+              <Typography
+                variant="body2"
+                sx={{ fontSize: "0.85rem", lineHeight: 1.5 }}
+              >
+                <Box component="span" sx={{ fontWeight: 700 }}>
+                  Upload without password.{" "}
+                </Box>
+                Password-protected PDFs cannot be analysed — remove the password
+                from the report before uploading.
+              </Typography>
+            </Box>
+
+            {/* Output Language Selector */}
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  mb: 1,
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  color: "#475569",
+                  textTransform: "uppercase",
+                }}
+              >
+                OUTPUT LANGUAGE
+              </Typography>
+
+              <Box sx={{ position: "relative" }}>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  disabled={busy || !!analysisResult}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #CBD5E1",
+                    backgroundColor: "#FFFFFF",
+                    fontSize: "0.95rem",
+                    color: "#0F172A",
+                    outline: "none",
+                    cursor: busy || analysisResult ? "not-allowed" : "pointer",
+                    appearance: "none",
+                  }}
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+
+                <ChevronDown
+                  size={18}
+                  style={{
+                    position: "absolute",
+                    right: 14,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                    color: "#64748B",
+                  }}
                 />
-                <UploadCloud
-                  size={32}
-                  color="#64748B"
-                  style={{ margin: "0 auto 12px" }}
-                />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  {selectedFile
-                    ? selectedFile.name
-                    : "↑ Upload credit report (PDF / JSON)"}
+              </Box>
+            </Box>
+
+            {/* Included in Analysis Report */}
+            <Box
+              sx={{
+                bgcolor: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: 2.5,
+                p: 2.5,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    color: "#475569",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  INCLUDED IN ANALYSIS REPORT
                 </Typography>
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "text.secondary",
-                    display: "block",
-                    maxWidth: 300,
-                    mx: "auto",
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    color: "#64748B",
+                    textTransform: "uppercase",
                   }}
                 >
-                  CIBIL, Experian, Equifax and CRIF reports supported —
-                  including reports pulled outside VerifyHub
+                  STANDARD BANK GRADE
                 </Typography>
               </Box>
 
-              {error && (
-                <Alert severity="error" sx={{ borderRadius: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              {/* Warning Banner */}
               <Box
                 sx={{
-                  bgcolor: "#FEF3C7",
-                  color: "#92400E",
-                  p: 2,
-                  borderRadius: 2,
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
                   gap: 1.5,
-                  alignItems: "flex-start",
                 }}
               >
-                <Lock
-                  size={20}
-                  style={{ flexShrink: 0, marginTop: 2 }}
-                  color="#D97706"
-                />
-                <Typography variant="body2">
-                  <Box component="span" sx={{ fontWeight: 700 }}>
-                    Upload without password.
-                  </Box>{" "}
-                  Password-protected PDFs cannot be analysed — remove the
-                  password from the report before uploading.
-                </Typography>
+                {INCLUDED_FEATURES.map((item) => (
+                  <Box
+                    key={item.title}
+                    sx={{
+                      bgcolor: "#FFFFFF",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 2,
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.25,
+                    }}
+                  >
+                    <Check
+                      size={16}
+                      color="#059669"
+                      style={{ marginTop: 2, flexShrink: 0 }}
+                    />
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: "#1E293B", lineHeight: 1.2 }}
+                      >
+                        {item.title}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#64748B", fontSize: "0.75rem" }}
+                      >
+                        {item.desc}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
               </Box>
+            </Box>
 
-              {/* Action Button */}
+            {/* Action Center */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 1 }}>
+              {/* 1. Analyze — always visible */}
               <Button
                 variant="contained"
                 fullWidth
                 size="large"
                 onClick={handleUpload}
-                disabled={
-                  isUploading ||
-                  isAnalyzing ||
-                  !selectedFile ||
-                  !!analysisResult
+                disabled={busy || !selectedFile || !!analysisResult}
+                startIcon={
+                  busy ? (
+                    <CircularProgress size={18} sx={{ color: "#94A3B8" }} />
+                  ) : (
+                    <Sparkles size={18} />
+                  )
                 }
-                sx={{
-                  mt: "auto",
-                  bgcolor: "#3730A3",
-                  color: "white",
-                  "&:hover": {
-                    bgcolor: "#312E81",
-                  },
-                  boxShadow: "none",
-                }}
+                sx={primaryBtnSx}
               >
                 {isUploading
-                  ? "Uploading..."
+                  ? "Uploading report..."
                   : isAnalyzing
                     ? chunkProgress
                       ? `Analyzing chunk ${chunkProgress.completed + 1} of ${chunkProgress.total}...`
                       : "Analyzing with AI..."
-                    : "✦ Generate AI Analysis"}
+                    : analysisResult
+                      ? "Analysis Complete"
+                      : "Analyze & Generate Report"}
               </Button>
-            </CardContent>
-          </Card>
-        </Grid>
 
-        {/* RIGHT CARD */}
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Card sx={{ height: "100%", borderRadius: 2 }}>
-            <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-              {/* Right Card Title */}
-              {analysisResult && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    mb: 2,
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Analysis
-                    {analysisResult.customerName
-                      ? ` — ${analysisResult.customerName}`
-                      : ""}
-                  </Typography>
-                  {analysisResult.riskLevel && (
-                    <Chip
-                      label={analysisResult.riskLevel}
-                      size="small"
-                      sx={{
-                        fontWeight: 700,
-                        bgcolor:
-                          analysisResult.riskLevel === "Low Risk"
-                            ? "#DCFCE7"
-                            : analysisResult.riskLevel === "Medium Risk"
-                              ? "#FEF3C7"
-                              : "#FEE2E2",
-                        color:
-                          analysisResult.riskLevel === "Low Risk"
-                            ? "#15803D"
-                            : analysisResult.riskLevel === "Medium Risk"
-                              ? "#92400E"
-                              : "#991B1B",
-                      }}
-                    />
-                  )}
-                </Box>
-              )}
-              {/* Credit Score Overview Header */}
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}
+              {/* 2. Download — always visible, enabled once result exists */}
+              <Button
+                variant={analysisResult ? "contained" : "outlined"}
+                fullWidth
+                size="large"
+                onClick={handleDownloadPdf}
+                disabled={!analysisResult || isDownloading}
+                startIcon={
+                  isDownloading ? (
+                    <CircularProgress size={18} sx={{ color: "#94A3B8" }} />
+                  ) : (
+                    <ArrowDownToLine size={20} />
+                  )
+                }
+                sx={
+                  analysisResult
+                    ? {
+                      ...primaryBtnSx,
+                      bgcolor: "#059669",
+                      boxShadow: "0 2px 6px rgba(5,150,105,0.2)",
+                      "&:hover": { bgcolor: "#047857" },
+                    }
+                    : { ...secondaryBtnSx, py: 1.5, fontSize: "0.95rem" }
+                }
               >
-                <Box
-                  sx={{
-                    bgcolor: "#EEF2FF",
-                    p: 1,
-                    borderRadius: 2,
-                    display: "flex",
-                  }}
-                >
-                  <BarChart2 size={18} color="#3730A3" />
-                </Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "text.primary" }}
-                >
-                  Credit Score Overview
-                </Typography>
-              </Box>
-
-              {/* Score Bar */}
-              <Box sx={{ mb: 5, px: 1, mt: 1 }}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    height: 12,
-                    borderRadius: 6,
-                    background:
-                      "linear-gradient(to right, #EF4444, #F59E0B, #10B981)",
-                    mb: 1,
-                  }}
-                >
-                  {/* Marker for 780 score (approx 80% width since range is ~300-900) */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      left: "80%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: 4,
-                      height: 24,
-                      bgcolor: "#0F1B2D",
-                      borderRadius: 2,
-                      boxShadow: "0 0 0 2px white",
-                    }}
-                  />
-                </Box>
-                {/* Axis Labels */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    color: "text.secondary",
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    300
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    550
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    650
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    750
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    900
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Grid of Stats */}
-              <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="SCORE BAND"
-                    value={
-                      analysisResult
-                        ? `${analysisResult.score} — ${analysisResult.scoreBand}`
-                        : "—"
-                    }
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="ACTIVE LOANS"
-                    value={
-                      analysisResult
-                        ? `${analysisResult.activeLoans} active`
-                        : "—"
-                    }
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="OVERDUE / DPD"
-                    value={analysisResult ? analysisResult.overdueStatus : "—"}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="ENQUIRIES (6M)"
-                    value={
-                      analysisResult
-                        ? `${analysisResult.enquiries6m} — ${analysisResult.enquiriesRating || ""}`
-                        : "—"
-                    }
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="FOIR"
-                    value={
-                      analysisResult
-                        ? `${analysisResult.foirPercent}% — ${analysisResult.foirRating || ""}`
-                        : "—"
-                    }
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <StatCard
-                    label="MAX ELIGIBLE"
-                    value={
-                      analysisResult
-                        ? `₹${Number(analysisResult.maxEligibleAmount).toLocaleString("en-IN")}`
-                        : "—"
-                    }
-                  />
-                </Grid>
-              </Grid>
-
-              {/* Recommendation Banner */}
-              {analysisResult && (
-                <Box
-                  sx={{
-                    bgcolor: "success.light",
-                    color: "success.dark",
-                    p: 2.5,
-                    borderRadius: 2,
-                    mb: 3,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                    <Box component="span" sx={{ fontWeight: 700 }}>
-                      Recommendation:{" "}
-                    </Box>
-                    {analysisResult.recommendation}
-                  </Typography>
-                </Box>
-              )}
-              {/* Download error alert — separate from main upload error */}
-              {downloadError && (
-                <Alert
-                  severity="error"
-                  sx={{ borderRadius: 2, mb: 2 }}
-                  onClose={() => setDownloadError(null)}
-                >
-                  {downloadError}
-                </Alert>
-              )}
-
-              {/* Action Buttons */}
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                {isAnalyzing ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      p: 2,
-                      bgcolor: "#EEF2FF",
-                      borderRadius: 2,
-                      color: "#3730A3",
-                      width: "100%",
-                    }}
-                  >
-                    <CircularProgress size={24} sx={{ color: "#3730A3" }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      Your report is being analyzed... this may take up to a
-                      minute.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={
-                      isDownloading || isGeneratingHtml ? null : (
-                        <ArrowDownToLine size={18} />
-                      )
-                    }
-                    onClick={handleDownloadPdf}
-                    disabled={
-                      !analysisResult || isDownloading || isGeneratingHtml
-                    }
-                    sx={{
-                      borderColor: "divider",
-                      color: isDownloading ? "text.secondary" : "text.primary",
-                      minWidth: 200,
-                      position: "relative",
-                    }}
-                  >
-                    {isDownloading || isGeneratingHtml ? (
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Box
-                          component="span"
-                          sx={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: "50%",
-                            border: "2px solid currentColor",
-                            borderTopColor: "transparent",
-                            animation: "spin 0.8s linear infinite",
-                            display: "inline-block",
-                            "@keyframes spin": {
-                              to: { transform: "rotate(360deg)" },
-                            },
-                          }}
-                        />
-                        {isGeneratingHtml
-                          ? "Generating report…"
-                          : "Downloading..."}
-                      </Box>
-                    ) : (
-                      "Download Analysis Report"
-                    )}
-                  </Button>
-                )}
-                {/* <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Save size={18} />}
-                  disabled
-                  title="Saved automatically to Reports"
-                  sx={{
-                    borderColor: "divider",
-                    color: "text.disabled",
-                    cursor: "not-allowed",
-                  }}
-                >
-                  Save to Reports
-                </Button> */}
-              </Stack>
-              {isGeneratingHtml && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 2 }}
-                >
-                  Generating your report, this can take a minute or two for
-                  detailed profiles...
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Bottom Promo Banner */}
-      <Card
-        elevation={0}
-        sx={{
-          bgcolor: "#fff",
-          borderRadius: 3,
-          overflow: "hidden",
-          position: "relative",
-          border: "1px solid",
-          borderColor: "divider",
-          boxShadow: "0 2px 12px rgba(15,27,45,.06)",
-        }}
-      >
-        {/* Top border gradient */}
-        <Box
-          sx={{
-            height: 4,
-            width: "100%",
-            background: "linear-gradient(to right, #EF4444, #F59E0B, #10B981)",
-          }}
-        />
-
-        <Box sx={{ p: { xs: 3, md: 4 } }}>
-          <Chip
-            icon={<Sparkles size={14} color="#3730A3" />}
-            label="COMING SOON"
-            size="small"
-            sx={{
-              bgcolor: "#EEF2FF",
-              color: "#3730A3",
-              fontWeight: 700,
-              mb: 2,
-              borderRadius: 1.5,
-              "& .MuiChip-icon": { ml: 1 },
-            }}
-          />
-
-          <Typography
-            variant="h5"
-            sx={{ color: "text.primary", mb: 1, fontWeight: 700 }}
-          >
-            Get AI report analysis in your language
-          </Typography>
-
-          <Typography
-            variant="body1"
-            sx={{ color: "text.secondary", mb: 4, maxWidth: 800 }}
-          >
-            Explain the credit report to your customer in the language they
-            think in — the same summary, risk flags and recommendation,
-            translated automatically.
-          </Typography>
-
-          {/* Languages Row */}
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-            {languages.map((lang) => (
-              <Chip
-                key={lang.english}
-                label={`${lang.native} ${lang.english}`}
-                variant="outlined"
-                sx={{
-                  borderColor: "divider",
-                  color: "text.primary",
-                  bgcolor: "transparent",
-                  borderRadius: 2,
-                  px: 0.5,
-                  py: 2,
-                }}
-              />
-            ))}
-          </Box>
-        </Box>
-      </Card>
+                {isDownloading ? "Preparing Download..." : "Download Analysis Report"}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
   );
 };
