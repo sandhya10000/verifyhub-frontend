@@ -34,6 +34,8 @@ const authHeaders = () => ({ headers: { Authorization: `Bearer ${localStorage.ge
 
 import { fmtDate, fmtDT, inr0, initials, Dot, StatTile, InfoRow } from '../../Components/shared/partnerProfile';
 
+const TABS = ['profile', 'reports', 'payments'];
+
 const RANGE_LABEL = { lifetime: 'Lifetime', month: '30-Day', week: '7-Day' };
 
 

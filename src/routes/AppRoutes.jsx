@@ -26,6 +26,7 @@ const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
+const AdminRcReports = lazy(() => import("../pages/admin/RcReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
@@ -218,6 +219,10 @@ const AppRoutes = () => {
           <Route
             path="ai-reports"
             element={<AdminAiReports />}
+          />
+          <Route
+            path="rc-reports"
+            element={<AdminRcReports />}
           />
           <Route
             path="support"
