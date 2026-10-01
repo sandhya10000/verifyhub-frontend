@@ -48,6 +48,9 @@ const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("../pages/TermsOfService"));
 const GrievanceOfficer = lazy(() => import("../pages/GrievanceOfficer"));
 const DataProtection = lazy(() => import("../pages/DataProtection"));
+const CreditBureauAPI = lazy(() => import("../pages/CreditBureauAPI"));
+const AIDecisioning = lazy(() => import("../pages/AIDecisioning"));
+const AboutUs = lazy(() => import("../pages/AboutUs"));
 
 const AppRoutes = () => {
   return (
@@ -85,6 +88,9 @@ const AppRoutes = () => {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/grievance-officer" element={<GrievanceOfficer />} />
           <Route path="/data-protection" element={<DataProtection />} />
+          <Route path="/credit-bureau-api" element={<CreditBureauAPI />} />
+          <Route path="/ai-decisioning" element={<AIDecisioning />} />
+          <Route path="/about-us" element={<AboutUs />} />
         </Route>
 
         {/* Auth */}

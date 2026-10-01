@@ -1,0 +1,136 @@
+.abt-page {
+  --abt-navy:   #0b1437;
+  --abt-indigo: #6c47ff;
+  --abt-ink:    #0f172a;
+  --abt-slate:  #475569;
+  --abt-line:   #e2e8f0;
+  background: #f8faff;
+  color: var(--abt-ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Container — mirrors navbar/footer width */
+.abt-wrap { width: 74.5%; max-width: 1432px; margin: 0 auto; box-sizing: border-box; }
+@media (max-width: 1280px) { .abt-wrap { width: calc(100% - 64px); } }
+@media (max-width: 560px)  { .abt-wrap { width: calc(100% - 32px); } }
+
+/* ── Shared atoms ── */
+.abt-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #2563eb; margin-bottom: 14px; }
+.abt-grad { background: linear-gradient(90deg, #3b82f6, #14b8a6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.abt-badge { font-size: 12px; font-weight: 600; color: var(--abt-slate); background: #f1f5f9; border: 1px solid var(--abt-line); padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+
+.abt-btn { display: inline-flex; align-items: center; padding: 12px 22px; border-radius: 999px; font-weight: 600; font-size: 15px; text-decoration: none; font-family: inherit; cursor: pointer; border: none; transition: transform .15s ease, box-shadow .15s ease; }
+.abt-btn:hover { transform: translateY(-1px); }
+.abt-btn:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 2px; }
+.abt-btn-primary { background: var(--abt-indigo); color: #fff; box-shadow: 0 8px 20px rgba(108,71,255,.28); }
+.abt-btn-ghost   { background: #fff; color: var(--abt-ink); border: 1px solid var(--abt-line); }
+.abt-btn-light   { background: #fff; color: var(--abt-indigo); font-weight: 700; }
+.abt-btn-outline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); }
+
+/* ── HERO ── */
+.abt-hero { padding: 72px 0 56px; }
+.abt-hero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
+.abt-hero h1 { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: clamp(32px, 4.2vw, 52px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0 0 18px; }
+.abt-lead { font-size: 17px; line-height: 1.6; color: var(--abt-slate); max-width: 520px; margin: 0 0 28px; }
+.abt-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Stats card (dark navy) */
+.abt-stats-card {
+  background: var(--abt-navy);
+  border-radius: 20px;
+  padding: 32px;
+  color: #fff;
+  box-shadow: 0 24px 48px rgba(11,20,55,.25);
+}
+.abt-stats-label { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 20px; }
+.abt-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.abt-stat { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.abt-stat:nth-child(odd)  { border-right: 1px solid rgba(255,255,255,.07); }
+.abt-stat:nth-child(n+3)  { border-bottom: none; }
+.abt-stat b { display: block; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: #fff; line-height: 1.15; letter-spacing: -.02em; }
+.abt-stat span { font-size: 13px; color: #94a3b8; font-weight: 500; }
+
+/* ── WHAT WE DO ── */
+.abt-section { padding: 48px 0 56px; background: #fff; border-top: 1px solid var(--abt-line); }
+.abt-section-soft { padding: 48px 0 56px; background: #f8faff; border-top: 1px solid var(--abt-line); }
+
+.abt-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.abt-head h2 { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+
+.abt-products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.abt-product-card {
+  background: #f8faff;
+  border: 1px solid var(--abt-line);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.abt-product-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.07); border-color: #c7d2fe; }
+.abt-product-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+.abt-icon-blue   { background: #eff6ff; color: #2563eb; }
+.abt-icon-indigo { background: #ede9fe; color: #7c3aed; }
+.abt-icon-teal   { background: #ccfbf1; color: #0d9488; }
+.abt-product-card h3 { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 16px; font-weight: 700; margin: 0; }
+.abt-product-card p  { font-size: 14px; line-height: 1.5; color: var(--abt-slate); margin: 0; flex: 1; }
+.abt-learn-link { font-size: 14px; font-weight: 600; color: var(--abt-indigo); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: gap .15s ease; }
+.abt-product-card:hover .abt-learn-link { gap: 8px; }
+
+/* ── HOW WE WORK ── */
+.abt-principles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.abt-principle { display: flex; gap: 12px; align-items: flex-start; padding: 18px; border: 1px solid var(--abt-line); border-radius: 14px; background: #fff; }
+.abt-principle-icon { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #ede9fe; color: #7c3aed; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+.abt-principle h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+.abt-principle p  { font-size: 14px; line-height: 1.5; color: var(--abt-slate); margin: 0; }
+
+/* ── CONTACT STRIP ── */
+.abt-contact-card {
+  background: #fff;
+  border: 1px solid var(--abt-line);
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+.abt-contact-brand { font-size: 15px; color: var(--abt-slate); line-height: 1.6; }
+.abt-contact-brand strong { display: block; font-size: 16px; font-weight: 700; color: var(--abt-ink); margin-bottom: 6px; }
+.abt-contact-links { display: flex; flex-direction: column; gap: 10px; }
+.abt-contact-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.abt-contact-item { font-size: 14px; font-weight: 500; color: var(--abt-slate); text-decoration: none; transition: color .15s; }
+.abt-contact-item:hover { color: #2563eb; }
+.abt-contact-divider { color: #cbd5e1; font-size: 13px; }
+
+/* ── CTA BANNER ── */
+.abt-cta-wrap { padding: 48px 0 64px; background: #f8faff; border-top: 1px solid var(--abt-line); }
+.abt-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  padding: 32px 36px;
+  border-radius: 20px;
+  background: linear-gradient(120deg, #4f2fe0, #6c47ff 60%, #3b82f6);
+  color: #fff;
+}
+.abt-cta h2 { margin: 0; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: clamp(20px, 2.4vw, 28px); font-weight: 800; max-width: 520px; }
+.abt-cta-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .abt-hero { padding: 48px 0 40px; }
+  .abt-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .abt-products-grid { grid-template-columns: 1fr; }
+  .abt-principles-grid { grid-template-columns: repeat(2, 1fr); }
+  .abt-contact-card { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 560px) {
+  .abt-principles-grid { grid-template-columns: 1fr; }
+  .abt-cta { padding: 24px; flex-direction: column; align-items: flex-start; }
+  .abt-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .abt-btn, .abt-product-card, .abt-learn-link { transition: none; }
+}
