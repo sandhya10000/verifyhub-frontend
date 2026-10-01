@@ -6,6 +6,7 @@ import {
 import { ChevronsLeft, MoreVertical } from 'lucide-react';
 import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import Logo from './Logo';
+import SocialLinks from '../common/SocialLinks';
 
 const getInitials = (name = '') => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -162,6 +163,7 @@ const AppSidebar = ({
             </List>
           </React.Fragment>
         ))}
+        <SocialLinks variant="dark" collapsed={collapsed} />
       </Box>
 
       {/* User card */}

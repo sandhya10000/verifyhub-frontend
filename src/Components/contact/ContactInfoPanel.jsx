@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, useTheme, Link as MuiLink } from '@mui/material';
 import IconBadge from '../common/IconBadge';
+import SocialLinks from '../common/SocialLinks';
 
 const ContactInfoItem = ({ icon, label, value, href }) => {
   const theme = useTheme();
@@ -108,49 +109,7 @@ const ContactInfoPanel = () => {
       </Box>
 
       {/* Follow us */}
-      <Box sx={{ mt: 6, pt: 5, borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Typography sx={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: theme.palette.text.secondary, mb: 2 }}>
-          Follow us
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          {[
-            { label: 'in', ariaLabel: 'LinkedIn' },
-            { label: '𝕏', ariaLabel: 'Twitter / X' },
-            { label: 'f', ariaLabel: 'Facebook' },
-          ].map(({ label, ariaLabel }) => (
-            <Box
-              key={ariaLabel}
-              component="a"
-              href="#"
-              aria-label={ariaLabel}
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#fff',
-                border: `1px solid ${theme.palette.divider}`,
-                color: theme.palette.text.secondary,
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '15px',
-                boxShadow: '0 1px 3px rgba(15,27,45,.06)',
-                transition: 'all 0.18s ease',
-                '&:hover': {
-                  borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(37,99,235,.18)',
-                },
-              }}
-            >
-              {label}
-            </Box>
-          ))}
-        </Box>
-      </Box>
+      <SocialLinks />
     </Box>
   );
 };

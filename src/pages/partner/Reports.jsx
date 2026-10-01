@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, Button } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import TypePill from "../../Components/shared/TypePill";
-import RowActions from "../../Components/shared/RowActions";
 import FilterBar from "../../Components/shared/FilterBar";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 const REPORT_TABS = [
   { key: "credit-bureau", label: "Credit Bureau Reports" },
@@ -644,11 +645,57 @@ const Reports = () => {
       render: (row) => <StatusBadge status={row.status || "Success"} />,
     },
     {
-      header: "Actions", field: "action", align: "right", width: 60,
+      header: "Actions", field: "action", align: "right", width: 110,
       render: (row) => {
-        const notReady = row.rawType === "ai-analyzer" && row.rawReport?.status !== "completed";
+        const isAi = row.rawType === "ai-analyzer";
+        const notReady = isAi && row.rawReport?.status !== "completed";
+        const downloading = downloadingId === row.id;
+        const FileIcon = isAi ? DescriptionIcon : PictureAsPdfIcon;
+        const fileLabel = isAi ? "HTML" : "PDF";
         return (
-          <RowActions actions={[{ label: downloadingId === row.id ? "Downloading…" : notReady ? `Not ready (${row.rawReport?.status || "pending"})` : "Download", disabled: notReady, onClick: () => handleDownload(row) }]} />
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={
+              downloading ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <FileIcon
+                  sx={{
+                    fontSize: 16,
+                    color: notReady ? undefined : isAi ? "#0ea5e9" : "#e11d48",
+                  }}
+                />
+              )
+            }
+            disabled={downloading || notReady}
+            onClick={() => handleDownload(row)}
+            title={
+              notReady
+                ? `Analysis ${row.rawReport?.status || "pending"} — download available once completed`
+                : `Download ${fileLabel} file`
+            }
+            sx={{
+              textTransform: "none",
+              borderRadius: "999px",
+              border: "none",
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              color: "#33415C",
+              bgcolor: "#f1f5f9",
+              px: 1.5,
+              py: 0.5,
+              whiteSpace: "nowrap",
+              "&:hover": { bgcolor: "#e2e8f0", border: "none" },
+              "&.Mui-disabled": { border: "none" },
+            }}
+          >
+            {downloading
+              ? "…"
+              : notReady
+                ? (row.rawReport?.status || "Pending").replace(/^\w/, (c) => c.toUpperCase())
+                : fileLabel}
+          </Button>
         );
       },
     },
