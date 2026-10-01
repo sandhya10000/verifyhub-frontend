@@ -9,7 +9,7 @@ import { FaThreads } from 'react-icons/fa6';
 const socialLinks = [
   { icon: <FaLinkedin size={15} />, label: 'LinkedIn', href: 'https://www.linkedin.com/company/infoverifyhub/', color: '#0A66C2' },
   { icon: <FaThreads size={15} />, label: 'Threads', href: 'https://www.threads.com/@info.verifyhub?invite=0', color: '#000000' },
-  { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=m93h8jz', color: '#E1306C' },
+  { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://www.instagram.com/info.verifyhub/', color: '#E1306C' },
   { icon: <FaFacebook size={15} />, label: 'Facebook', href: 'https://www.facebook.com/share/1RSnR2cGyb/?mibextid=wwXIfr', color: '#1877F2' },
   { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com/@info.verifyhub?si=KMG9lv2oPEuIvdud', color: '#FF0033' },
 ];
