@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+
 import {
   Box,
   Typography,
@@ -30,6 +31,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import GroupIcon from "@mui/icons-material/Group";
+import WcIcon from "@mui/icons-material/Wc";
 
 // ============================================================
 // Shared field styles — bureau form design (label above input,
@@ -59,22 +61,37 @@ const FieldLabel = ({ children, required }) => (
   </Typography>
 );
 
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(
+  /\/api\/?$/,
+  "",
+);
+
 const CibilReport = () => {
   const { refreshWallet } = useAuth();
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     mobile: "",
+    email: "",
     pan: "",
     gender: "",
+    dob: "",
+    address: "",
+    state: "",
+    city: "",
+    pincode: "",
     reportType: "cibil",
     consent: false,
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // API se later ye data aayega
+  const [totalGenerated] = useState(0);
+  const [todayGenerated] = useState(0);
   const [cibilResult, setCibilResult] = useState(null);
   const [reportError, setReportError] = useState("");
   // True when the browser blocked the automatic new-tab open after success.
@@ -82,9 +99,10 @@ const CibilReport = () => {
   // Human-readable PDF size (set from the auto-download blob when available).
   const [fileSizeLabel, setFileSizeLabel] = useState("");
 
-  // ==========================================
+  // ============================================================
   // HANDLE INPUT CHANGE
-  // ==========================================
+  // ============================================================
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -94,11 +112,64 @@ const CibilReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
-  // ==========================================
-  // HANDLE CONSENT
-  // ==========================================
+  // ============================================================
+  // MOBILE CHANGE
+  // ============================================================
+
+  const handleMobileChange = (event) => {
+    const value = event.target.value.replace(/\D/g, "").slice(0, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      mobile: value,
+    }));
+
+    setError("");
+    setSuccess("");
+  };
+
+  // ============================================================
+  // PAN CHANGE
+  // ============================================================
+
+  const handlePanChange = (event) => {
+    const value = event.target.value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      pan: value,
+    }));
+
+    setError("");
+    setSuccess("");
+  };
+
+  // ============================================================
+  // PINCODE CHANGE
+  // ============================================================
+
+  const handlePincodeChange = (event) => {
+    const value = event.target.value.replace(/\D/g, "").slice(0, 6);
+
+    setFormData((prev) => ({
+      ...prev,
+      pincode: value,
+    }));
+
+    setError("");
+    setSuccess("");
+  };
+
+  // ============================================================
+  // CONSENT
+  // ============================================================
+
   const handleConsentChange = (event) => {
     setFormData((prev) => ({
       ...prev,
@@ -106,14 +177,18 @@ const CibilReport = () => {
     }));
 
     setError("");
+    setSuccess("");
   };
 
-  // ==========================================
+  // ============================================================
   // GENERATE CIBIL REPORT
-  // ==========================================
+  // ============================================================
+
   const handleGenerateReport = async () => {
     setError("");
+    setSuccess("");
     setCibilResult(null);
+
     // First Name
     if (!formData.firstName.trim()) {
       setError("Please enter first name.");
@@ -132,8 +207,19 @@ const CibilReport = () => {
       return;
     }
 
+    // Email
+    if (!formData.email.trim()) {
+      setError("Please enter email address.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     // PAN
-    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(formData.pan)) {
       setError("Please enter a valid PAN number.");
       return;
     }
@@ -141,6 +227,36 @@ const CibilReport = () => {
     // Gender
     if (!formData.gender) {
       setError("Please select gender.");
+      return;
+    }
+
+    // DOB
+    if (!formData.dob) {
+      setError("Please select date of birth.");
+      return;
+    }
+
+    // Address
+    if (!formData.address.trim()) {
+      setError("Please enter complete address.");
+      return;
+    }
+
+    // State
+    if (!formData.state.trim()) {
+      setError("Please enter state.");
+      return;
+    }
+
+    // City
+    if (!formData.city.trim()) {
+      setError("Please enter city.");
+      return;
+    }
+
+    // Pincode
+    if (!/^\d{6}$/.test(formData.pincode)) {
+      setError("Please enter a valid 6-digit pincode.");
       return;
     }
 
@@ -159,19 +275,20 @@ const CibilReport = () => {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         mobile: formData.mobile.trim(),
+        email: formData.email.trim(),
         pan: formData.pan.trim().toUpperCase(),
         gender: formData.gender,
+        dob: formData.dob,
+        address: formData.address.trim(),
+        state: formData.state.trim(),
+        city: formData.city.trim(),
+        pincode: formData.pincode.trim(),
         reportType: "cibil",
-        consent: formData.consent ? "Y" : "N",
+        consent: "Y",
       };
+
       console.log("CIBIL API Payload:", payload);
 
-      /*
-        ==========================================
-        API INTEGRATION
-        ==========================================
-
- */
       const response = await creditAPI.generateCibilReport(payload);
 
       console.log("FULL RESPONSE:", response);
@@ -180,36 +297,42 @@ const CibilReport = () => {
       console.log("CIBIL RESULT:", response.data?.data);
 
       if (response.data?.success) {
-        // Backend shape: { success, message, data: { creditReportId, fileName,
-        // pdfUrl (relative /uploads/... path), filePath, bureau, status } }
+        // Backend shape: data: { creditReportId, fileName, pdfUrl,
+        // filePath, bureau, score, status }. Normalize into the object
+        // the result card below reads, then auto-download the PDF.
         const resultData = response.data?.data || {};
-        const API_BASE_URL =
-          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-        const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
-        const pdfPath = resultData.pdfUrl || "";
-        const pdfAbsoluteUrl = /^https?:\/\//i.test(pdfPath)
-          ? pdfPath
-          : pdfPath.startsWith("/")
-            ? `${SERVER_BASE_URL}${pdfPath}`
-            : null;
-
+        const pdfPath = resultData.pdfUrl || resultData.filePath || null;
+        const pdfAbsoluteUrl = pdfPath
+          ? pdfPath.startsWith("http")
+            ? pdfPath
+            : `${API_ROOT}${pdfPath.startsWith("/") ? "" : "/"}${pdfPath}`
+          : null;
+        const message =
+          response.data?.message || "CIBIL report generated successfully.";
         setCibilResult({
           success: true,
-          message: response.data?.message,
+          message,
+          requestId: resultData.creditReportId || null,
+          creditReport: {
+            score: resultData.score ?? null,
+            bureau: resultData.bureau || "CIBIL",
+            name: `${formData.firstName} ${formData.lastName}`.trim() || "-",
+            mobile: formData.mobile || "-",
+            pan: (formData.pan || "").toUpperCase() || "-",
+            reportType: "cibil",
+            reportUrl: pdfAbsoluteUrl,
+            createdAt: new Date().toISOString(),
+          },
           data: { ...resultData, pdfAbsoluteUrl },
         });
+        setSuccess(message);
 
         // Wallet moved server-side (per-report debit) — sync the header
         // balance immediately instead of waiting for a page reload.
         refreshWallet();
 
-        // Automatically download the PDF now that generation succeeded —
-        // the user stays on this page and never has to click Download.
-        // Programmatic file downloads are not popup-blocked. If the fetch
-        // fails, fall back to opening a new tab (also attempted automatically).
         if (pdfAbsoluteUrl) {
-          const fileName =
-            resultData.fileName || "CIBIL-Credit-Report.pdf";
+          const fileName = resultData.fileName || "CIBIL-Credit-Report.pdf";
           const downloaded = await triggerPdfDownload(
             pdfAbsoluteUrl,
             fileName,
@@ -224,7 +347,7 @@ const CibilReport = () => {
           }
         }
 
-        // Scroll to result (mirrors Experian flow)
+        // Scroll to result
         setTimeout(() => {
           document.getElementById("cibil-report-result")?.scrollIntoView({
             behavior: "smooth",
@@ -245,12 +368,14 @@ const CibilReport = () => {
 
       setError(
         err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
           "Unable to generate CIBIL report. Please try again.",
       );
     } finally {
       setLoading(false);
     }
   };
+  useEffect(() => {}, []);
 
   // ============================================================
   // DOWNLOAD HELPER — fetches the PDF and triggers a real file download.
@@ -286,303 +411,194 @@ const CibilReport = () => {
     }
   };
 
-  // ============================================================
-  // VIEW CURRENT REPORT (mirrors Experian flow)
-  // ============================================================
-
   const handleViewReport = () => {
-    const finalUrl = cibilResult?.data?.pdfAbsoluteUrl;
+    const finalUrl = cibilResult?.creditReport?.reportUrl;
 
     if (finalUrl) {
       setAutoOpenBlocked(false);
       window.open(finalUrl, "_blank", "noopener,noreferrer");
-    } else {
-      setError("Report file is not available for viewing.");
     }
   };
-
-  // handleDownloadReport removed — the PDF auto-downloads on success and
-  // the header "View Report" button re-opens it. No manual download button
-  // in the result card (matches design).
-
-  useEffect(() => {}, []);
 
   return (
     <Box
       sx={{
-        minHeight: "100vh",
-        backgroundColor: "#eef2f7",
-        pb: 5,
-        pt: 3,
-        px: 2,
+        maxWidth: 1000,
+        mx: "auto",
+        backgroundColor: "#fff",
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid #e5e7eb",
       }}
     >
-      <Box sx={{ maxWidth: 1100, mx: "auto" }}>
       {/* ==========================================
-          HERO
-      ========================================== */}
+    HEADER
+========================================== */}
       <Box
         sx={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: "24px",
-          background:
-            "linear-gradient(100deg, #0a1633 0%, #10255c 48%, #1d4ed8 100%)",
+          background: "#121212",
           color: "#fff",
-          px: { xs: 2.5, sm: 4, md: 5 },
-          py: { xs: 3, md: 3.5 },
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 2,
-          mb: 3,
+          px: {
+            xs: 2.5,
+            sm: 4,
+            md: 5,
+          },
+          py: {
+            xs: 2.5,
+            md: 3,
+          },
         }}
       >
-        {/* decorative glows */}
-        <Box
+        <Typography
           sx={{
-            position: "absolute",
-            right: -60,
-            top: -90,
-            width: 270,
-            height: 270,
-            borderRadius: "50%",
-            bgcolor: "rgba(255,255,255,0.08)",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            right: 130,
-            bottom: -120,
-            width: 210,
-            height: 210,
-            borderRadius: "50%",
-            bgcolor: "rgba(255,255,255,0.06)",
-          }}
-        />
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2.25,
-            position: "relative",
-            zIndex: 1,
-            minWidth: 0,
+            fontSize: {
+              xs: "1.6rem",
+              sm: "2rem",
+            },
+            fontWeight: 700,
+            lineHeight: 1.2,
+            letterSpacing: "-0.5px",
+            color: "#fff",
+            m: 0,
           }}
         >
-          <Box
-            sx={{
-              width: 64,
-              height: 64,
-              flexShrink: 0,
-              borderRadius: "18px",
-              bgcolor: "#2563eb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 10px 24px rgba(37,99,235,0.5)",
-            }}
-          >
-            <DescriptionIcon sx={{ fontSize: 34, color: "#fff" }} />
-          </Box>
+          CIBIL Report
+        </Typography>
 
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: { xs: "1.6rem", sm: "2rem" },
-                fontWeight: 800,
-                lineHeight: 1.15,
-                color: "#fff",
-                m: 0,
-              }}
-            >
-              CIBIL Report
-            </Typography>
-
-            <Typography
-              sx={{
-                mt: 0.5,
-                color: "#c7d2e8",
-                fontSize: { xs: "0.85rem", sm: "0.95rem" },
-              }}
-            >
-              Get your credit summary instantly – secure & hassle-free
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* score-card illustration */}
-        <Box
+        <Typography
           sx={{
-            display: { xs: "none", sm: "block" },
-            position: "relative",
-            width: 200,
-            height: 152,
-            flexShrink: 0,
-            zIndex: 1,
+            mt: 0,
+            pt: 0,
+            color: "#d1d5db",
+            fontSize: {
+              xs: "0.85rem",
+              sm: "0.95rem",
+            },
+            lineHeight: 1.2,
           }}
         >
-          {/* back card */}
-          <Box
-            sx={{
-              position: "absolute",
-              right: 66,
-              top: 2,
-              width: 118,
-              height: 146,
-              bgcolor: "rgba(219,234,254,0.8)",
-              borderRadius: 2,
-              transform: "rotate(-7deg)",
-              p: 1.25,
-            }}
-          >
-            <Box sx={{ height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.7)" }} />
-            <Box sx={{ mt: 1, height: 7, width: "70%", borderRadius: 1, bgcolor: "rgba(255,255,255,0.55)" }} />
-            <Box sx={{ mt: 1, height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.4)" }} />
-          </Box>
-
-          {/* front card */}
-          <Box
-            sx={{
-              position: "absolute",
-              right: 6,
-              top: 8,
-              width: 134,
-              bgcolor: "#fff",
-              borderRadius: 2,
-              p: 1.25,
-              boxShadow: "0 18px 36px rgba(2,6,23,0.4)",
-              transform: "rotate(4deg)",
-            }}
-          >
-            <Box
-              sx={{
-                display: "inline-block",
-                bgcolor: "#0ea5e9",
-                color: "#fff",
-                fontSize: "0.6rem",
-                fontWeight: 800,
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                letterSpacing: "0.06em",
-              }}
-            >
-              CIBIL
-            </Box>
-            <Box sx={{ mt: 1, height: 6, borderRadius: 1, bgcolor: "#dbe4f0" }} />
-            <Box sx={{ mt: 0.75, height: 6, width: "70%", borderRadius: 1, bgcolor: "#e7edf5" }} />
-            <Box
-              component="svg"
-              viewBox="0 0 120 74"
-              sx={{ width: "100%", display: "block", mt: 0.25 }}
-            >
-              <defs>
-                <linearGradient id="cibilGauge" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0" stopColor="#ef4444" />
-                  <stop offset="0.5" stopColor="#f59e0b" />
-                  <stop offset="1" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M12 60 A48 48 0 0 1 108 60"
-                fill="none"
-                stroke="url(#cibilGauge)"
-                strokeWidth="10"
-                strokeLinecap="round"
-              />
-              <line
-                x1="60"
-                y1="60"
-                x2="92.6"
-                y2="44.7"
-                stroke="#0f172a"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx="60" cy="60" r="4" fill="#0f172a" />
-              <text
-                x="60"
-                y="48"
-                textAnchor="middle"
-                fontSize="15"
-                fontWeight="800"
-                fill="#0f172a"
-              >
-                774
-              </text>
-              <text
-                x="60"
-                y="71"
-                textAnchor="middle"
-                fontSize="7"
-                fill="#64748b"
-              >
-                Good Score
-              </text>
-            </Box>
-          </Box>
-        </Box>
+          Get your credit summary instantly – secure & hassle-free
+        </Typography>
       </Box>
 
       {/* ==========================================
-          FORM CARD
+          CONTENT
       ========================================== */}
       <Box
         sx={{
-          backgroundColor: "#fff",
-          borderRadius: 2,
-          border: "1px solid #e5e7eb",
-          boxShadow: "none",
-          px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 2.5, sm: 3.5 },
+          maxWidth: 1000,
+          mx: "auto",
+          px: {
+            xs: 2,
+            sm: 3,
+          },
+          mt: 3,
         }}
       >
+        {/* ==========================================
+            STAT CARDS
+        ========================================== */}
+        <Grid container spacing={2.5} mb={3}>
+          {/* TOTAL */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Card
+              elevation={0}
+              sx={{
+                borderRadius: 3,
+                border: "1px solid #e5e7eb",
+                backgroundColor: "#fff",
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Typography
+                  sx={{
+                    color: "#64748b",
+                    fontSize: "0.9rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Total CIBIL Generated
+                </Typography>
+
+                <Typography
+                  sx={{
+                    mt: 0.5,
+                    color: "#2563eb",
+                    fontSize: "2rem",
+                    lineHeight: 1.2,
+                    fontWeight: 700,
+                  }}
+                >
+                  {totalGenerated}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* TODAY */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Card
+              elevation={0}
+              sx={{
+                borderRadius: 3,
+                border: "1px solid #e5e7eb",
+                backgroundColor: "#fff",
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Typography
+                  sx={{
+                    color: "#64748b",
+                    fontSize: "0.9rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Today Generated
+                </Typography>
+
+                <Typography
+                  sx={{
+                    mt: 0.5,
+                    color: "#16a34a",
+                    fontSize: "2rem",
+                    lineHeight: 1.2,
+                    fontWeight: 700,
+                  }}
+                >
+                  {todayGenerated}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
         {/* ==========================================
             MAIN FORM
         ========================================== */}
         <Card
           elevation={0}
           sx={{
-            border: "none",
-            backgroundColor: "transparent",
-            boxShadow: "none",
+            borderRadius: 3,
+            border: "1px solid #e5e7eb",
+            backgroundColor: "#fff",
           }}
         >
           <CardContent
-
             sx={{
               p: {
-                xs: 0,
-                sm: 0,
-                md: 0,
+                xs: 2,
+                sm: 3,
+                md: 4,
               },
             }}
           >
             {/* FORM TITLE */}
-            <Box mb={3} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Box
-                sx={{
-                  width: 52,
-                  height: 52,
-                  flexShrink: 0,
-                  borderRadius: "14px",
-                  bgcolor: "#e8f1fe",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <PersonIcon sx={{ fontSize: 28, color: "#2563eb" }} />
-              </Box>
-              <Box>
+            <Box mb={3}>
               <Typography
                 sx={{
-                  fontSize: "1.35rem",
-                  fontWeight: 800,
-                  color: "#0f1e3d",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                  color: "#172033",
                 }}
               >
                 Customer Details
@@ -590,31 +606,45 @@ const CibilReport = () => {
 
               <Typography
                 sx={{
-                  mt: 0.25,
-                  fontSize: "0.9rem",
+                  mt: 0.5,
+                  fontSize: "0.85rem",
                   color: "#64748b",
                 }}
               >
                 Enter customer details to generate the CIBIL credit report.
               </Typography>
-              </Box>
             </Box>
 
-            {/* ERROR */}
-            {error && (
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 3,
-                  borderRadius: 2,
-                }}
-              >
-                {error}
-              </Alert>
-            )}
+              {/* ERROR */}
+
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+
+              {/* SUCCESS */}
+
+              {success && (
+                <Alert
+                  severity="success"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                  }}
+                >
+                  {success}
+                </Alert>
+              )}
 
             <Grid container spacing={2.5}>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>First Name</FieldLabel>
                 <TextField
                   fullWidth
@@ -638,7 +668,7 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>Last Name</FieldLabel>
                 <TextField
                   fullWidth
@@ -662,7 +692,7 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>Mobile Number</FieldLabel>
                 <TextField
                   fullWidth
@@ -688,6 +718,19 @@ const CibilReport = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
+                        <Typography
+                          sx={{
+                            color: "#64748b",
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          +91
+                        </Typography>
+                      </InputAdornment>
+                    ),
+
+                    endAdornment: (
+                      <InputAdornment position="end">
                         <PhoneIcon
                           sx={{
                             color: "#94a3b8",
@@ -700,7 +743,35 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Email Address</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter email address"
+                  sx={fieldSx}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography
+                          sx={{
+                            color: "#94a3b8",
+                            fontSize: 20,
+                            fontWeight: 500,
+                          }}
+                        >
+                          @
+                        </Typography>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>PAN Number</FieldLabel>
                 <TextField
                   fullWidth
@@ -708,10 +779,10 @@ const CibilReport = () => {
                   value={formData.pan}
                   onChange={handleChange}
                   placeholder="Enter PAN number (e.g. ABCDE1234F)"
-                  sx={fieldSx}
                   inputProps={{
                     maxLength: 10,
                   }}
+                  sx={fieldSx}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -727,7 +798,7 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid item >
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>Gender</FieldLabel>
                 <TextField
                   select
@@ -751,7 +822,7 @@ const CibilReport = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <GroupIcon
+                        <WcIcon
                           sx={{
                             color: "#94a3b8",
                             fontSize: 20,
@@ -761,8 +832,8 @@ const CibilReport = () => {
                     ),
                   }}
                 >
-                  <MenuItem value=""  disabled>
-                    Select gender
+                  <MenuItem value="" disabled>
+                    Select Gender
                   </MenuItem>
 
                   <MenuItem value="Male">Male</MenuItem>
@@ -773,14 +844,66 @@ const CibilReport = () => {
                 </TextField>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Date of Birth</FieldLabel>
+                <TextField
+                  fullWidth
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  sx={fieldSx}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>State</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="Enter state"
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>City</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="Enter city"
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Pincode</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handlePincodeChange}
+                  placeholder="Enter 6-digit pincode"
+                  inputProps={{
+                    maxLength: 6,
+                  }}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FieldLabel required>Report Type</FieldLabel>
                 <TextField
-                  select
                   fullWidth
-                  name="reportType"
                   value="CIBIL"
-                  onChange={() => {}}
+                  disabled
                   sx={fieldSx}
                   InputProps={{
                     startAdornment: (
@@ -794,10 +917,23 @@ const CibilReport = () => {
                       </InputAdornment>
                     ),
                   }}
-                >
-                  <MenuItem value="CIBIL">CIBIL</MenuItem>
-                </TextField>
+                />
               </Grid>
+
+              <Grid size={{ xs: 12, md: 12 }}>
+                <FieldLabel required>Complete Address</FieldLabel>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter complete address"
+                  sx={fieldSx}
+                />
+              </Grid>
+
             </Grid>
 
             {/* ==========================================
@@ -806,44 +942,26 @@ const CibilReport = () => {
             <Box
               sx={{
                 mt: 3,
-                p: { xs: 2, sm: 2.5 },
-                borderRadius: "16px",
-                backgroundColor: "#f2f7ff",
-                border: "1px solid #d7e6fd",
-                display: "flex",
-                gap: 2,
-                alignItems: "flex-start",
+                p: {
+                  xs: 1.5,
+                  sm: 2,
+                },
+                borderRadius: 2,
+                backgroundColor: "#eff6ff",
+                border: "1px solid #bfdbfe",
               }}
             >
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  flexShrink: 0,
-                  borderRadius: "50%",
-                  bgcolor: "#e3efff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <GppGoodIcon sx={{ fontSize: 24, color: "#2563eb" }} />
-              </Box>
-
               <FormControlLabel
                 sx={{
                   alignItems: "flex-start",
                   m: 0,
-                  flex: 1,
                 }}
                 control={
                   <Checkbox
                     checked={formData.consent}
                     onChange={handleConsentChange}
                     sx={{
-                      p: 0.5,
-                      mr: 1,
-                      "&.Mui-checked": { color: "#2563eb" },
+                      pt: 0,
                     }}
                   />
                 }
@@ -851,9 +969,9 @@ const CibilReport = () => {
                   <Box>
                     <Typography
                       sx={{
-                        fontSize: "0.95rem",
-                        fontWeight: 700,
-                        color: "#0f1e3d",
+                        fontSize: "0.9rem",
+                        fontWeight: 600,
+                        color: "#172033",
                       }}
                     >
                       Customer Consent Received
@@ -862,9 +980,9 @@ const CibilReport = () => {
                     <Typography
                       sx={{
                         mt: 0.5,
-                        fontSize: "0.85rem",
+                        fontSize: "0.82rem",
                         lineHeight: 1.6,
-                        color: "#5b6b82",
+                        color: "#64748b",
                       }}
                     >
                       I confirm that the customer has provided explicit consent
@@ -875,8 +993,8 @@ const CibilReport = () => {
                     <Typography
                       sx={{
                         mt: 1,
-                        fontSize: "0.85rem",
-                        color: "#5b6b82",
+                        fontSize: "0.82rem",
+                        color: "#64748b",
                       }}
                     >
                       By continuing, you agree to our{" "}
@@ -885,23 +1003,11 @@ const CibilReport = () => {
                         underline="hover"
                         sx={{
                           color: "#2563eb",
-                          fontWeight: 600,
+                          fontWeight: 500,
                         }}
                       >
                         Terms & Conditions
-                      </Link>{" "}
-                      and{" "}
-                      <Link
-                        href="#"
-                        underline="hover"
-                        sx={{
-                          color: "#2563eb",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Privacy Policy
                       </Link>
-                      .
                     </Typography>
                   </Box>
                 }
@@ -918,23 +1024,23 @@ const CibilReport = () => {
               disabled={loading || !formData.consent}
               startIcon={
                 loading ? (
-                  <CircularProgress size={20} color="inherit" />
+                  <CircularProgress size={18} color="inherit" />
                 ) : (
                   <DownloadIcon />
                 )
               }
               sx={{
                 mt: 3,
-                py: 1.9,
-                borderRadius: "16px",
-                backgroundColor: "#1f66e5",
-                fontSize: "1.05rem",
+                py: 1.5,
+                borderRadius: 2,
+                backgroundColor: "#2563eb",
+                fontSize: "0.95rem",
                 fontWeight: 700,
                 textTransform: "none",
                 boxShadow: "none",
 
                 "&:hover": {
-                  backgroundColor: "#1857c4",
+                  backgroundColor: "#1d4ed8",
                   boxShadow: "none",
                 },
 
@@ -946,6 +1052,35 @@ const CibilReport = () => {
             >
               {loading ? "Generating CIBIL Report..." : "Download CIBIL Report"}
             </Button>
+
+            {/* ==========================================
+                SECURITY NOTE
+            ========================================== */}
+            <Box
+              sx={{
+                mt: 2,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 0.7,
+              }}
+            >
+              <CheckCircleIcon
+                sx={{
+                  fontSize: 16,
+                  color: "#16a34a",
+                }}
+              />
+
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  color: "#64748b",
+                }}
+              >
+                Your information is securely processed.
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
       </Box>
@@ -955,7 +1090,8 @@ const CibilReport = () => {
           {reportError}
         </Alert>
       )}
-      {autoOpenBlocked && cibilResult?.data?.pdfAbsoluteUrl && (
+
+      {autoOpenBlocked && cibilResult?.creditReport?.reportUrl && (
         <Alert
           severity="info"
           action={
@@ -970,371 +1106,339 @@ const CibilReport = () => {
           }
           sx={{ mt: 3, borderRadius: 2, alignItems: "center" }}
         >
-          Your CIBIL report is ready — the automatic download didn’t start.
+          Your CIBIL report is ready — the automatic download didn&apos;t start.
           Click “Open report now”.
         </Alert>
       )}
 
-      {cibilResult?.success && cibilResult?.data && (
+      {cibilResult?.success && cibilResult?.creditReport && (
         <Card
           id="cibil-report-result"
           elevation={0}
           sx={{
-            mt: 3,
-            borderRadius: 4,
+            mt: 4,
+            borderRadius: 3,
             border: "1px solid #e5e7eb",
             backgroundColor: "#fff",
           }}
         >
-          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-            {/* RESULT HEADER */}
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: {
-                  xs: "flex-start",
-                  sm: "center",
-                },
-                flexDirection: {
-                  xs: "column",
-                  sm: "row",
-                },
-                gap: 2,
-                mb: 3,
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  minWidth: 0,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    flexShrink: 0,
-                    borderRadius: "50%",
-                    bgcolor: "#e7f7ee",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <DescriptionOutlinedIcon
-                    sx={{ fontSize: 28, color: "#16a34a" }}
-                  />
-                </Box>
-
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: "1.35rem",
-                      fontWeight: 800,
-                      color: "#0f1e3d",
-                    }}
-                  >
-                    CIBIL Report Result
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      mt: 0.25,
-                      fontSize: "0.9rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    {cibilResult.message ||
-                      "CIBIL report generated successfully"}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 1.5,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <Button
-                  variant="outlined"
-                  startIcon={<VisibilityIcon sx={{ color: "#64748b" }} />}
-                  onClick={handleViewReport}
-                  disabled={!cibilResult.data.pdfAbsoluteUrl}
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: "999px",
-                    fontWeight: 600,
-                    color: "#475569",
-                    bgcolor: "#fff",
-                    borderColor: "#e2e8f0",
-                    px: 2.5,
-                    py: 1,
-                    "&:hover": {
-                      bgcolor: "#f8fafc",
-                      borderColor: "#cbd5e1",
-                    },
-                  }}
-                >
-                  View Report
-                </Button>
-                <Chip
-                  icon={<CheckCircleIcon sx={{ fontSize: 18 }} />}
-                  label="Verified"
-                  sx={{
-                    borderRadius: "999px",
-                    fontWeight: 700,
-                    bgcolor: "#e9e7ff",
-                    color: "#3730a3",
-                    border: "1px solid #d9d5ff",
-                    px: 0.5,
-                    py: 2.25,
-                    "& .MuiChip-icon": { color: "#3730a3" },
-                  }}
-                />
-              </Box>
-            </Box>
-
-            {/* FILE BANNER */}
-
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+            {/* SUCCESS HEADER */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: { xs: 2, sm: 3 },
-                p: { xs: 2, sm: 3 },
-                borderRadius: "20px",
-                backgroundColor: "#eef3fd",
-                border: "1px solid #dbe7fb",
-                position: "relative",
-                overflow: "hidden",
+                gap: 1.5,
+                mb: 3,
               }}
             >
-              {/* PDF icon */}
-              <Box
+              <CheckCircleIcon
                 sx={{
-                  width: 72,
-                  height: 72,
-                  flexShrink: 0,
-                  borderRadius: "18px",
-                  bgcolor: "#fde8e8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  color: "#16a34a",
+                  fontSize: 30,
                 }}
-              >
-                <PictureAsPdfIcon sx={{ fontSize: 40, color: "#e11d48" }} />
-              </Box>
+              />
 
-              {/* file meta */}
-              <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Box>
                 <Typography
                   sx={{
-                    fontSize: "0.75rem",
+                    fontSize: "1.15rem",
                     fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    color: "#64748b",
+                    color: "#172033",
                   }}
                 >
-                  CIBIL CREDIT REPORT
+                  CIBIL Report Generated Successfully
                 </Typography>
 
                 <Typography
                   sx={{
-                    mt: 0.5,
-                    fontSize: { xs: "0.95rem", sm: "1.15rem" },
-                    fontWeight: 800,
-                    color: "#1d4ed8",
-                    wordBreak: "break-all",
-                    lineHeight: 1.35,
+                    fontSize: "0.8rem",
+                    color: "#64748b",
+                    mt: 0.3,
                   }}
                 >
-                  {cibilResult.data.fileName || "CIBIL Report"}
+                  {cibilResult.message}
                 </Typography>
-
-                <Box
-                  sx={{
-                    mt: 1.25,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Box
-                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-                  >
-                    <DescriptionOutlinedIcon
-                      sx={{ fontSize: 16, color: "#64748b" }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: "0.8rem",
-                        color: "#475569",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {fileSizeLabel || "PDF"}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{ width: "1px", height: 16, bgcolor: "#cbd5e1" }}
-                  />
-
-                  <Typography sx={{ fontSize: "0.8rem", color: "#64748b" }}>
-                    PDF Document
-                  </Typography>
-
-                  <Chip
-                    icon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
-                    label={cibilResult.data.status || "Success"}
-                    size="small"
-                    sx={{
-                      bgcolor: "#dcfce7",
-                      color: "#15803d",
-                      fontWeight: 700,
-                      borderRadius: "999px",
-                      "& .MuiChip-icon": { color: "#16a34a" },
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              {/* mini report illustration */}
-              <Box
-                sx={{
-                  display: { xs: "none", md: "block" },
-                  position: "relative",
-                  width: 150,
-                  height: 132,
-                  flexShrink: 0,
-                }}
-              >
-                <Box
-                  sx={{
-                    position: "absolute",
-                    right: 46,
-                    top: 4,
-                    width: 84,
-                    height: 122,
-                    bgcolor: "rgba(255,255,255,0.75)",
-                    borderRadius: 1.5,
-                    transform: "rotate(-7deg)",
-                    boxShadow: "0 8px 18px rgba(30,64,175,0.12)",
-                    p: 1,
-                  }}
-                >
-                  <Box sx={{ height: 5, borderRadius: 1, bgcolor: "#dbe4f0" }} />
-                  <Box
-                    sx={{
-                      mt: 0.75,
-                      height: 5,
-                      width: "70%",
-                      borderRadius: 1,
-                      bgcolor: "#e7edf5",
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      mt: 0.75,
-                      height: 5,
-                      borderRadius: 1,
-                      bgcolor: "#eef2f7",
-                    }}
-                  />
-                </Box>
-
-                <Box
-                  sx={{
-                    position: "absolute",
-                    right: 2,
-                    top: 8,
-                    width: 100,
-                    bgcolor: "#fff",
-                    borderRadius: 1.5,
-                    p: 1,
-                    boxShadow: "0 12px 24px rgba(30,64,175,0.16)",
-                    transform: "rotate(4deg)",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "inline-block",
-                      bgcolor: "#0ea5e9",
-                      color: "#fff",
-                      fontSize: "0.55rem",
-                      fontWeight: 800,
-                      px: 0.75,
-                      py: 0.2,
-                      borderRadius: 0.75,
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    CIBIL
-                  </Box>
-                  <Box
-                    sx={{ mt: 0.75, height: 5, borderRadius: 1, bgcolor: "#dbe4f0" }}
-                  />
-                  <Box
-                    component="svg"
-                    viewBox="0 0 120 74"
-                    sx={{ width: "100%", display: "block", mt: 0.25 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="cibilGaugeMini"
-                        x1="0"
-                        y1="0"
-                        x2="1"
-                        y2="0"
-                      >
-                        <stop offset="0" stopColor="#ef4444" />
-                        <stop offset="0.5" stopColor="#f59e0b" />
-                        <stop offset="1" stopColor="#22c55e" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M12 60 A48 48 0 0 1 108 60"
-                      fill="none"
-                      stroke="url(#cibilGaugeMini)"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                    />
-                    <line
-                      x1="60"
-                      y1="60"
-                      x2="92.6"
-                      y2="44.7"
-                      stroke="#0f172a"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
-                    <circle cx="60" cy="60" r="4" fill="#0f172a" />
-                    <text
-                      x="60"
-                      y="48"
-                      textAnchor="middle"
-                      fontSize="15"
-                      fontWeight="800"
-                      fill="#0f172a"
-                    >
-                      774
-                    </text>
-                  </Box>
-                </Box>
               </Box>
             </Box>
+
+            {/* CIBIL SCORE */}
+            <Box
+              sx={{
+                p: 3,
+                mb: 3,
+                textAlign: "center",
+                borderRadius: 3,
+                backgroundColor: "#eff6ff",
+                border: "1px solid #bfdbfe",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "#64748b",
+                }}
+              >
+                CIBIL SCORE
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "3.2rem",
+                  fontWeight: 800,
+                  color: "#2563eb",
+                  lineHeight: 1.2,
+                  mt: 0.5,
+                }}
+              >
+                {cibilResult.creditReport.score}
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "0.8rem",
+                  color: "#64748b",
+                  mt: 0.5,
+                }}
+              >
+                Bureau: {cibilResult.creditReport.bureau}
+              </Typography>
+            </Box>
+
+            {/* CUSTOMER DETAILS */}
+            <Typography
+              sx={{
+                fontSize: "1rem",
+                fontWeight: 700,
+                color: "#172033",
+                mb: 2,
+              }}
+            >
+              Customer Details
+            </Typography>
+
+            <Grid container spacing={2}>
+              {/* NAME */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Customer Name
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                    }}
+                  >
+                    {cibilResult.creditReport.name}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* MOBILE */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Mobile Number
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                    }}
+                  >
+                    +91 {cibilResult.creditReport.mobile}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* PAN */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    PAN Number
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                    }}
+                  >
+                    {cibilResult.creditReport.pan}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* REPORT TYPE */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Report Type
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {cibilResult.creditReport.reportType}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* REQUEST ID */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Request ID
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontWeight: 600,
+                      color: "#172033",
+                      fontSize: "0.8rem",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {cibilResult.requestId}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* VIEW REPORT */}
+            <Box
+              sx={{
+                mt: 3,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.85rem",
+                  color: "#64748b",
+                  mb: 1.5,
+                }}
+              >
+                Your CIBIL report is ready.
+              </Typography>
+
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<DescriptionIcon />}
+                onClick={() =>
+                  window.open(
+                    cibilResult.creditReport.reportUrl,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+                sx={{
+                  py: 1.4,
+                  borderRadius: 2,
+                  backgroundColor: "#2563eb",
+                  fontWeight: 700,
+                  textTransform: "none",
+                  boxShadow: "none",
+
+                  "&:hover": {
+                    backgroundColor: "#1d4ed8",
+                    boxShadow: "none",
+                  },
+                }}
+              >
+                View CIBIL Report
+              </Button>
+            </Box>
+
+            {/* CREATED DATE */}
+            <Typography
+              sx={{
+                mt: 2,
+                textAlign: "center",
+                fontSize: "0.75rem",
+                color: "#94a3b8",
+              }}
+            >
+              Generated on{" "}
+              {new Date(cibilResult.creditReport.createdAt).toLocaleString(
+                "en-IN",
+              )}
+            </Typography>
           </CardContent>
         </Card>
       )}
-      </Box>
     </Box>
   );
 };
