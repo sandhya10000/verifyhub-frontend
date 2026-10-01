@@ -1,20 +1,32 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, Button } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import TypePill from "../../Components/shared/TypePill";
-import RowActions from "../../Components/shared/RowActions";
 import FilterBar from "../../Components/shared/FilterBar";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 const REPORT_TABS = [
-  { key: "cibil", label: "CIBIL Reports", bureau: "CIBIL" },
-  { key: "experian", label: "Experian Reports", bureau: "EXPERIAN" },
-  { key: "crif", label: "CRIF Reports", bureau: "CRIF" },
-  { key: "equifax", label: "Equifax Reports", bureau: "EQUIFAX" },
-  { key: "ai", label: "AI Analysed Reports", bureau: "AI" },
+  { key: "credit-bureau", label: "Credit Bureau Reports" },
+  { key: "ai", label: "AI Analysed Reports" },
 ];
+
+const BUREAU_OPTIONS = ["All", "CIBIL", "Experian", "CRIF", "Equifax"];
+
+// DD Mon YYYY, HH:MM (24h) — e.g. 30 Sep 2026, 14:07
+const fmtDateTime = (v) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "—";
+  return (
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    ", " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+  );
+};
 
 const Reports = () => {
   // ============================================================
@@ -49,8 +61,9 @@ const Reports = () => {
   const { bureau: bureauParam } = useParams();
   const activeKey = REPORT_TABS.some((t) => t.key === (bureauParam || "").toLowerCase())
     ? bureauParam.toLowerCase()
-    : "cibil";
+    : "credit-bureau";
   const activeTab = REPORT_TABS.find((t) => t.key === activeKey);
+  const isAiTab = activeKey === "ai";
 
   // ============================================================
   // STATES
@@ -65,12 +78,14 @@ const Reports = () => {
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [bureauFilter, setBureauFilter] = useState("All");
 
   // Reset filters when switching tabs
   useEffect(() => {
     setSearch("");
     setFromDate("");
     setToDate("");
+    setBureauFilter("All");
   }, [activeKey]);
 
   // ============================================================
@@ -231,18 +246,16 @@ const Reports = () => {
         let aiMapped = [];
 
         if (aiRes.data?.success && Array.isArray(aiRes.data?.data)) {
-          aiMapped = aiRes.data.data
-            .filter((r) => r.status === "completed")
-            .map((r) => ({
+          // Show ALL uploaded reports (uploaded / processing / completed / failed),
+          // not just completed — per founder requirement.
+          aiMapped = aiRes.data.data.map((r) => ({
               id: r._id,
 
-              date: new Date(r.createdAt).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              }),
+              date: fmtDateTime(r.createdAt),
 
               createdAt: r.createdAt,
+
+              status: r.status || "—",
 
               customer: formatName(
                 r.mergedData?.client_name ||
@@ -273,13 +286,11 @@ const Reports = () => {
           creditMapped = creditRes.data.data.map((r) => ({
             id: r._id,
 
-            date: new Date(r.createdAt).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
+            date: fmtDateTime(r.createdAt),
 
             createdAt: r.createdAt,
+
+            status: r.status || "Success",
 
             customer: formatName(
               r.fullName ||
@@ -313,7 +324,7 @@ const Reports = () => {
           const raw = ai.rawReport;
 
           // ------------------------------------------------------
-          // Explicit creditReportId
+          // Explicit creditReportId (applies to every AI status)
           // ------------------------------------------------------
 
           if (raw.creditReportId) {
@@ -323,8 +334,10 @@ const Reports = () => {
           }
 
           // ------------------------------------------------------
-          // Legacy heuristic
+          // Legacy heuristic — completed analyses only (others have no score)
           // ------------------------------------------------------
+
+          if (raw.status !== "completed") continue;
 
           const aiScore =
             typeof raw.result?.score === "number" ? raw.result.score : null;
@@ -401,17 +414,19 @@ const Reports = () => {
     const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
     const to = toDate ? new Date(`${toDate}T23:59:59.999`) : null;
     return reportsData.filter((r) => {
-      // Bureau tab
-      if (activeTab.bureau === "AI") {
+      // Tab split: credit bureau (all 4 bureaus together) vs AI
+      if (isAiTab) {
         if (r.rawType !== "ai-analyzer") return false;
       } else {
         if (r.rawType === "ai-analyzer") return false;
-        const b = String(r.rawReport?.bureau || r.bureau || "").toUpperCase();
-        if (b !== activeTab.bureau) return false;
+        if (bureauFilter !== "All") {
+          const b = String(r.rawReport?.bureau || r.bureau || "").toUpperCase();
+          if (b !== bureauFilter.toUpperCase()) return false;
+        }
       }
-      // Search (customer / score)
+      // Search (customer / score / bureau)
       if (q) {
-        const hay = `${r.customer || ""} ${r.score ?? ""}`.toLowerCase();
+        const hay = `${r.customer || ""} ${r.score ?? ""} ${r.bureau || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       // Date range
@@ -423,13 +438,14 @@ const Reports = () => {
       }
       return true;
     });
-  }, [reportsData, activeTab, search, fromDate, toDate]);
+  }, [reportsData, isAiTab, bureauFilter, search, fromDate, toDate]);
 
-  const hasActiveFilters = search.trim() !== "" || fromDate !== "" || toDate !== "";
+  const hasActiveFilters = search.trim() !== "" || fromDate !== "" || toDate !== "" || (!isAiTab && bureauFilter !== "All");
   const clearFilters = () => {
     setSearch("");
     setFromDate("");
     setToDate("");
+    setBureauFilter("All");
   };
 
   // ============================================================
@@ -544,8 +560,13 @@ const Reports = () => {
       }
 
       // ========================================================
-      // AI ANALYZER REPORT
+      // AI ANALYZER REPORT (completed only)
       // ========================================================
+
+      if (report?.status && report.status !== "completed") {
+        alert(`Analysis is ${report.status}. Download is available once completed.`);
+        return;
+      }
 
       const token = localStorage.getItem("token");
 
@@ -598,7 +619,7 @@ const Reports = () => {
 
   const columns = [
     {
-      header: "Date", field: "date", nowrap: true, minWidth: 150,
+      header: "Date & Time", field: "date", nowrap: true, minWidth: 175,
       render: (row) => (
         <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{row.date}</Typography>
       ),
@@ -624,10 +645,59 @@ const Reports = () => {
       render: (row) => <StatusBadge status={row.status || "Success"} />,
     },
     {
-      header: "Actions", field: "action", align: "right", width: 60,
-      render: (row) => (
-        <RowActions actions={[{ label: downloadingId === row.id ? "Downloading…" : "Download", onClick: () => handleDownload(row) }]} />
-      ),
+      header: "Actions", field: "action", align: "right", width: 110,
+      render: (row) => {
+        const isAi = row.rawType === "ai-analyzer";
+        const notReady = isAi && row.rawReport?.status !== "completed";
+        const downloading = downloadingId === row.id;
+        const FileIcon = isAi ? DescriptionIcon : PictureAsPdfIcon;
+        const fileLabel = isAi ? "HTML" : "PDF";
+        return (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={
+              downloading ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <FileIcon
+                  sx={{
+                    fontSize: 16,
+                    color: notReady ? undefined : isAi ? "#0ea5e9" : "#e11d48",
+                  }}
+                />
+              )
+            }
+            disabled={downloading || notReady}
+            onClick={() => handleDownload(row)}
+            title={
+              notReady
+                ? `Analysis ${row.rawReport?.status || "pending"} — download available once completed`
+                : `Download ${fileLabel} file`
+            }
+            sx={{
+              textTransform: "none",
+              borderRadius: "999px",
+              border: "none",
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              color: "#33415C",
+              bgcolor: "#f1f5f9",
+              px: 1.5,
+              py: 0.5,
+              whiteSpace: "nowrap",
+              "&:hover": { bgcolor: "#e2e8f0", border: "none" },
+              "&.Mui-disabled": { border: "none" },
+            }}
+          >
+            {downloading
+              ? "…"
+              : notReady
+                ? (row.rawReport?.status || "Pending").replace(/^\w/, (c) => c.toUpperCase())
+                : fileLabel}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -696,6 +766,7 @@ const Reports = () => {
         <>
           <FilterBar
             search={{ value: search, onChange: setSearch, placeholder: `Search ${activeTab.label.toLowerCase()}…` }}
+            selects={isAiTab ? [] : [{ name: "bureau", label: "Bureau", value: bureauFilter, options: BUREAU_OPTIONS, minWidth: 150, onChange: setBureauFilter }]}
             dates={[
               { name: "from", label: "From", value: fromDate, onChange: setFromDate, max: toDate || undefined },
               { name: "to", label: "To", value: toDate, onChange: setToDate, min: fromDate || undefined },

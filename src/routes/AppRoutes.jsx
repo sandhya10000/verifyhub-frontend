@@ -25,6 +25,7 @@ const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
 const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
+const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
@@ -123,11 +124,28 @@ const AppRoutes = () => {
           />
           <Route
             path="account/reports"
-            element={<Navigate to="/partner/account/reports/cibil" replace />}
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
           />
           <Route
             path="account/reports/:bureau"
             element={<Reports />}
+          />
+          {/* Legacy per-bureau URLs → merged credit-bureau tab */}
+          <Route
+            path="account/reports/cibil"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/experian"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/crif"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/equifax"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
           />
           <Route
             path="account/transactions"
@@ -186,6 +204,10 @@ const AppRoutes = () => {
           <Route
             path="reports"
             element={<AdminReports />}
+          />
+          <Route
+            path="ai-reports"
+            element={<AdminAiReports />}
           />
           <Route
             path="support"

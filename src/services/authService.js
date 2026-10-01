@@ -42,7 +42,7 @@ api.interceptors.response.use(
       // Suspended by admin — drop the session and surface the reason on login
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login?deactivated=1";
+      // window.location.href = "/login?deactivated=1";
     }
     return Promise.reject(error);
   },
