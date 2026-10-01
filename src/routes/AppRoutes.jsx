@@ -34,6 +34,8 @@ const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
 
 const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
+const RcVerification = lazy(() => import("../pages/partner/RcVerification"));
+const RcReports = lazy(() => import("../pages/partner/RcReports"));
 const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
 const Profile = lazy(() => import("../pages/partner/Profile"));
 const Support = lazy(() => import("../pages/partner/Support"));
@@ -125,6 +127,14 @@ const AppRoutes = () => {
           <Route
             path="account/reports"
             element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/rc"
+            element={<RcVerification />}
+          />
+          <Route
+            path="account/rc-reports"
+            element={<RcReports />}
           />
           <Route
             path="account/reports/:bureau"
