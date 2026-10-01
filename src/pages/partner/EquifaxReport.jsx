@@ -32,8 +32,14 @@ const EquifaxReport = () => {
     firstName: "",
     lastName: "",
     mobile: "",
+    email: "",
     pan: "",
     gender: "",
+    dob: "",
+    address: "",
+    state: "",
+    city: "",
+    pincode: "",
     consent: false,
   });
 
@@ -101,6 +107,15 @@ const EquifaxReport = () => {
         setError("Please enter a valid 10-digit mobile number.");
         return;
       }
+      if (!formData.email.trim()) {
+        setError("Please enter email address.");
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setError("Please enter a valid email address.");
+        return;
+      }
 
       if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(formData.pan)) {
         setError("Please enter a valid PAN number.");
@@ -109,6 +124,30 @@ const EquifaxReport = () => {
 
       if (!formData.gender) {
         setError("Please select gender.");
+        return;
+      }
+      if (!formData.dob) {
+        setError("Please select date of birth.");
+        return;
+      }
+
+      if (!formData.address.trim()) {
+        setError("Please enter address.");
+        return;
+      }
+
+      if (!formData.state.trim()) {
+        setError("Please enter state.");
+        return;
+      }
+
+      if (!formData.city.trim()) {
+        setError("Please enter city.");
+        return;
+      }
+
+      if (!/^\d{6}$/.test(formData.pincode)) {
+        setError("Please enter a valid 6-digit pincode.");
         return;
       }
 
@@ -129,8 +168,18 @@ const EquifaxReport = () => {
         panNumber: formData.pan.trim().toUpperCase(),
 
         mobile: formData.mobile.trim(),
+        email: formData.email.trim(),
 
         gender: formData.gender.toLowerCase(),
+        dob: formData.dob,
+
+        address: formData.address.trim(),
+
+        state: formData.state.trim(),
+
+        city: formData.city.trim(),
+
+        pincode: formData.pincode.trim(),
 
         consent: "Y",
       };
@@ -523,6 +572,27 @@ const EquifaxReport = () => {
                     }}
                   />
                 </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter email address"
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Typography sx={{ color: "#94a3b8", fontSize: 20 }}>
+                            @
+                          </Typography>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
 
                 {/* PAN */}
 
@@ -597,6 +667,86 @@ const EquifaxReport = () => {
                     <MenuItem value="Female">Female</MenuItem>
                     <MenuItem value="Other">Other</MenuItem>
                   </TextField>
+                </Grid>
+                {/* Date of Birth */}
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Date of Birth"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    required
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+
+                {/* Address */}
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Complete Address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Enter complete address"
+                    required
+                  />
+                </Grid>
+
+                {/* State */}
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="State"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="Enter state"
+                    required
+                  />
+                </Grid>
+
+                {/* City */}
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="City"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    required
+                  />
+                </Grid>
+
+                {/* Pincode */}
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Pincode"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => {
+                      const value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6);
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        pincode: value,
+                      }));
+
+                      setError("");
+                      setSuccess("");
+                    }}
+                    placeholder="Enter 6-digit pincode"
+                    required
+                    inputProps={{ maxLength: 6 }}
+                  />
                 </Grid>
 
                 {/* REPORT TYPE */}
