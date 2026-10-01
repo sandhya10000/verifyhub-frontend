@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
 
@@ -31,6 +31,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import GroupIcon from "@mui/icons-material/Group";
+import WcIcon from "@mui/icons-material/Wc";
 
 // ============================================================
 // Shared field styles — bureau form design (label above input,
@@ -58,6 +59,11 @@ const FieldLabel = ({ children, required }) => (
       </Box>
     )}
   </Typography>
+);
+
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(
+  /\/api\/?$/,
+  "",
 );
 
 const CibilReport = () => {
@@ -88,6 +94,10 @@ const CibilReport = () => {
   const [todayGenerated] = useState(0);
   const [cibilResult, setCibilResult] = useState(null);
   const [reportError, setReportError] = useState("");
+  // True when the browser blocked the automatic new-tab open after success.
+  const [autoOpenBlocked, setAutoOpenBlocked] = useState(false);
+  // Human-readable PDF size (set from the auto-download blob when available).
+  const [fileSizeLabel, setFileSizeLabel] = useState("");
 
   // ============================================================
   // HANDLE INPUT CHANGE
@@ -287,19 +297,63 @@ const CibilReport = () => {
       console.log("CIBIL RESULT:", response.data?.data);
 
       if (response.data?.success) {
-        setCibilResult(response.data);
+        // Backend shape: data: { creditReportId, fileName, pdfUrl,
+        // filePath, bureau, score, status }. Normalize into the object
+        // the result card below reads, then auto-download the PDF.
+        const resultData = response.data?.data || {};
+        const pdfPath = resultData.pdfUrl || resultData.filePath || null;
+        const pdfAbsoluteUrl = pdfPath
+          ? pdfPath.startsWith("http")
+            ? pdfPath
+            : `${API_ROOT}${pdfPath.startsWith("/") ? "" : "/"}${pdfPath}`
+          : null;
+        const message =
+          response.data?.message || "CIBIL report generated successfully.";
+        setCibilResult({
+          success: true,
+          message,
+          requestId: resultData.creditReportId || null,
+          creditReport: {
+            score: resultData.score ?? null,
+            bureau: resultData.bureau || "CIBIL",
+            name: `${formData.firstName} ${formData.lastName}`.trim() || "-",
+            mobile: formData.mobile || "-",
+            pan: (formData.pan || "").toUpperCase() || "-",
+            reportType: "cibil",
+            reportUrl: pdfAbsoluteUrl,
+            createdAt: new Date().toISOString(),
+          },
+          data: { ...resultData, pdfAbsoluteUrl },
+        });
+        setSuccess(message);
 
-        // Optional: automatically open report
-        // Don't use this if you only want the user to click "View CIBIL Report"
-        /*
-      if (response.data?.creditReport?.reportUrl) {
-        window.open(
-          response.data.creditReport.reportUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
-      }
-      */
+        // Wallet moved server-side (per-report debit) — sync the header
+        // balance immediately instead of waiting for a page reload.
+        refreshWallet();
+
+        if (pdfAbsoluteUrl) {
+          const fileName = resultData.fileName || "CIBIL-Credit-Report.pdf";
+          const downloaded = await triggerPdfDownload(
+            pdfAbsoluteUrl,
+            fileName,
+          );
+          if (!downloaded) {
+            const openedTab = window.open(
+              pdfAbsoluteUrl,
+              "_blank",
+              "noopener,noreferrer",
+            );
+            if (!openedTab) setAutoOpenBlocked(true);
+          }
+        }
+
+        // Scroll to result
+        setTimeout(() => {
+          document.getElementById("cibil-report-result")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 200);
       } else {
         setError(
           response.data?.message ||
@@ -322,6 +376,49 @@ const CibilReport = () => {
     }
   };
   useEffect(() => {}, []);
+
+  // ============================================================
+  // DOWNLOAD HELPER — fetches the PDF and triggers a real file download.
+  // Unlike window.open, programmatic downloads are not popup-blocked, so
+  // this can run automatically right after generation. Returns true/false.
+  // ============================================================
+
+  const triggerPdfDownload = async (finalUrl, fileName) => {
+    try {
+      const res = await fetch(finalUrl);
+      if (!res.ok) throw new Error("Fetch failed");
+      const blob = await res.blob();
+      const bytes = blob.size || 0;
+      setFileSizeLabel(
+        bytes >= 1048576
+          ? `${(bytes / 1048576).toFixed(1)} MB`
+          : bytes > 0
+            ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+            : "",
+      );
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || "CIBIL-Credit-Report.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (err) {
+      console.error("[REACT] CIBIL PDF download error:", err);
+      return false;
+    }
+  };
+
+  const handleViewReport = () => {
+    const finalUrl = cibilResult?.creditReport?.reportUrl;
+
+    if (finalUrl) {
+      setAutoOpenBlocked(false);
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <Box
@@ -547,19 +644,15 @@ const CibilReport = () => {
               )}
 
             <Grid container spacing={2.5}>
-              {/* ==========================================
-      ROW 1 - FIRST NAME + LAST NAME
-  ========================================== */}
-
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>First Name</FieldLabel>
                 <TextField
                   fullWidth
-                  label="First Name"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="Enter first name"
-                  required
+                  sx={fieldSx}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -575,15 +668,15 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Last Name</FieldLabel>
                 <TextField
                   fullWidth
-                  label="Last Name"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Enter last name"
-                  required
+                  sx={fieldSx}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -599,14 +692,10 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              {/* ==========================================
-      ROW 2 - MOBILE + PAN
-  ========================================== */}
-
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Mobile Number</FieldLabel>
                 <TextField
                   fullWidth
-                  label="Mobile Number"
                   name="mobile"
                   value={formData.mobile}
                   onChange={(e) => {
@@ -621,8 +710,11 @@ const CibilReport = () => {
 
                     setError("");
                   }}
-                  placeholder="Enter 10-digit mobile number"
-                  required
+                  placeholder="Enter 10 digit mobile number"
+                  sx={fieldSx}
+                  inputProps={{
+                    maxLength: 10,
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -651,18 +743,46 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Email Address</FieldLabel>
                 <TextField
                   fullWidth
-                  label="PAN Number"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter email address"
+                  sx={fieldSx}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography
+                          sx={{
+                            color: "#94a3b8",
+                            fontSize: 20,
+                            fontWeight: 500,
+                          }}
+                        >
+                          @
+                        </Typography>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>PAN Number</FieldLabel>
+                <TextField
+                  fullWidth
                   name="pan"
                   value={formData.pan}
                   onChange={handleChange}
-                  placeholder="Enter PAN number"
-                  required
+                  placeholder="Enter PAN number (e.g. ABCDE1234F)"
                   inputProps={{
                     maxLength: 10,
                   }}
+                  sx={fieldSx}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -678,24 +798,26 @@ const CibilReport = () => {
                 />
               </Grid>
 
-              {/* ==========================================
-      ROW 3 - GENDER + REPORT TYPE
-  ========================================== */}
-
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Gender</FieldLabel>
                 <TextField
                   select
                   fullWidth
-                  label="Gender"
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  required
+                  displayEmpty
+                  sx={fieldSx}
                   SelectProps={{
                     displayEmpty: true,
-                  }}
-                  InputLabelProps={{
-                    shrink: true,
+                    renderValue: (selected) =>
+                      !selected ? (
+                        <Box component="span" sx={{ color: "#9ca3af" }}>
+                          Select gender
+                        </Box>
+                      ) : (
+                        selected
+                      ),
                   }}
                   InputProps={{
                     startAdornment: (
@@ -714,19 +836,75 @@ const CibilReport = () => {
                     Select Gender
                   </MenuItem>
 
-                    <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Male">Male</MenuItem>
 
-                    <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
 
                   <MenuItem value="Other">Other</MenuItem>
                 </TextField>
               </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Date of Birth</FieldLabel>
                 <TextField
                   fullWidth
-                  label="Report Type"
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  sx={fieldSx}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>State</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="Enter state"
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>City</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="Enter city"
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Pincode</FieldLabel>
+                <TextField
+                  fullWidth
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handlePincodeChange}
+                  placeholder="Enter 6-digit pincode"
+                  inputProps={{
+                    maxLength: 6,
+                  }}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FieldLabel required>Report Type</FieldLabel>
+                <TextField
+                  fullWidth
                   value="CIBIL"
                   disabled
+                  sx={fieldSx}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -741,6 +919,21 @@ const CibilReport = () => {
                   }}
                 />
               </Grid>
+
+              <Grid size={{ xs: 12, md: 12 }}>
+                <FieldLabel required>Complete Address</FieldLabel>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter complete address"
+                  sx={fieldSx}
+                />
+              </Grid>
+
             </Grid>
 
             {/* ==========================================
@@ -898,8 +1091,29 @@ const CibilReport = () => {
         </Alert>
       )}
 
+      {autoOpenBlocked && cibilResult?.creditReport?.reportUrl && (
+        <Alert
+          severity="info"
+          action={
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleViewReport}
+              sx={{ textTransform: "none", fontWeight: 700 }}
+            >
+              Open report now
+            </Button>
+          }
+          sx={{ mt: 3, borderRadius: 2, alignItems: "center" }}
+        >
+          Your CIBIL report is ready — the automatic download didn&apos;t start.
+          Click “Open report now”.
+        </Alert>
+      )}
+
       {cibilResult?.success && cibilResult?.creditReport && (
         <Card
+          id="cibil-report-result"
           elevation={0}
           sx={{
             mt: 4,
@@ -1093,65 +1307,6 @@ const CibilReport = () => {
                     {cibilResult.creditReport.pan}
                   </Typography>
                 </Box>
-              </Grid>
-
-              {/* GENDER */}
-              <Grid>
-                <TextField
-                  select
-                  fullWidth
-                  required
-                  label="Gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  placeholder="Select Gender"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: 56,
-                    },
-
-                    "& .MuiSelect-select": {
-                      display: "flex",
-                      alignItems: "center",
-                      minHeight: "unset !important",
-                      paddingTop: "16.5px",
-                      paddingBottom: "16.5px",
-                    },
-
-                    "& .MuiInputLabel-root": {
-                      backgroundColor: "#fff",
-                      padding: "0 4px",
-                    },
-
-                    "& .MuiInputAdornment-root": {
-                      marginRight: "8px",
-                    },
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <WcIcon
-                          sx={{
-                            color: "#94a3b8",
-                            fontSize: 20,
-                          }}
-                        />
-                      </InputAdornment>
-                    ),
-                  }}
-                >
-                  <MenuItem value="" disabled>
-                    Select Gender
-                  </MenuItem>
-
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
-                </TextField>
               </Grid>
 
               {/* REPORT TYPE */}
