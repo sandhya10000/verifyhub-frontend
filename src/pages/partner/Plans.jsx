@@ -31,7 +31,6 @@ const Plans = () => {
   // Forced plan flow: set after a pure top-up (server flag), via ?choosePlan=1.
   const forcedPick = searchParams.get('choosePlan') === '1' || user?.pendingPlanChoice === true;
   const [plans, setPlans] = useState(FALLBACK_PLANS);
-  const [aiTotal, setAiTotal] = useState(118);
   const [otherFail, setOtherFail] = useState(30);
   const [banner, setBanner] = useState(null);
   const [paying, setPaying] = useState(false);
@@ -44,7 +43,6 @@ const Plans = () => {
       .then(({ data }) => {
         if (data?.success) {
           if (data.data?.plans) setPlans(data.data.plans);
-          if (data.data?.ai?.total != null) setAiTotal(data.data.ai.total);
           if (data.data?.otherFailedCharge != null) setOtherFail(data.data.otherFailedCharge);
         }
       })
@@ -218,28 +216,27 @@ const Plans = () => {
                     <Chip label="Most popular" size="small" sx={{ bgcolor: '#3730A3', color: '#fff', fontSize: '0.62rem', fontWeight: 700, height: 22 }} />
                   ) : null}
                 </Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>CIBIL report</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, my: 0.25 }}>
-                  {inr0(row.cibil)}
+                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  {topUpLabel}
                 </Typography>
-                <Typography variant="caption" sx={{ color: saving > 0 ? '#0E9F6E' : 'text.secondary', fontWeight: saving > 0 ? 700 : 400, display: 'block', mb: 1.5 }}>
-                  {saving > 0 ? `Save ${inr0(saving)} per CIBIL report vs Start-Up` : 'Standard rates'}
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+                  {p.label} plan · ≈ {pulls} CIBIL pulls at the minimum
                 </Typography>
-                <Box sx={{ bgcolor: '#F4F6FA', borderRadius: 1, px: 1.5, py: 1, mb: 1.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{topUpLabel}</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>≈ {pulls} CIBIL pulls at the minimum</Typography>
+                <Box sx={{ bgcolor: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 1, px: 1.5, py: 1.25, mb: 1.5 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>CIBIL report</Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 800, my: 0.25 }}>
+                    {inr0(row.cibil)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: saving > 0 ? '#0E9F6E' : 'text.secondary', fontWeight: saving > 0 ? 700 : 400, display: 'block' }}>
+                    {saving > 0 ? `Save ${inr0(saving)} per CIBIL report vs Start-Up` : 'Standard rates'}
+                  </Typography>
                 </Box>
-                {[
-                  ['Experian Report', row.experian],
-                  ['CRIF Report', row.crif],
-                  ['Equifax Report', row.equifax],
-                  ['AI Report', aiTotal],
-                ].map(([name, price]) => (
-                  <Box key={name} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.4 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.82rem' }}>{name}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr0(price)}</Typography>
-                  </Box>
-                ))}
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.82rem', color: 'text.secondary', lineHeight: 1.6 }}>
+                    CIBIL <Box component="span" sx={{ fontWeight: 800, color: 'text.primary' }}>{inr0(row.cibil)}</Box>
+                    {' · '}Others <Box component="span" sx={{ fontWeight: 800, color: 'text.primary' }}>Exp {inr0(row.experian)} · CRIF {inr0(row.crif)} · Eq {inr0(row.equifax)}</Box>
+                  </Typography>
+                </Box>
                 <Box sx={{ flexGrow: 1 }} />
                 {isCurrent ? (
                   <Button fullWidth variant="outlined" disabled sx={{ mt: 2, borderRadius: 1, fontWeight: 700, textTransform: 'none', py: 1.25 }}>
