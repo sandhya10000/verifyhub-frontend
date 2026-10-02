@@ -31,6 +31,7 @@ import {
   Scale,
   Building2,
   CarFront,
+  ReceiptText,
 } from "lucide-react";
 import AppSidebar from "../Components/shared/AppSidebar";
 import useAuth from '../context/useAuth';
@@ -139,6 +140,11 @@ const PartnerLayout = () => {
       icon: <CarFront size={20} />,
       path: "/partner/account/reports/rc",
     },
+    {
+      text: "GST Verification",
+      icon: <ReceiptText size={20} />,
+      path: "/partner/account/reports/gst",
+    },
   ];
 
   const accountItems = [
@@ -149,6 +155,7 @@ const PartnerLayout = () => {
         { text: "Credit Bureau Reports", icon: <ShieldCheck size={16} />, path: "/partner/account/reports/credit-bureau" },
         { text: "AI Analysed Reports", icon: <Bot size={16} />, path: "/partner/account/reports/ai" },
         { text: "Vehicle RC Reports", icon: <CarFront size={16} />, path: "/partner/account/rc-reports" },
+        { text: "GST Reports", icon: <ReceiptText size={16} />, path: "/partner/account/gst-reports" },
       ],
     },
     { text: "Activity", icon: <Activity size={18} />, path: "/partner/account/activity" },
