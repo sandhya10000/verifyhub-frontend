@@ -13,6 +13,7 @@ import {
   Divider,
 } from '@mui/material';
 import { CurrencyRupee } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
 import { planLabel } from './planConfig';
@@ -32,6 +33,7 @@ const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFracti
 
 const AddFunds = () => {
   const { user, token, login } = useAuth();
+  const navigate = useNavigate();
   const [minRecharge, setMinRecharge] = useState(200);
   const [amount, setAmount] = useState(() => {
     // Pre-fill when arriving from Plans ("Top up ₹X+ for Y").
@@ -142,14 +144,19 @@ const AddFunds = () => {
             if (verifyRes.data?.success) {
               const newBalance = verifyRes.data.walletBalance;
               const newPlan = verifyRes.data.activePlan;
+              const needsPlan = verifyRes.data.pendingPlanChoice === true;
               if (user && token && newBalance != null) {
-                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan }, token);
+                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: needsPlan }, token);
               }
               setPayBanner({
                 tone: 'success',
                 text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan assigned (free)` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
               });
               if (verifyRes.data.autoAssigned) setFirstTimer(false);
+              // Forced plan flow: pure top-ups must pick a plan before usage.
+              if (needsPlan) {
+                navigate('/partner/plans?choosePlan=1', { replace: true });
+              }
             } else {
               setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
             }

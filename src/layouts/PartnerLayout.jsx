@@ -64,7 +64,19 @@ const PartnerLayout = () => {
     setCreditReportsOpen(isOnCreditRoute);
   }, [location.pathname]);
 
-  const { user, logout } = useAuth();
+  const { user, logout, refreshWallet } = useAuth();
+
+  // Forced plan flow (server flag — survives storage clears and tab closes):
+  // while a plan pick is pending, only Plans and Add Funds are reachable.
+  useEffect(() => {
+    refreshWallet?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user) return;
+    if (user.pendingPlanChoice !== true) return;
+    const ok = location.pathname === '/partner/plans' || location.pathname === '/partner/add-funds';
+    if (!ok) navigate('/partner/plans?choosePlan=1', { replace: true });
+  }, [location.pathname, user?.pendingPlanChoice]); // eslint-disable-line react-hooks/exhaustive-deps
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleMenuClick = (e) => setAnchorEl(e.currentTarget);

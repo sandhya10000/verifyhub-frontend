@@ -12,7 +12,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
 import {
@@ -26,7 +26,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const Plans = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, token, login, refreshWallet } = useAuth();
+  // Forced plan flow: set after a pure top-up (server flag), via ?choosePlan=1.
+  const forcedPick = searchParams.get('choosePlan') === '1' || user?.pendingPlanChoice === true;
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [aiTotal, setAiTotal] = useState(118);
   const [otherFail, setOtherFail] = useState(30);
@@ -56,7 +59,16 @@ const Plans = () => {
       const { data } = await axios.post(`${API_BASE_URL}/plan/activate`, { plan: planKey }, { headers });
       if (data?.success) {
         if (user && token) {
-          login({ ...user, walletBalance: data.walletBalance, activePlan: data.activePlan }, token);
+          login({
+            ...user,
+            walletBalance: data.walletBalance ?? user.walletBalance,
+            activePlan: data.activePlan || user.activePlan,
+            pendingPlanChoice: false,
+          }, token);
+        }
+        // Forced flow complete — release the lock and drop the query param.
+        if (searchParams.get('choosePlan') === '1') {
+          setSearchParams({}, { replace: true });
         }
         setBanner({
           tone: 'success',
@@ -285,6 +297,76 @@ const Plans = () => {
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 2 }}>
         Failed pulls: CIBIL charged per your plan · others {inr0(otherFail)} · matched-input CIBIL retries free. Your full top-up goes to your wallet and is spent at your plan&apos;s rates.
       </Typography>
+
+      {/* Forced plan lock: blocks the page until a plan is selected.
+          No dismiss — activation (or Top-Up-Now round-trip) is the only exit. */}
+      <Dialog
+        open={forcedPick && !confirmPlan}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+        onClose={() => {}}
+        sx={{ '& .MuiDialog-paper': { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Choose your plan to continue</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+            Your top-up is in your wallet. Pick the plan its pulls will bill at — this step is required before continuing. Plans are free; only the balance threshold applies.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {PLAN_META.map((p) => {
+              const threshold = Number(plans?.[p.key]?.recharge || 0);
+              const balance = Number(user?.walletBalance || 0);
+              const ok = balance >= threshold;
+              const isCurrent = user?.activePlan === p.key;
+              return (
+                <Box
+                  key={p.key}
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: 2, p: 1.5,
+                    border: '1px solid', borderColor: isCurrent ? '#3730A3' : '#E2E8F0',
+                    borderRadius: 1, bgcolor: isCurrent ? '#F5F3FF' : '#fff',
+                  }}
+                >
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 800 }}>
+                      {p.label}
+                      {isCurrent && (
+                        <Typography component="span" sx={{ ml: 1, fontSize: '0.7rem', fontWeight: 700, color: '#059669' }}>
+                          · CURRENT
+                        </Typography>
+                      )}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Needs {inr0(threshold)} balance · CIBIL {inr0(plans?.[p.key]?.cibil)} / pull
+                    </Typography>
+                  </Box>
+                  {isCurrent ? (
+                    <Button size="small" variant="contained" disableElevation disabled={paying} onClick={() => handleActivate(p.key)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#059669', whiteSpace: 'nowrap' }}>
+                      {paying ? '…' : 'Keep Plan'}
+                    </Button>
+                  ) : ok ? (
+                    <Button size="small" variant="contained" disableElevation disabled={paying} onClick={() => handleActivate(p.key)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap' }}>
+                      {paying ? '…' : 'Select'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="small" variant="outlined"
+                      onClick={() => {
+                        const need = Math.max(0, Math.ceil((threshold - balance) * 100) / 100);
+                        navigate(`/partner/add-funds?amount=${need}&forPlan=${encodeURIComponent(p.label)}`);
+                      }}
+                      sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
+                    >
+                      Top up {inr0(threshold - balance)} more
+                    </Button>
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+      </Dialog>
 
       {/* Selection confirm dialog */}
       <Dialog open={Boolean(confirmPlan)} onClose={() => !paying && setConfirmPlan(null)} maxWidth="xs" fullWidth>
