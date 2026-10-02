@@ -231,13 +231,73 @@ const GstVerification = () => {
   return (
     <Box sx={{ maxWidth: 1000, mx: "auto", backgroundColor: "#fff", borderRadius: 3, overflow: "hidden", border: "1px solid #e5e7eb" }}>
       {/* HEADER */}
-      <Box sx={{ background: "#121212", color: "#fff", px: { xs: 2.5, sm: 4, md: 5 }, py: { xs: 2.5, md: 3 } }}>
-        <Typography sx={{ fontSize: { xs: "1.6rem", sm: "2rem" }, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.5px" }}>
-          GST Verification
-        </Typography>
-        <Typography sx={{ mt: 0.5, color: "#d1d5db", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
-          Authenticate GSTIN, taxpayer status &amp; filing compliance instantly — ₹10 per verification
-        </Typography>
+      <Box
+        sx={{
+          position: "relative",
+          overflow: "hidden",
+          background:
+            "linear-gradient(100deg, #0a1633 0%, #10255c 48%, #1d4ed8 100%)",
+          color: "#fff",
+          px: { xs: 2.5, sm: 4, md: 5 },
+          py: { xs: 3, md: 3.5 },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        {/* decorative glows */}
+        <Box sx={{ position: "absolute", right: -60, top: -90, width: 270, height: 270, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.08)" }} />
+        <Box sx={{ position: "absolute", right: 130, bottom: -120, width: 210, height: 210, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.06)" }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2.25, position: "relative", zIndex: 1, minWidth: 0 }}>
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              flexShrink: 0,
+              borderRadius: "18px",
+              bgcolor: "#2563eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 10px 24px rgba(37,99,235,0.5)",
+            }}
+          >
+            <BusinessIcon sx={{ fontSize: 34, color: "#fff" }} />
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: { xs: "1.6rem", sm: "2rem" }, fontWeight: 800, lineHeight: 1.15, color: "#fff", m: 0 }}>
+              GST Verification
+            </Typography>
+            <Typography sx={{ mt: 0.5, color: "#c7d2e8", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
+              Authenticate GSTIN, taxpayer status &amp; filing compliance instantly —{' '}
+              <Box component="span" sx={{ color: "#4ADE80", fontWeight: 800 }}>
+                ₹10 per verification
+              </Box>
+            </Typography>
+          </Box>
+        </Box>
+        {/* illustration cards */}
+        <Box sx={{ display: { xs: "none", sm: "block" }, position: "relative", width: 200, height: 152, flexShrink: 0, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", right: 66, top: 2, width: 118, height: 146, bgcolor: "rgba(219,234,254,0.8)", borderRadius: 2, transform: "rotate(-7deg)", p: 1.25 }}>
+            <Box sx={{ height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.7)" }} />
+            <Box sx={{ mt: 1, height: 7, width: "70%", borderRadius: 1, bgcolor: "rgba(255,255,255,0.55)" }} />
+            <Box sx={{ mt: 1, height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.4)" }} />
+          </Box>
+          <Box sx={{ position: "absolute", right: 6, top: 8, width: 134, bgcolor: "#fff", borderRadius: 2, p: 1.25, boxShadow: "0 18px 36px rgba(2,6,23,0.4)", transform: "rotate(4deg)" }}>
+            <Box sx={{ display: "inline-block", bgcolor: "#0ea5e9", color: "#fff", fontSize: "0.6rem", fontWeight: 800, px: 1, py: 0.25, borderRadius: 1, letterSpacing: "0.06em" }}>
+              GSTIN
+            </Box>
+            <Box sx={{ mt: 1, height: 6, borderRadius: 1, bgcolor: "#dbe4f0" }} />
+            <Box sx={{ mt: 0.75, height: 6, width: "70%", borderRadius: 1, bgcolor: "#e7edf5" }} />
+            <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CheckCircleIcon sx={{ fontSize: 44, color: "#22c55e" }} />
+            </Box>
+            <Typography sx={{ textAlign: "center", fontSize: "0.65rem", color: "#64748b", mt: 0.5 }}>
+              Authenticated
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       <Box sx={{ p: { xs: 2.5, sm: 4, md: 5 } }}>

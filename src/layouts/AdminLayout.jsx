@@ -7,7 +7,7 @@ MenuIcon, LogOut
 import AppSidebar from '../Components/shared/AppSidebar';
 import useAuth from '../context/useAuth';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 272;
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -64,7 +64,7 @@ const AdminLayout = () => {
     {
       label: 'INSIGHTS',
       items: [
-        { text: 'Partner Reports', icon: <Activity size={20} />, path: '/admin/reports' },
+        { text: 'Credit Bureau Reports', icon: <Activity size={20} />, path: '/admin/reports' },
         { text: 'AI Analysed Reports', icon: <Bot size={20} />, path: '/admin/ai-reports' },
         { text: 'Vehicle RC Reports', icon: <CarFront size={20} />, path: '/admin/rc-reports' },
         { text: 'GST Reports', icon: <ReceiptText size={20} />, path: '/admin/gst-reports' },

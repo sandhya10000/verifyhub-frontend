@@ -77,7 +77,6 @@ const CibilReport = () => {
     pan: "",
     gender: "",
     dob: "",
-    address: "",
     state: "",
     city: "",
     pincode: "",
@@ -236,12 +235,6 @@ const CibilReport = () => {
       return;
     }
 
-    // Address
-    if (!formData.address.trim()) {
-      setError("Please enter complete address.");
-      return;
-    }
-
     // State
     if (!formData.state.trim()) {
       setError("Please enter state.");
@@ -279,7 +272,6 @@ const CibilReport = () => {
         pan: formData.pan.trim().toUpperCase(),
         gender: formData.gender,
         dob: formData.dob,
-        address: formData.address.trim(),
         state: formData.state.trim(),
         city: formData.city.trim(),
         pincode: formData.pincode.trim(),
@@ -917,20 +909,6 @@ const CibilReport = () => {
                       </InputAdornment>
                     ),
                   }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 12 }}>
-                <FieldLabel required>Complete Address</FieldLabel>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Enter complete address"
-                  sx={fieldSx}
                 />
               </Grid>
 

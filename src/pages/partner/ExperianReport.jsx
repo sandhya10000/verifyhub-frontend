@@ -40,7 +40,6 @@ import EmailIcon from "@mui/icons-material/Email";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import HomeIcon from "@mui/icons-material/Home";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DescriptionIcon from "@mui/icons-material/Description";
 import GroupIcon from "@mui/icons-material/Group";
@@ -130,8 +129,6 @@ const ExperianReport = () => {
     pincode: "",
     stateName: "",
     cityName: "",
-    addressLine1: "",
-    addressLine2: "",
     consent: false,
   });
 
@@ -357,14 +354,6 @@ const ExperianReport = () => {
       return "Please enter city.";
     }
 
-    if (!formData.addressLine1.trim()) {
-      return "Please enter address.";
-    }
-
-    if (!formData.addressLine2.trim()) {
-      return "Please enter address line 2.";
-    }
-
     if (!formData.gender) {
       return "Please select gender.";
     }
@@ -420,10 +409,6 @@ const ExperianReport = () => {
         stateName: formData.stateName.trim(),
 
         cityName: formData.cityName.trim(),
-
-        addressLine1: formData.addressLine1.trim(),
-
-        addressLine2: formData.addressLine2.trim(),
 
         customerConsent: "Y",
       };
@@ -1308,51 +1293,6 @@ const ExperianReport = () => {
                   />
                 </Grid>
 
-                {/* ADDRESS LINE 1 */}
-
-                <Grid size={{ xs: 12 }}>
-                  <FieldLabel required>Address Line 1</FieldLabel>
-                  <TextField
-                    fullWidth
-                    name="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={handleChange}
-                    placeholder="House / Flat / Street / Area"
-                    sx={fieldSx}
-                    multiline
-                    minRows={2}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <HomeIcon
-                            sx={{
-                              mr: 1,
-                              mt: 1,
-                              color: "#94a3b8",
-                              fontSize: 20,
-                            }}
-                          />
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-
-                {/* ADDRESS LINE 2 */}
-
-                <Grid size={{ xs: 12 }}>
-                  <FieldLabel required>Address Line 2</FieldLabel>
-                  <TextField
-                    fullWidth
-                    name="addressLine2"
-                    value={formData.addressLine2}
-                    onChange={handleChange}
-                    placeholder="Landmark / Locality / Additional address"
-                    sx={fieldSx}
-                    multiline
-                    minRows={2}
-                  />
-                </Grid>
               </Grid>
 
               {/* =================================================

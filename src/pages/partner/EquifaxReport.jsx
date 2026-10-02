@@ -71,7 +71,6 @@ const EquifaxReport = () => {
     pan: "",
     gender: "",
     dob: "",
-    address: "",
     state: "",
     city: "",
     pincode: "",
@@ -167,11 +166,6 @@ const EquifaxReport = () => {
         return;
       }
 
-      if (!formData.address.trim()) {
-        setError("Please enter address.");
-        return;
-      }
-
       if (!formData.state.trim()) {
         setError("Please enter state.");
         return;
@@ -208,8 +202,6 @@ const EquifaxReport = () => {
 
         gender: formData.gender.toLowerCase(),
         dob: formData.dob,
-
-        address: formData.address.trim(),
 
         state: formData.state.trim(),
 
@@ -936,21 +928,6 @@ const EquifaxReport = () => {
                     placeholder="Enter 6-digit pincode"
                     sx={fieldSx}
                     inputProps={{ maxLength: 6 }}
-                  />
-                </Grid>
-
-                {/* Address */}
-                <Grid size={{ xs: 12, md: 8 }}>
-                  <FieldLabel required>Complete Address</FieldLabel>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={1}
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter complete address"
-                    sx={fieldSx}
                   />
                 </Grid>
 

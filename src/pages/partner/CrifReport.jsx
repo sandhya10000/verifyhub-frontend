@@ -72,8 +72,6 @@ const initialFormData = {
   pincode: "",
   stateName: "",
   cityName: "",
-  addressLine1: "",
-  addressLine2: "",
   customerConsent: "Y",
 };
 
@@ -1448,31 +1446,6 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Address Line 1"
-                        name="addressLine1"
-                        value={formData.addressLine1}
-                        onChange={handleChange}
-                        placeholder="House / Flat / Building / Street"
-                        sx={inputSx}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Address Line 2"
-                        name="addressLine2"
-                        value={formData.addressLine2}
-                        onChange={handleChange}
-                        placeholder="Area / Locality / Landmark"
-                        sx={inputSx}
-                      />
-                    </Grid>
                   </Grid>
                 </Box>
 
