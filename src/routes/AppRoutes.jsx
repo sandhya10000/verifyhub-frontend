@@ -33,6 +33,7 @@ const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
 const AdminPricing = lazy(() => import("../pages/admin/Pricing"));
 const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
+const AdminSettings = lazy(() => import("../pages/admin/Settings"));
 
 const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
@@ -245,7 +246,7 @@ const AppRoutes = () => {
           />
           <Route
             path="settings"
-            element={<PlaceholderPage title="Settings" />}
+            element={<AdminSettings />}
           />
         </Route>
 
