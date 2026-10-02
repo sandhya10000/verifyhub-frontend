@@ -31,6 +31,7 @@ import {
   Scale,
   Building2,
   CarFront,
+  ReceiptText,
 } from "lucide-react";
 import AppSidebar from "../Components/shared/AppSidebar";
 import useAuth from '../context/useAuth';
@@ -63,7 +64,19 @@ const PartnerLayout = () => {
     setCreditReportsOpen(isOnCreditRoute);
   }, [location.pathname]);
 
-  const { user, logout } = useAuth();
+  const { user, logout, refreshWallet } = useAuth();
+
+  // Forced plan flow (server flag — survives storage clears and tab closes):
+  // while a plan pick is pending, only Plans and Add Funds are reachable.
+  useEffect(() => {
+    refreshWallet?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user) return;
+    if (user.pendingPlanChoice !== true) return;
+    const ok = location.pathname === '/partner/plans' || location.pathname === '/partner/add-funds';
+    if (!ok) navigate('/partner/plans?choosePlan=1', { replace: true });
+  }, [location.pathname, user?.pendingPlanChoice]); // eslint-disable-line react-hooks/exhaustive-deps
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleMenuClick = (e) => setAnchorEl(e.currentTarget);
@@ -139,6 +152,11 @@ const PartnerLayout = () => {
       icon: <CarFront size={20} />,
       path: "/partner/account/reports/rc",
     },
+    {
+      text: "GST Verification",
+      icon: <ReceiptText size={20} />,
+      path: "/partner/account/reports/gst",
+    },
   ];
 
   const accountItems = [
@@ -149,6 +167,7 @@ const PartnerLayout = () => {
         { text: "Credit Bureau Reports", icon: <ShieldCheck size={16} />, path: "/partner/account/reports/credit-bureau" },
         { text: "AI Analysed Reports", icon: <Bot size={16} />, path: "/partner/account/reports/ai" },
         { text: "Vehicle RC Reports", icon: <CarFront size={16} />, path: "/partner/account/rc-reports" },
+        { text: "GST Reports", icon: <ReceiptText size={16} />, path: "/partner/account/gst-reports" },
       ],
     },
     { text: "Activity", icon: <Activity size={18} />, path: "/partner/account/activity" },

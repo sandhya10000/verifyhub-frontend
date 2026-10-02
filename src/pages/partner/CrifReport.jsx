@@ -2287,7 +2287,7 @@ const CrifReport = () => {
                         }`,
                       },
                     ].map((item) => (
-                      <Grid item xs={6} sm={4} md={3} key={item.label}>
+                      <Grid size={{ xs: 6, sm: 4, md: 3 }} key={item.label}>
                         <SummaryCard label={item.label} value={item.value} />
                       </Grid>
                     ))}
@@ -2321,7 +2321,7 @@ const CrifReport = () => {
                   />
 
                   <Grid container spacing={2}>
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Credit History"
                         value={`${
@@ -2330,7 +2330,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Average Account Age"
                         value={`${
@@ -2341,7 +2341,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="New Accounts"
                         value={
@@ -2350,7 +2350,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Recent Inquiries"
                         value={

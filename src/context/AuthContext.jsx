@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }) => {
             ...prev,
             walletBalance: data.data.walletBalance,
             activePlan: data.data.activePlan || prev.activePlan,
+            pendingPlanChoice: data.data.pendingPlanChoice ?? prev.pendingPlanChoice ?? false,
           };
           localStorage.setItem('user', JSON.stringify(updated));
           return updated;

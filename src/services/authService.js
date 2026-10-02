@@ -176,6 +176,17 @@ export const creditAPI = {
     return response.data;
   },
   verifyRc: async (payload) => await api.post("/rc/verify-rc", payload),
+  verifyGst: async (payload) => await api.post("/gst/verify-gst", payload),
+  getMyGstVerifications: async (opts = 20) => {
+    const params = typeof opts === "number"
+      ? { limit: opts }
+      : { page: 1, limit: 20, ...opts };
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v != null)),
+    ).toString();
+    const response = await api.get(`/gst/my-verifications?${query}`);
+    return response.data;
+  },
   getMyRcVerifications: async (opts = 20) => {
     const params = typeof opts === "number"
       ? { limit: opts }

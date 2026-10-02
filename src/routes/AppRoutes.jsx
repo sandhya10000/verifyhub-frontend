@@ -27,6 +27,7 @@ const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
 const AdminRcReports = lazy(() => import("../pages/admin/RcReports"));
+const AdminGstReports = lazy(() => import("../pages/admin/GstReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
@@ -37,6 +38,8 @@ const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
 const RcVerification = lazy(() => import("../pages/partner/RcVerification"));
 const RcReports = lazy(() => import("../pages/partner/RcReports"));
+const GstVerification = lazy(() => import("../pages/partner/GstVerification"));
+const GstReports = lazy(() => import("../pages/partner/GstReports"));
 const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
 const Profile = lazy(() => import("../pages/partner/Profile"));
 const Support = lazy(() => import("../pages/partner/Support"));
@@ -138,6 +141,14 @@ const AppRoutes = () => {
             element={<RcReports />}
           />
           <Route
+            path="account/reports/gst"
+            element={<GstVerification />}
+          />
+          <Route
+            path="account/gst-reports"
+            element={<GstReports />}
+          />
+          <Route
             path="account/reports/:bureau"
             element={<Reports />}
           />
@@ -223,6 +234,10 @@ const AppRoutes = () => {
           <Route
             path="rc-reports"
             element={<AdminRcReports />}
+          />
+          <Route
+            path="gst-reports"
+            element={<AdminGstReports />}
           />
           <Route
             path="support"

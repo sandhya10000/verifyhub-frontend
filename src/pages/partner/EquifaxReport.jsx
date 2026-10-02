@@ -684,7 +684,7 @@ const EquifaxReport = () => {
               )}
 
               <Grid container spacing={2.5}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>First Name</FieldLabel>
                   <TextField
                     fullWidth
@@ -708,7 +708,7 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>Last Name</FieldLabel>
                   <TextField
                     fullWidth
@@ -732,7 +732,7 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>Mobile Number</FieldLabel>
                   <TextField
                     fullWidth
@@ -769,16 +769,16 @@ const EquifaxReport = () => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FieldLabel required>Email Address</FieldLabel>
                   <TextField
                     fullWidth
-                    label="Email Address"
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Enter email address"
-                    required
+                    sx={fieldSx}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -791,7 +791,7 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>PAN Number</FieldLabel>
                   <TextField
                     fullWidth
@@ -830,7 +830,7 @@ const EquifaxReport = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>Gender</FieldLabel>
                   <TextField
                     select
@@ -874,65 +874,50 @@ const EquifaxReport = () => {
                   </TextField>
                 </Grid>
                 {/* Date of Birth */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FieldLabel required>Date of Birth</FieldLabel>
                   <TextField
                     fullWidth
                     type="date"
-                    label="Date of Birth"
                     name="dob"
                     value={formData.dob}
                     onChange={handleChange}
-                    required
+                    sx={fieldSx}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
 
-                {/* Address */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Complete Address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter complete address"
-                    required
-                  />
-                </Grid>
-
                 {/* State */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FieldLabel required>State</FieldLabel>
                   <TextField
                     fullWidth
-                    label="State"
                     name="state"
                     value={formData.state}
                     onChange={handleChange}
                     placeholder="Enter state"
-                    required
+                    sx={fieldSx}
                   />
                 </Grid>
 
                 {/* City */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FieldLabel required>City</FieldLabel>
                   <TextField
                     fullWidth
-                    label="City"
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
                     placeholder="Enter city"
-                    required
+                    sx={fieldSx}
                   />
                 </Grid>
 
                 {/* Pincode */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FieldLabel required>Pincode</FieldLabel>
                   <TextField
                     fullWidth
-                    label="Pincode"
                     name="pincode"
                     value={formData.pincode}
                     onChange={(e) => {
@@ -949,12 +934,27 @@ const EquifaxReport = () => {
                       setSuccess("");
                     }}
                     placeholder="Enter 6-digit pincode"
-                    required
+                    sx={fieldSx}
                     inputProps={{ maxLength: 6 }}
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                {/* Address */}
+                <Grid size={{ xs: 12, md: 8 }}>
+                  <FieldLabel required>Complete Address</FieldLabel>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={1}
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Enter complete address"
+                    sx={fieldSx}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FieldLabel required>Report Type</FieldLabel>
                   <TextField
                     select
