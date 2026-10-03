@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import useAuth from "../../context/useAuth";
+import CustomReportCard from "../../features/customReport/CustomReportCard";
 import {
   Box,
   Typography,
@@ -328,10 +329,11 @@ const AiAnalyzer = () => {
 
   return (
     <Box sx={{ pb: 8 }}>
-      {/* Analysis-in-progress warning banner */}
+      {/* Analysis-in-progress warning banner — scrolling marquee */}
       {isAnalyzing && (
         <Box
           role="alert"
+          aria-live="polite"
           sx={{
             position: "fixed",
             top: 0,
@@ -341,24 +343,27 @@ const AiAnalyzer = () => {
             bgcolor: "#FFFBEB",
             borderBottom: "2px solid #F59E0B",
             color: "#78350F",
-            px: 3,
-            py: 1.25,
+            boxShadow: "0 2px 8px rgba(245,158,11,.18)",
+            // taller to fit larger text
+            py: { xs: 1.5, sm: 1.75 },
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 1.5,
-            fontSize: "0.875rem",
-            fontWeight: 500,
-            boxShadow: "0 2px 8px rgba(245,158,11,.18)",
+            overflow: "hidden",
+            // CSS variable — change to tune speed; 18s = moderate pace
+            "--marquee-duration": "18s",
           }}
         >
+          {/* Pulsing dot — fixed at the left, outside the scroll track */}
           <Box
+            aria-hidden="true"
             sx={{
-              width: 8,
-              height: 8,
+              width: 10,
+              height: 10,
               borderRadius: "50%",
               bgcolor: "#F59E0B",
               flexShrink: 0,
+              ml: 2,
+              mr: 1.5,
               "@keyframes pulse": {
                 "0%,100%": { opacity: 1 },
                 "50%": { opacity: 0.3 },
@@ -366,12 +371,78 @@ const AiAnalyzer = () => {
               animation: "pulse 1.4s ease-in-out infinite",
             }}
           />
-          <Box component="span">
-            <Box component="span" sx={{ fontWeight: 700 }}>
-              Analysis in progress —{" "}
+
+          {/*
+            Marquee track:
+            - Contains two identical copies of the message side-by-side.
+            - The @keyframes moves the whole track from 0 → -50%,
+              which is exactly one copy width, creating a seamless loop.
+            - To reverse direction (right-to-left): change
+                from { transform: "translateX(0)" }
+                to   { transform: "translateX(-50%)" }
+              and swap them so it goes 0 → +50%.
+            - Pause on hover via animation-play-state.
+            - prefers-reduced-motion: disable animation, show static.
+          */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "nowrap",
+              width: "max-content",
+              // keyframe: scroll the track leftward by 50% (one copy)
+              "@keyframes scrollMarquee": {
+                from: { transform: "translateX(0)" },
+                to:   { transform: "translateX(-50%)" },
+              },
+              animation:
+                "scrollMarquee var(--marquee-duration) linear infinite",
+              "&:hover": {
+                animationPlayState: "paused",
+              },
+              // Respect prefers-reduced-motion
+              "@media (prefers-reduced-motion: reduce)": {
+                animation: "none",
+                flexWrap: "wrap",
+                width: "auto",
+              },
+            }}
+          >
+            {/* Primary copy — read by screen readers */}
+            <Box
+              component="span"
+              sx={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                pr: 8, // gap between end of this copy and start of next
+                fontSize: { xs: "1rem", sm: "1.2rem" },  // 16px → 19px
+                fontWeight: 600,
+                color: "#78350F",
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 800 }}>
+                Analysis in progress —&nbsp;
+              </Box>
+              don&apos;t refresh or navigate away, or your report progress will be lost.
             </Box>
-            don't refresh or navigate away, or your report progress will be
-            lost.
+
+            {/* Duplicate copy — seamless loop, hidden from screen readers */}
+            <Box
+              component="span"
+              aria-hidden="true"
+              sx={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                pr: 8,
+                fontSize: { xs: "1rem", sm: "1.2rem" },
+                fontWeight: 600,
+                color: "#78350F",
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 800 }}>
+                Analysis in progress —&nbsp;
+              </Box>
+              don&apos;t refresh or navigate away, or your report progress will be lost.
+            </Box>
           </Box>
         </Box>
       )}
@@ -763,6 +834,9 @@ const AiAnalyzer = () => {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Custom Report Request Feature */}
+      <CustomReportCard />
     </Box>
   );
 };
