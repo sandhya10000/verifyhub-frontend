@@ -260,7 +260,7 @@ const ExperianReport = () => {
             : "";
           setPrefill({
             loading: false,
-            note: `Details fetched from your ${d.bureau || ""} report${when ? ` of ${when}` : ""} — verify before generating. Failed pulls incur a nominal ₹30 fee.`,
+            note: `Details fetched from your ${d.bureau || ""} report${when ? ` of ${when}` : ""} — verify before generating. Failed pulls are billed the same as successful pulls.`,
           });
         } else {
           setPrefill({ loading: false, note: "" });

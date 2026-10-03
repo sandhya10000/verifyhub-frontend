@@ -1,21 +1,29 @@
 // Shared plan catalogue (founder table) + helpers for Plans / AddFunds pages.
 // Live prices refresh from the public pricing API; this is the instant fallback.
+// Single-plan launch mode: one effective plan ("starter"). All rows identical
+// so stale activePlan values render correctly. Flip SINGLE_PLAN_MODE to false
+// and restore the commented tables to bring multi-tier back.
+// TODO(multi-plan-restore): restore 5-row FALLBACK_PLANS / PLAN_META / TIER_RANGES below.
+export const SINGLE_PLAN_MODE = true;
+export const SINGLE_PLAN_KEY = 'starter';
+export const SINGLE_PLAN_ROW = { recharge: 1000, cibil: 60, experian: 40, crif: 50, equifax: 40, cibilFailed: 60 };
 
 export const FALLBACK_PLANS = {
-  startup: { recharge: 200, cibil: 120, experian: 95, crif: 95, equifax: 85, cibilFailed: 90 },
-  starter: { recharge: 1000, cibil: 110, experian: 85, crif: 85, equifax: 80, cibilFailed: 80 },
-  growth: { recharge: 5000, cibil: 90, experian: 65, crif: 65, equifax: 60, cibilFailed: 70 },
-  pro: { recharge: 10000, cibil: 80, experian: 50, crif: 55, equifax: 50, cibilFailed: 60 },
-  enterprise: { recharge: 25000, cibil: 65, experian: 35, crif: 45, equifax: 40, cibilFailed: 50 },
+  startup: { ...SINGLE_PLAN_ROW },
+  starter: { ...SINGLE_PLAN_ROW },
+  growth: { ...SINGLE_PLAN_ROW },
+  pro: { ...SINGLE_PLAN_ROW },
+  enterprise: { ...SINGLE_PLAN_ROW },
 };
+// TODO(multi-plan-restore): FALLBACK_PLANS was:
+// startup {200,120,95,95,85,90}, starter {1000,110,85,85,80,80},
+// growth {5000,90,65,65,60,70}, pro {10000,80,50,55,50,60},
+// enterprise {25000,65,35,45,40,50}
 
 export const PLAN_META = [
-  { key: 'startup', label: 'Start-Up', tagline: 'First top-up' },
-  { key: 'starter', label: 'Starter', tagline: 'Try it out' },
-  { key: 'growth', label: 'Growth', tagline: 'Most popular', highlight: true },
-  { key: 'pro', label: 'Pro', tagline: 'High volume' },
-  { key: 'enterprise', label: 'Enterprise', tagline: 'Best value' },
+  { key: 'starter', label: 'Starter', tagline: 'Single launch plan', highlight: true },
 ];
+// TODO(multi-plan-restore): PLAN_META was startup/Starter/growth(highlight)/pro/enterprise
 
 export const planLabel = (key) => (PLAN_META.find((p) => p.key === key)?.label || key);
 
@@ -23,12 +31,10 @@ export const inr0 = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 export const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 // Tier ladder (matches backend tierForAmount slabs in Pricing.js).
+// Single-plan mode: one rung only.
+// TODO(multi-plan-restore): restore 5-rung ladder (200/1000/5000/10000/25000+).
 export const TIER_RANGES = [
-  { key: 'startup', tier: 1, min: 200, max: 999 },
-  { key: 'starter', tier: 2, min: 1000, max: 4999 },
-  { key: 'growth', tier: 3, min: 5000, max: 9999 },
-  { key: 'pro', tier: 4, min: 10000, max: 24999 },
-  { key: 'enterprise', tier: 5, min: 25000, max: null },
+  { key: 'starter', tier: 1, min: 1000, max: null },
 ];
 
 export const tierRangeLabel = (key) => {

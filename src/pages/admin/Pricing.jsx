@@ -11,6 +11,11 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+// Single-plan launch mode: admin edits the Starter row; it is mirrored to all
+// tiers on save (backend mirrors too as a safety net).
+// TODO(multi-plan-restore): remove SINGLE_PLAN_MODE + mirror, restore per-tier editing.
+const SINGLE_PLAN_MODE = true;
+const SINGLE_PLAN_KEY = 'starter';
 const TIERS = [
   { key: 'startup', label: 'Start-Up' },
   { key: 'starter', label: 'Starter' },
@@ -102,7 +107,12 @@ const AdminPricing = () => {
     try {
       setSaving(true);
       setBanner(null);
-      const res = await fetch(API('/admin/pricing'), { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(pricing) });
+      // Single-plan mode: mirror the single-plan row across all tiers so no
+      // stale tier can diverge. Backend enforces the same mirroring.
+      const payload = SINGLE_PLAN_MODE && pricing?.plans?.[SINGLE_PLAN_KEY]
+        ? { ...pricing, plans: Object.fromEntries(TIERS.map((t) => [t.key, { ...pricing.plans[SINGLE_PLAN_KEY] }])) }
+        : pricing;
+      const res = await fetch(API('/admin/pricing'), { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) {
         setPricing(data.data);
@@ -145,6 +155,12 @@ const AdminPricing = () => {
           Recharge amount is the minimum wallet balance required to use a plan (nothing is deducted). The fail column is the charge for a CIBIL failure on that tier.
         </Typography>
       </Box>
+
+      {SINGLE_PLAN_MODE && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          Single-plan mode is ON — edit the Starter row and it will be mirrored to all tiers on save. Live rates: CIBIL ₹60 · Experian ₹40 · CRIF ₹50 · Equifax ₹40 · AI ₹118 · RC/GST ₹10 · min recharge ₹1,000. Remove the flag in code to restore multi-tier editing.
+        </Alert>
+      )}
 
       {banner && <Alert severity={banner.tone} onClose={() => setBanner(null)} sx={{ mb: 2, borderRadius: 2 }}>{banner.text}</Alert>}
 

@@ -13,7 +13,6 @@ import {
   Divider,
 } from '@mui/material';
 import { CurrencyRupee } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
 import { planLabel } from './planConfig';
@@ -33,8 +32,10 @@ const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFracti
 
 const AddFunds = () => {
   const { user, token, login } = useAuth();
-  const navigate = useNavigate();
-  const [minRecharge, setMinRecharge] = useState(200);
+  // Single-plan launch mode: floor is ₹1,000 (server-enforced via Pricing.minRecharge).
+  // No forced plan pick — single plan auto-applies on every recharge.
+  // TODO(multi-plan-restore): restore default floor 200 + plan-pick redirect.
+  const [minRecharge, setMinRecharge] = useState(1000);
   const [amount, setAmount] = useState(() => {
     // Pre-fill when arriving from Plans ("Top up ₹X+ for Y").
     try {
@@ -48,15 +49,15 @@ const AddFunds = () => {
   const [firstTimer, setFirstTimer] = useState(true);
   const [paying, setPaying] = useState(false);
   const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
-  // Shortfall notice when arriving from Plans ("Add ₹X to select Y").
+  // Shortfall notice when arriving with a prefilled amount.
+  // (Legacy ?forPlan= param is ignored — no plan selection in single-plan mode.)
   const [forPlanNotice, setForPlanNotice] = useState('');
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
-      const forPlan = (q.get('forPlan') || '').slice(0, 40);
       const amt = q.get('amount');
-      if (forPlan && amt && Number(amt) > 0) {
-        setForPlanNotice(`Add ${inr2(Number(amt))} to reach the ${forPlan} plan balance — then select it free from Recharge Plans.`);
+      if (amt && Number(amt) > 0) {
+        setForPlanNotice(`Top up ${inr2(Number(amt))} or more — the single plan applies automatically. See Pricing for all rates.`);
       }
     } catch { /* ignore */ }
   }, []);
@@ -144,19 +145,16 @@ const AddFunds = () => {
             if (verifyRes.data?.success) {
               const newBalance = verifyRes.data.walletBalance;
               const newPlan = verifyRes.data.activePlan;
-              const needsPlan = verifyRes.data.pendingPlanChoice === true;
+              // Single-plan mode: no plan pick — recharge lands on the single
+              // plan automatically. TODO(multi-plan-restore): restore needsPlan redirect.
               if (user && token && newBalance != null) {
-                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: needsPlan }, token);
+                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: false }, token);
               }
               setPayBanner({
                 tone: 'success',
-                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan assigned (free)` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
+                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
               });
               if (verifyRes.data.autoAssigned) setFirstTimer(false);
-              // Forced plan flow: pure top-ups must pick a plan before usage.
-              if (needsPlan) {
-                navigate('/partner/plans?choosePlan=1', { replace: true });
-              }
             } else {
               setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
             }
@@ -239,12 +237,12 @@ const AddFunds = () => {
                 Top up your wallet
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                Full amount lands in your wallet. Plans are free to select from Recharge Plans — only generated reports are charged.
+                Full amount lands in your wallet. The single plan applies automatically — only generated reports are charged. See Pricing for all rates.
               </Typography>
 
               {firstTimer && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
-                  Your first top-up assigns the matching plan automatically — free, full amount credited.
+                  Your first top-up of ₹1,000+ activates the single launch plan automatically — free, full amount credited.
                 </Alert>
               )}
 
@@ -341,8 +339,8 @@ const AddFunds = () => {
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
                 {firstTimer
-                  ? 'A matching plan is assigned free on your first top-up.'
-                  : 'Full amount lands in your wallet. Plans are free to select from Recharge Plans.'}
+                  ? 'The single launch plan is assigned free on your first ₹1,000+ top-up.'
+                  : 'Full amount lands in your wallet. See Pricing for all rates.'}
               </Typography>
             </CardContent>
           </Card>
