@@ -66,17 +66,11 @@ const PartnerLayout = () => {
 
   const { user, logout, refreshWallet } = useAuth();
 
-  // Forced plan flow (server flag — survives storage clears and tab closes):
-  // while a plan pick is pending, only Plans and Add Funds are reachable.
+  // Single-plan mode: no forced plan pick — single plan auto-applies to all.
+  // TODO(multi-plan-restore): restore pendingPlanChoice lock redirect here.
   useEffect(() => {
     refreshWallet?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!user) return;
-    if (user.pendingPlanChoice !== true) return;
-    const ok = location.pathname === '/partner/plans' || location.pathname === '/partner/add-funds';
-    if (!ok) navigate('/partner/plans?choosePlan=1', { replace: true });
-  }, [location.pathname, user?.pendingPlanChoice]); // eslint-disable-line react-hooks/exhaustive-deps
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleMenuClick = (e) => setAnchorEl(e.currentTarget);
@@ -130,18 +124,16 @@ const PartnerLayout = () => {
           icon: <Building2 size={16} />,
           path: "/partner/credit-reports/crif",
         },
-        {
-          text: "Recharge Plans",
-          icon: <Wallet size={16} />,
-          path: "/partner/plans",
-        },
       ],
     },
-    // {
-    //   text: "Pricing",
-    //   icon: <IndianRupee size={20} />,
-    //   path: "/partner/pricing",
-    // },
+    // Single-plan launch: Pricing is a separate top-level tab with all
+    // products' rates (bureaus + AI + RC + GST). No plan selection — read-only.
+    // TODO(multi-plan-restore): re-add plan selection UI to the Pricing page.
+    {
+      text: "Pricing",
+      icon: <IndianRupee size={20} />,
+      path: "/partner/pricing",
+    },
     {
       text: "AI Credit Report Analyzer",
       icon: <Bot size={20} />,

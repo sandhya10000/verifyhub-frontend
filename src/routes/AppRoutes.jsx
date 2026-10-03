@@ -113,9 +113,10 @@ const AppRoutes = () => {
             path="add-funds"
             element={<AddFunds />}
           />
+          {/* Legacy URL — redirects to the separate Pricing tab */}
           <Route
             path="plans"
-            element={<RechargePlans />}
+            element={<Navigate to="/partner/pricing" replace />}
           />
           <Route
             path="credit-reports"
@@ -191,7 +192,8 @@ const AppRoutes = () => {
             element={<EquifaxReport />}
           />
           <Route path="/partner/credit-reports/crif" element={<CrifReport />} />
-          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
+          {/* Separate Pricing tab: all products' rates, read-only (single plan auto-applies) */}
+          <Route path="pricing" element={<RechargePlans />} />
           <Route path="ai-analyzer" element={<AiAnalyzer />} />
           <Route
             path="account/*"

@@ -156,12 +156,12 @@ const PartnerDashboard = () => {
     {
       icon: <Percent size={18} />, iconBg: "#ECFDF5", iconColor: "#10B981",
       title: "Success Rate", value: err ? "—" : `${s.successRate ?? 100}%`,
-      subtitle: `${s.failedThisMonth ?? 0} failures · not charged`,
+      subtitle: `${s.failedThisMonth ?? 0} failures · billed same as success`,
     },
     {
       icon: <AlertTriangle size={18} />, iconBg: "#FEF2F2", iconColor: "#EF4444",
       title: "Failed Pulls", value: err ? "—" : String(s.failedThisMonth ?? 0),
-      subtitle: "Failed pulls incur a nominal fee",
+      subtitle: "Failed pulls billed same as success",
     },
     {
       icon: <Ticket size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
