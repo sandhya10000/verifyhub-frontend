@@ -158,7 +158,7 @@ const AdminPricing = () => {
 
       {SINGLE_PLAN_MODE && (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
-          Single-plan mode is ON — edit the Starter row and it will be mirrored to all tiers on save. Live rates: CIBIL ₹60 · Experian ₹40 · CRIF ₹50 · Equifax ₹40 · AI ₹118 · RC/GST ₹10 · min recharge ₹1,000. Remove the flag in code to restore multi-tier editing.
+          Single-plan mode is ON — edit the Starter row and it will be mirrored to all tiers on save. Live rates: CIBIL ₹60 · Experian ₹40 · CRIF ₹50 · Equifax ₹40 · AI ₹118 (fail ₹100 flat) · RC/GST ₹10 (fail ₹10) · min recharge ₹1,000. Remove the flag in code to restore multi-tier editing.
         </Alert>
       )}
 
@@ -244,7 +244,7 @@ const AdminPricing = () => {
             <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>AI analysis</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · failures bill the fallback below</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · single-plan fail is base with no GST (₹100)</Typography>
                 <Grid container spacing={1.5}>
                   <Grid size={{ xs: 6 }}>
                     <NumField label="Base ₹" value={pricing.ai?.base} onChange={(v) => setTop('ai', 'base', v)} />
@@ -261,7 +261,7 @@ const AdminPricing = () => {
             <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>Failure fallback</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Non-CIBIL + AI failures, any tier</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Unused in single-plan mode (bureaus = success price, AI = ₹100 flat, RC/GST = ₹10) · applies on multi-plan restore</Typography>
                 <Grid container spacing={1.5}>
                   <Grid size={{ xs: 6 }}>
                     <NumField label="Base ₹" value={pricing.otherFailedCharge?.base} onChange={(v) => setTop('otherFailedCharge', 'base', v)} />
