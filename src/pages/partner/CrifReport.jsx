@@ -34,6 +34,7 @@ import {
 import DataTable from "../../Components/shared/DataTable";
 import TypePill from "../../Components/shared/TypePill";
 import RowActions from "../../Components/shared/RowActions";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import {
   AccountBalance,
@@ -1409,12 +1410,12 @@ const CrifReport = () => {
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
+                        select
                         required
                         label="State"
                         name="stateName"
                         value={formData.stateName}
                         onChange={handleChange}
-                        placeholder="Enter state"
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
@@ -1423,7 +1424,9 @@ const CrifReport = () => {
                           ),
                         }}
                         sx={inputSx}
-                      />
+                      >
+                        {stateMenuItems}
+                      </TextField>
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 3 }}>

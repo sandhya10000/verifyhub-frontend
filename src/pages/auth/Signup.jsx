@@ -20,6 +20,7 @@ import OtpInput from "../../Components/auth/OtpInput";
 import { signupSchema } from "../../schemas/authSchemas";
 import { authService } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -184,11 +185,15 @@ const Signup = () => {
             <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
               <TextField
                 fullWidth
+                select
                 label="State"
+                defaultValue=""
                 {...register("state")}
                 error={!!errors.state}
                 helperText={errors.state?.message}
-              />
+              >
+                {stateMenuItems}
+              </TextField>
               <TextField
                 fullWidth
                 label="City"

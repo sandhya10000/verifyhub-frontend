@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 import {
   Box,
   Typography,
@@ -884,12 +885,14 @@ const EquifaxReport = () => {
                   <FieldLabel required>State</FieldLabel>
                   <TextField
                     fullWidth
+                    select
                     name="state"
                     value={formData.state}
                     onChange={handleChange}
-                    placeholder="Enter state"
                     sx={fieldSx}
-                  />
+                  >
+                    {stateMenuItems}
+                  </TextField>
                 </Grid>
 
                 {/* City */}

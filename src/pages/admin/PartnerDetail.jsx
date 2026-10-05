@@ -27,6 +27,7 @@ import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import TypePill from '../../Components/shared/TypePill';
 import RowActions from '../../Components/shared/RowActions';
+import { stateMenuItems } from '../../Components/shared/StateMenuItems';
 
 const API = () => import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_ROOT = () => API().replace(/\/api\/?$/, '');
@@ -464,7 +465,9 @@ const PartnerDetail = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 1 }}>
             <TextField label="Full Name" size="small" fullWidth value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
             <TextField label="Phone" size="small" fullWidth value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-            <TextField label="State" size="small" fullWidth value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} />
+            <TextField label="State" size="small" fullWidth select value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}>
+              {stateMenuItems}
+            </TextField>
             <TextField label="City" size="small" fullWidth value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
             <TextField label="Pincode" size="small" fullWidth value={editForm.pincode} onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })} />
           </Box>

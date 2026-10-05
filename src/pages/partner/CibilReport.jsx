@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import {
   Box,
@@ -855,12 +856,14 @@ const CibilReport = () => {
                 <FieldLabel required>State</FieldLabel>
                 <TextField
                   fullWidth
+                  select
                   name="state"
                   value={formData.state}
                   onChange={handleChange}
-                  placeholder="Enter state"
                   sx={fieldSx}
-                />
+                >
+                  {stateMenuItems}
+                </TextField>
               </Grid>
 
               <Grid size={{ xs: 12, md: 4 }}>
