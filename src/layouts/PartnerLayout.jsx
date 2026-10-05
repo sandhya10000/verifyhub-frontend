@@ -65,7 +65,7 @@ const PartnerLayout = () => {
     setCreditReportsOpen(isOnCreditRoute);
   }, [location.pathname]);
 
-  const { user, logout, refreshWallet } = useAuth();
+  const { user, logout, refreshWallet, hasToppedUp } = useAuth();
 
   // Single-plan mode: no forced plan pick — single plan auto-applies to all.
   // TODO(multi-plan-restore): restore pendingPlanChoice lock redirect here.
@@ -90,17 +90,35 @@ const PartnerLayout = () => {
 
   if (!user) return null;
 
+  // First-time sidebar: partners who never topped up see Add Funds right
+  // below Dashboard (Pricing hidden); funded partners see Pricing in the same
+  // slot. hasToppedUp null (still loading) renders the funded nav to avoid a
+  // flash of the wrong tabs. TODO(multi-plan-restore): no action needed here.
+  const showAddFunds = hasToppedUp === false;
+
   const navItems = [
     {
       text: "Dashboard",
       icon: <LayoutDashboard size={20} />,
       path: "/partner/dashboard",
     },
-    // {
-    //   text: "Add Funds",
-    //   icon: <Wallet size={20} />,
-    //   path: "/partner/add-funds",
-    // },
+    // Pricing sits directly below Dashboard (funded); first-timers get
+    // Add Funds in this exact slot instead.
+    ...(showAddFunds
+      ? [
+          {
+            text: "Add Funds",
+            icon: <Wallet size={20} />,
+            path: "/partner/add-funds",
+          },
+        ]
+      : [
+          {
+            text: "Pricing",
+            icon: <IndianRupee size={20} />,
+            path: "/partner/pricing",
+          },
+        ]),
     {
       text: "Credit Reports",
       icon: <FileText size={20} />,
@@ -127,14 +145,7 @@ const PartnerLayout = () => {
         },
       ],
     },
-    // Single-plan launch: Pricing is a separate top-level tab with all
-    // products' rates (bureaus + AI + RC + GST). No plan selection — read-only.
-    // TODO(multi-plan-restore): re-add plan selection UI to the Pricing page.
-    {
-      text: "Pricing",
-      icon: <IndianRupee size={20} />,
-      path: "/partner/pricing",
-    },
+
     {
       text: "AI Credit Report Analyzer",
       icon: <Bot size={20} />,
