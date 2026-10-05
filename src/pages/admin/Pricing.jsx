@@ -172,11 +172,13 @@ const diffPricing = (cur, saved) => {
   for (const [k, label] of Object.entries(labels)) {
     if (Number(row[k]) !== Number(srow[k])) out.push({ label: `${SINGLE_PLAN_LABEL} · ${label}`, from: srow[k], to: row[k] });
   }
+  // No GST fields are editable on this page — totals stay GST-inclusive.
   const pairs = [
-    ['ai', 'base', 'AI base ₹'], ['ai', 'gstRate', 'AI GST %'],
-    ['rc', 'base', 'RC base ₹'], ['rc', 'gstRate', 'RC GST %'],
-    ['gst', 'base', 'GST base ₹'], ['gst', 'gstRate', 'GST GST %'],
-    ['otherFailedCharge', 'base', 'Fallback base ₹'], ['otherFailedCharge', 'gstRate', 'Fallback GST %'],
+    ['ai', 'base', 'AI base ₹'],
+    ['aiFail', 'base', 'AI fail ₹'],
+    ['rc', 'base', 'RC base ₹'],
+    ['gst', 'base', 'GST base ₹'],
+    ['otherFailedCharge', 'base', 'Fallback base ₹'],
   ];
   for (const [obj, field, label] of pairs) {
     if (Number(cur[obj]?.[field]) !== Number(saved[obj]?.[field])) out.push({ label, from: saved[obj]?.[field], to: cur[obj]?.[field] });
@@ -256,7 +258,7 @@ const AdminPricing = () => {
 
   const row = pricing?.plans?.[SINGLE_PLAN_KEY] || {};
   const aiTotal = eff(pricing?.ai?.base, pricing?.ai?.gstRate);
-  const aiFail = Number(pricing?.ai?.base) || 0;
+  const aiFail = Number(pricing?.aiFail?.base ?? pricing?.ai?.base) || 0;
   const rcTotal = eff(pricing?.rc?.base, pricing?.rc?.gstRate);
   const gstTotal = eff(pricing?.gst?.base, pricing?.gst?.gstRate);
   const failRows = [
@@ -264,7 +266,7 @@ const AdminPricing = () => {
     { product: 'Experian', success: inr(row.experian), fail: `${inr(row.experian)} (same)` },
     { product: 'CRIF', success: inr(row.crif), fail: `${inr(row.crif)} (same)` },
     { product: 'Equifax', success: inr(row.equifax), fail: `${inr(row.equifax)} (same)` },
-    { product: 'AI analysis', success: `${inr(aiTotal)} (base ${inr(pricing?.ai?.base)} + ${pricing?.ai?.gstRate || 0}% GST)`, fail: `${inr(aiFail)} flat (no GST)` },
+    { product: 'AI analysis', success: inr(aiTotal), fail: `${inr(aiFail)} flat` },
     { product: 'RC verification', success: inr(rcTotal), fail: `${inr(rcTotal)} (same)` },
     { product: 'GST verification', success: inr(gstTotal), fail: `${inr(gstTotal)} (same)` },
   ];
@@ -407,13 +409,13 @@ const AdminPricing = () => {
             <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>AI analysis</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · single-plan fail is base with no GST (₹100)</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · totals include GST</Typography>
                 <Grid container spacing={1.5}>
-                  <Grid size={{ xs: 6 }}>
+                  <Grid size={{ xs: 12 }}>
                     <NumField label="Base ₹" value={pricing.ai?.base} onChange={(v) => setTop('ai', 'base', v)} />
                   </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="GST %" value={pricing.ai?.gstRate} onChange={(v) => setTop('ai', 'gstRate', v)} />
+                  <Grid size={{ xs: 12 }}>
+                    <NumField label="Failure fallback ₹ (flat)" value={pricing.aiFail?.base} onChange={(v) => setTop('aiFail', 'base', v)} />
                   </Grid>
                 </Grid>
                 <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 1.5 }}>
@@ -426,17 +428,11 @@ const AdminPricing = () => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>RC / GST verification</Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Success or fail — both bill this rate</Typography>
                 <Grid container spacing={1.5}>
-                  <Grid size={{ xs: 6 }}>
+                  <Grid size={{ xs: 12 }}>
                     <NumField label="RC base ₹" value={pricing.rc?.base} onChange={(v) => setTop('rc', 'base', v)} />
                   </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="RC GST %" value={pricing.rc?.gstRate} onChange={(v) => setTop('rc', 'gstRate', v)} />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
+                  <Grid size={{ xs: 12 }}>
                     <NumField label="GST base ₹" value={pricing.gst?.base} onChange={(v) => setTop('gst', 'base', v)} />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="GST GST %" value={pricing.gst?.gstRate} onChange={(v) => setTop('gst', 'gstRate', v)} />
                   </Grid>
                 </Grid>
                 <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 1.5 }}>
@@ -460,13 +456,10 @@ const AdminPricing = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>Failure fallback</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Unused in single-plan mode (bureaus = success price, AI = ₹100 flat, RC/GST = ₹10) · applies on multi-plan restore</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Unused in single-plan mode (bureaus = success price, AI has its own fallback above, RC/GST = ₹10) · applies on multi-plan restore</Typography>
                 <Grid container spacing={1.5}>
-                  <Grid size={{ xs: 6 }}>
+                  <Grid size={{ xs: 12 }}>
                     <NumField label="Base ₹" value={pricing.otherFailedCharge?.base} onChange={(v) => setTop('otherFailedCharge', 'base', v)} />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="GST %" value={pricing.otherFailedCharge?.gstRate} onChange={(v) => setTop('otherFailedCharge', 'gstRate', v)} />
                   </Grid>
                 </Grid>
               </Paper>

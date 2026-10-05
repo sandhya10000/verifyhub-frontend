@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -7,12 +7,11 @@ import {
   Button,
   TextField,
   Alert,
-  Chip,
   Grid,
   InputAdornment,
   Divider,
 } from '@mui/material';
-import { CurrencyRupee } from '@mui/icons-material';
+import { Sparkles, Wallet } from 'lucide-react';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
 import { planLabel } from './planConfig';
@@ -31,7 +30,26 @@ const loadRazorpayScript = () => new Promise((resolve) => {
 const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 const AddFunds = () => {
-  const { user, token, login } = useAuth();
+  // First top-up flips the sidebar from Add Funds to Pricing instantly.
+  const { user, token, login, hasToppedUp, setHasToppedUp } = useAuth();
+  const headerRef = useRef(null);
+  const [showStrip, setShowStrip] = useState(false);
+
+  // Sticky reminder strip: appears once the header (with the unlock line)
+  // scrolls out of view — only for never-topped-up partners.
+  useEffect(() => {
+    if (hasToppedUp !== false) { setShowStrip(false); return; }
+    const el = headerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(([entry]) => setShowStrip(!entry.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasToppedUp]);
+
+  const scrollToTopUp = () => {
+    document.getElementById('topup-amount')?.focus({ preventScroll: false });
+    document.getElementById('topup-amount')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   // Single-plan launch mode: floor is ₹1,000 (server-enforced via Pricing.minRecharge).
   // No forced plan pick — single plan auto-applies on every recharge.
   // TODO(multi-plan-restore): restore default floor 200 + plan-pick redirect.
@@ -150,11 +168,15 @@ const AddFunds = () => {
               if (user && token && newBalance != null) {
                 login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: false }, token);
               }
+              // First top-up gets an unlock confirmation (reinforces the highlight line).
+              const unlockedNote = firstTimer ? ' All services unlocked — bureau reports, AI analysis, RC & GST verification.' : '';
               setPayBanner({
                 tone: 'success',
-                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? amt)}.`,
+                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? amt)}.${unlockedNote}`,
               });
               if (verifyRes.data.autoAssigned) setFirstTimer(false);
+              // First successful credit: swap the sidebar to Pricing at once.
+              setHasToppedUp?.(true);
             } else {
               setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
             }
@@ -182,6 +204,7 @@ const AddFunds = () => {
     <Box>
       {/* Professional header */}
       <Card
+        ref={headerRef}
         elevation={0}
         sx={{
           border: '1px solid',
@@ -193,6 +216,15 @@ const AddFunds = () => {
         }}
       >
         <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              width: 56, height: 56, borderRadius: '16px', flexShrink: 0,
+              bgcolor: '#EDE9FE', color: '#6D28D9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Wallet size={30} />
+          </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="h4"
@@ -203,26 +235,86 @@ const AddFunds = () => {
             <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
               Agent: {user?.name || 'Partner'} · Code: {agentCode}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mt: 1.25, flexWrap: 'wrap' }}>
-              {user?.activePlan && (
-                <Chip label={`Plan: ${planLabel(user.activePlan)}`} size="small" sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontWeight: 700 }} />
-              )}
-              {user?.walletBalance != null && (
-                <Chip label={`Wallet: ${inr2(user.walletBalance)}`} size="small" sx={{ bgcolor: '#ECFDF5', color: '#059669', fontWeight: 700 }} />
-              )}
-            </Box>
           </Box>
           <Box
             sx={{
-              width: 56, height: 56, borderRadius: '16px', flexShrink: 0,
-              bgcolor: 'rgba(79,70,229,0.1)', color: '#4F46E5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.25, flexShrink: 0,
+              bgcolor: '#ECFDF5', border: '1.5px solid #A7F3D0', pl: 1, pr: 2, py: 1, borderRadius: 999,
+              boxShadow: '0 2px 8px rgba(5,150,105,.15)', whiteSpace: 'nowrap',
             }}
           >
-            <CurrencyRupee sx={{ fontSize: 32 }} />
+            <Box
+              sx={{
+                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                bgcolor: '#059669', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Wallet size={17} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#047857', lineHeight: 1, letterSpacing: '0.04em' }}>
+                WALLET
+              </Typography>
+              <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#065F46', lineHeight: 1.25 }}>
+                {inr2(user?.walletBalance ?? 0)}
+              </Typography>
+            </Box>
           </Box>
         </CardContent>
+        {/* Banner image nested inside the header (shown always). The PNG
+            carries baked-in black bars (~14.7% top/bottom, measured 108–614 of
+            725px), so the frame crops to the live banner region via matching
+            aspect ratio + cover. */}
+          <Box sx={{ px: { xs: 2, sm: 4 }, pb: { xs: 1.5, sm: 2 } }}>
+            <Box
+              sx={{
+                position: 'relative', width: '100%', aspectRatio: '2170 / 506',
+                overflow: 'hidden', borderRadius: '12px',
+                boxShadow: '0 6px 24px rgba(76,29,149,.18)', bgcolor: '#4C1D95',
+              }}
+            >
+              <Box
+                component="img"
+                src="/Add_Funds_banner.png"
+                alt="One top-up unlocks everything — starting at just ₹10"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', transform: 'scale(1.04)' }}
+              />
+            </Box>
+          </Box>
       </Card>
+
+      {/* Sticky reminder — shows once the header scrolls away (first-timers only). */}
+      {hasToppedUp === false && showStrip && (
+        <Box
+          sx={{
+            position: 'sticky', top: 76, zIndex: 5,
+            mb: 2, p: 1.25, pl: 2, pr: 1.25, borderRadius: '10px',
+            bgcolor: '#fff', border: '1px solid', borderColor: 'divider',
+            boxShadow: '0 4px 16px rgba(15,27,45,.10)',
+            display: 'flex', alignItems: 'center', gap: 1.5,
+          }}
+        >
+          <Sparkles size={16} color="#7C3AED" style={{ flexShrink: 0 }} />
+          <Typography
+            sx={{
+              fontWeight: 600, fontSize: '0.85rem', flexGrow: 1, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            One top-up unlocks everything —{' '}
+            <Box component="span" sx={{ fontWeight: 800, color: '#3730A3' }}>
+              starting at just ₹10
+            </Box>
+          </Typography>
+          <Button
+            size="small" variant="contained" disableElevation onClick={scrollToTopUp}
+            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2 }}
+          >
+            Top up now
+          </Button>
+        </Box>
+      )}
 
       {/* Two-column layout */}
       <Grid container spacing={3} sx={{ alignItems: 'flex-start' }}>
@@ -254,6 +346,7 @@ const AddFunds = () => {
 
               <TextField
                 fullWidth
+                id="topup-amount"
                 label="Top-up amount (₹)"
                 value={amount}
                 onChange={handleAmountChange}
