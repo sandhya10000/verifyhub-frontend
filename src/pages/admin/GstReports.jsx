@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, CircularProgress, Alert,
-  Button, Tooltip, TextField, InputAdornment,
+  Button, Tooltip, TextField, InputAdornment, Tabs, Tab, Chip,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -18,7 +18,6 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").repla
 const API_BASE = `${API_ROOT}/api`;
 const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31";
-const STATUS_OPTIONS = ["All", "Success", "Failed", "Pending"];
 
 const fmtDateTime = (v) => {
   if (!v) return "—";
@@ -39,8 +38,13 @@ const AdminGstReports = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const limit = 50;
 
+  // Successful / Failed tabs (admin bureau Reports module pattern).
+  // Pending rows appear in neither tab.
+  const [activeTab, setActiveTab] = useState(0);
+  const tabStatus = activeTab === 1 ? "Failed" : "Success";
+
   const [filters, setFilters] = useState({
-    search: "", partnerSearch: "", status: "All",
+    search: "", partnerSearch: "",
     startDate: "", endDate: "",
   });
   const [debounced, setDebounced] = useState({ search: "", partnerSearch: "" });
@@ -61,9 +65,9 @@ const AdminGstReports = () => {
         const token = localStorage.getItem("token");
         const params = new URLSearchParams({
           page, limit,
+          status: tabStatus,
           ...(debounced.search && { search: debounced.search }),
           ...(debounced.partnerSearch && { partnerSearch: debounced.partnerSearch }),
-          ...(filters.status !== "All" && { status: filters.status }),
           ...(filters.startDate && { startDate: filters.startDate }),
           ...(filters.endDate && { endDate: filters.endDate }),
         }).toString();
@@ -84,7 +88,7 @@ const AdminGstReports = () => {
       }
     };
     load();
-  }, [page, debounced, filters.status, filters.startDate, filters.endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, debounced, activeTab, filters.startDate, filters.endDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -123,10 +127,31 @@ const AdminGstReports = () => {
     }
   };
 
+  // Reason column for the Failed tab (admin bureau failed-tab pattern:
+  // failureCategory chip + reason text).
+  const reasonColumn = {
+    header: "Reason", field: "reason", minWidth: 220,
+    render: (r) => {
+      const reason = r.failureReason || "Verification failed";
+      return (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", maxWidth: 340 }}>
+          {r.failureCategory && <Chip label={r.failureCategory} size="small" color="error" variant="outlined" />}
+          <Tooltip title={reason}>
+            <Typography sx={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: r.failureCategory ? 200 : 300 }}>
+              {reason}
+            </Typography>
+          </Tooltip>
+        </Box>
+      );
+    },
+  };
+
+  // Compact 5-column layout: Date | Partner ID | GSTIN | Status | Report.
+  // (Reason is appended after Status on the Failed tab only.)
   const columns = [
     {
-      header: "GSTIN", field: "gstin", nowrap: true, minWidth: 160,
-      render: (r) => <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{r.gstin}</Typography>,
+      header: "Date", field: "createdAt", nowrap: true, minWidth: 150,
+      render: (r) => <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{fmtDateTime(r.createdAt)}</Typography>,
     },
     {
       header: "Partner ID", field: "partnerId", nowrap: true, minWidth: 100,
@@ -158,41 +183,12 @@ const AdminGstReports = () => {
       },
     },
     {
-      header: "Legal Name", field: "legalName", minWidth: 180,
-      render: (r) => (
-        <Typography title={r.legalName || "—"} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.legalName || "—"}
-        </Typography>
-      ),
+      header: "GSTIN", field: "gstin", nowrap: true, minWidth: 160,
+      render: (r) => <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{r.gstin}</Typography>,
     },
     {
       header: "Status", field: "status", nowrap: true, minWidth: 110,
-      render: (r) => {
-        const badge = <StatusBadge status={r.status === "Success" ? "Success" : r.status === "Failed" ? "Failed" : "Pending"} />;
-        return r.status === "Failed" && r.failureReason ? (
-          <Tooltip title={r.failureReason}>{badge}</Tooltip>
-        ) : badge;
-      },
-    },
-    {
-      header: "Company Status", field: "companyStatus", minWidth: 150,
-      render: (r) => (
-        <Typography title={r.gstData?.companyStatus || "—"} sx={{ fontSize: "0.8rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.gstData?.companyStatus || "—"}
-        </Typography>
-      ),
-    },
-    {
-      header: "Constitution", field: "constitutionOfBusiness", minWidth: 140,
-      render: (r) => (
-        <Typography title={r.gstData?.constitutionOfBusiness || "—"} sx={{ fontSize: "0.8rem", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.gstData?.constitutionOfBusiness || "—"}
-        </Typography>
-      ),
-    },
-    {
-      header: "Verified On", field: "createdAt", nowrap: true, minWidth: 150,
-      render: (r) => <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{fmtDateTime(r.createdAt)}</Typography>,
+      render: (r) => <StatusBadge status={r.status === "Success" ? "Success" : r.status === "Failed" ? "Failed" : "Pending"} />,
     },
     {
       header: "Report", field: "pdf", align: "right", width: 80,
@@ -217,6 +213,11 @@ const AdminGstReports = () => {
     },
   ];
 
+  // Reason sits right after Status on the Failed tab only.
+  const tableColumns = activeTab === 1
+    ? [...columns.slice(0, 4), reasonColumn, ...columns.slice(4)]
+    : columns;
+
   return (
     <Box sx={{ maxWidth: 1280, mx: "auto", p: 3 }}>
       <Box sx={{ mb: 3 }}>
@@ -226,19 +227,21 @@ const AdminGstReports = () => {
         </Typography>
       </Box>
 
+      <Tabs
+        value={activeTab}
+        onChange={(_, v) => { setActiveTab(v); setPage(1); }}
+        sx={{ mb: 2, minHeight: 36, "& .MuiTab-root": { minHeight: 36, textTransform: "none", fontWeight: 700 } }}
+      >
+        <Tab label="Successful" value={0} />
+        <Tab label="Failed" value={1} />
+      </Tabs>
+
       <FilterBar
         search={{
           value: filters.search,
           onChange: (v) => setFilters((prev) => ({ ...prev, search: v })),
           placeholder: "Search GSTIN or legal name…",
         }}
-        selects={[
-          {
-            name: "status", label: "Status", value: filters.status,
-            options: STATUS_OPTIONS, minWidth: 130,
-            onChange: (v) => { setFilters((prev) => ({ ...prev, status: v })); setPage(1); },
-          },
-        ]}
         dates={[
           {
             name: "startDate", value: filters.startDate,
@@ -287,10 +290,10 @@ const AdminGstReports = () => {
       ) : (
         <>
           <DataTable
-            title="GST Verifications"
-            columns={columns}
+            title={activeTab === 1 ? `Failed GST Verifications (${rows.length})` : `GST Verifications (${rows.length})`}
+            columns={tableColumns}
             data={rows}
-            emptyMessage="No GST verifications found."
+            emptyMessage={activeTab === 1 ? "No failed GST verifications." : "No successful GST verifications yet."}
             pageSize={limit}
           />
           <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>
