@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Alert, Button } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, Button, Tabs, Tab, Chip, Tooltip } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
@@ -79,6 +79,10 @@ const Reports = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [bureauFilter, setBureauFilter] = useState("All");
+  // Success/Failed sub-tabs inside each product tab (admin bureau module pattern).
+  // Pending/in-progress rows appear in NEITHER tab. AI uses lowercase statuses.
+  // TODO(multi-plan-restore): no action needed here.
+  const [statusTab, setStatusTab] = useState("success");
 
   // Reset filters when switching tabs
   useEffect(() => {
@@ -86,6 +90,7 @@ const Reports = () => {
     setFromDate("");
     setToDate("");
     setBureauFilter("All");
+    setStatusTab("success");
   }, [activeKey]);
 
   // ============================================================
@@ -409,24 +414,54 @@ const Reports = () => {
   // TAB + SEARCH + DATE FILTERING
   // ============================================================
 
+  // Status match per row (credit: Success/Failed; AI: completed/failed).
+  const matchesStatusTab = (r, tab) => {
+    if (r.rawType === "ai-analyzer") {
+      const st = r.rawReport?.status;
+      return tab === "success" ? st === "completed" : st === "failed";
+    }
+    const st = r.rawReport?.status || "Success";
+    return tab === "success" ? st === "Success" : st === "Failed";
+  };
+
+  const inProductTab = (r) => {
+    if (isAiTab) return r.rawType === "ai-analyzer";
+    if (r.rawType === "ai-analyzer") return false;
+    if (bureauFilter !== "All") {
+      const b = String(r.rawReport?.bureau || r.bureau || "").toUpperCase();
+      if (b !== bureauFilter.toUpperCase()) return false;
+    }
+    return true;
+  };
+
+  // Sub-tab counts (product + bureau split only, before search/dates).
+  const [successCount, failedCount] = useMemo(() => {
+    let s = 0;
+    let f = 0;
+    for (const r of reportsData) {
+      if (!inProductTab(r)) continue;
+      if (r.rawType === "ai-analyzer") {
+        if (r.rawReport?.status === "completed") s += 1;
+        else if (r.rawReport?.status === "failed") f += 1;
+      } else if ((r.rawReport?.status || "Success") === "Success") s += 1;
+      else if (r.rawReport?.status === "Failed") f += 1;
+    }
+    return [s, f];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportsData, isAiTab, bureauFilter]);
+
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
     const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
     const to = toDate ? new Date(`${toDate}T23:59:59.999`) : null;
     return reportsData.filter((r) => {
       // Tab split: credit bureau (all 4 bureaus together) vs AI
-      if (isAiTab) {
-        if (r.rawType !== "ai-analyzer") return false;
-      } else {
-        if (r.rawType === "ai-analyzer") return false;
-        if (bureauFilter !== "All") {
-          const b = String(r.rawReport?.bureau || r.bureau || "").toUpperCase();
-          if (b !== bureauFilter.toUpperCase()) return false;
-        }
-      }
-      // Search (customer / score / bureau)
+      if (!inProductTab(r)) return false;
+      // Success/Failed sub-tab split
+      if (!matchesStatusTab(r, statusTab)) return false;
+      // Search (customer / score / bureau / failure reason)
       if (q) {
-        const hay = `${r.customer || ""} ${r.score ?? ""} ${r.bureau || ""}`.toLowerCase();
+        const hay = `${r.customer || ""} ${r.score ?? ""} ${r.bureau || ""} ${r.rawReport?.failureReason || ""} ${r.rawReport?.errorMessage || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       // Date range
@@ -438,7 +473,8 @@ const Reports = () => {
       }
       return true;
     });
-  }, [reportsData, isAiTab, bureauFilter, search, fromDate, toDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportsData, isAiTab, bureauFilter, statusTab, search, fromDate, toDate]);
 
   const hasActiveFilters = search.trim() !== "" || fromDate !== "" || toDate !== "" || (!isAiTab && bureauFilter !== "All");
   const clearFilters = () => {
@@ -701,6 +737,35 @@ const Reports = () => {
     },
   ];
 
+  // Reason column for the Failed sub-tab (admin bureau failed-tab pattern:
+  // failureCategory chip + reason text; AI rows use errorMessage).
+  const reasonColumn = {
+    header: "Reason", field: "reason", minWidth: 220,
+    render: (row) => {
+      const raw = row.rawReport || {};
+      const reason =
+        raw.failureReason ||
+        raw.errorMessage ||
+        (row.rawType === "ai-analyzer" ? "Analysis failed" : "Bureau request failed");
+      const cat = raw.failureCategory || null;
+      return (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", maxWidth: 340 }}>
+          {cat && <Chip label={cat} size="small" color="error" variant="outlined" />}
+          <Tooltip title={reason}>
+            <Typography sx={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: cat ? 200 : 300 }}>
+              {reason}
+            </Typography>
+          </Tooltip>
+        </Box>
+      );
+    },
+  };
+
+  // Insert Reason before Actions on the Failed sub-tab only.
+  const tableColumns = statusTab === "failed"
+    ? [...columns.slice(0, 5), reasonColumn, columns[5]]
+    : columns;
+
   // ============================================================
   // EXPORT
   // ============================================================
@@ -764,6 +829,14 @@ const Reports = () => {
         </Box>
       ) : (
         <>
+          <Tabs
+            value={statusTab}
+            onChange={(_, v) => setStatusTab(v)}
+            sx={{ mb: 2, minHeight: 36, "& .MuiTab-root": { minHeight: 36, textTransform: "none", fontWeight: 700 } }}
+          >
+            <Tab label={`Successful (${successCount})`} value="success" />
+            <Tab label={`Failed (${failedCount})`} value="failed" />
+          </Tabs>
           <FilterBar
             search={{ value: search, onChange: setSearch, placeholder: `Search ${activeTab.label.toLowerCase()}…` }}
             selects={isAiTab ? [] : [{ name: "bureau", label: "Bureau", value: bureauFilter, options: BUREAU_OPTIONS, minWidth: 150, onChange: setBureauFilter }]}
@@ -775,10 +848,10 @@ const Reports = () => {
             showClear={hasActiveFilters}
           />
           <DataTable
-            title={`${activeTab.label} (${filteredData.length})`}
-            columns={columns}
+            title={`${activeTab.label} — ${statusTab === "success" ? "Successful" : "Failed"} (${filteredData.length})`}
+            columns={tableColumns}
             data={filteredData}
-            emptyMessage={hasActiveFilters ? "No reports match your filters" : `No ${activeTab.label.toLowerCase()} yet`}
+            emptyMessage={hasActiveFilters ? "No reports match your filters" : `No ${statusTab === "success" ? "successful" : "failed"} ${activeTab.label.toLowerCase()} yet`}
             pageSize={10}
           />
         </>
