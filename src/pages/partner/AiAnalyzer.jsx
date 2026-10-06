@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import useInstagramModal from "../../Components/shared/useInstagramModal";
 import useAuth from "../../context/useAuth";
 import {
   Box,
@@ -113,6 +114,28 @@ const secondaryBtnSx = {
 
 const AiAnalyzer = () => {
   const { refreshWallet } = useAuth();
+  
+  const popupAnalysisIdRef = useRef(null);
+
+  const resetAnalyzer = () => {
+    // Guard against races: if the current analysisId doesn't match the one the popup was opened for,
+    // don't wipe it (e.g. user dragged a new file). Also makes closing twice harmless.
+    if (!analysisId || analysisId !== popupAnalysisIdRef.current) return;
+
+    resetForNewFile(null);
+    setIsAnalyzing(false);
+    setIsUploading(false);
+    setIsDownloading(false);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    
+    refreshWallet();
+    popupAnalysisIdRef.current = null;
+  };
+
+  const { showInstagramModal, instagramModal } = useInstagramModal({ onClose: resetAnalyzer });
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
@@ -314,6 +337,10 @@ const AiAnalyzer = () => {
       window.URL.revokeObjectURL(url);
 
       setIsDownloading(false);
+      
+      // Trigger Instagram follow popup after successful download
+      popupAnalysisIdRef.current = analysisId;
+      showInstagramModal();
     } catch (err) {
       console.error("[AiAnalyzer] Download failed:", err);
       setDownloadError("Failed to download analysis report.");
@@ -833,6 +860,8 @@ const AiAnalyzer = () => {
           </CardContent>
         </Card>
       </Box>
+      {/* Render the Instagram Follow Modal */}
+      {instagramModal}
     </Box>
   );
 };
