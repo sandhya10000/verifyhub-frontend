@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, CircularProgress, Alert,
-  Button,
+  Button, Tabs, Tab, Chip, Tooltip,
 } from "@mui/material";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { creditAPI } from "../../services/authService";
@@ -13,14 +13,6 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").repla
   /\/api\/?$/,
   "",
 );
-
-const fmtDate = (v) => {
-  if (!v) return "—";
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-  });
-};
 
 const fmtDateTime = (v) => {
   if (!v) return "—";
@@ -38,6 +30,9 @@ const RcReports = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  // Successful / Failed tabs (admin bureau module pattern). Pending rows
+  // appear in neither tab.
+  const [statusTab, setStatusTab] = useState("Success");
   const limit = 20;
 
   useEffect(() => {
@@ -53,7 +48,7 @@ const RcReports = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await creditAPI.getMyRcVerifications({ page, limit, search: debouncedSearch });
+        const data = await creditAPI.getMyRcVerifications({ page, limit, search: debouncedSearch, status: statusTab });
         if (data?.success) {
           setRows(data.data || []);
           setHasNextPage(page < (data.pages || 1));
@@ -68,7 +63,7 @@ const RcReports = () => {
       }
     };
     load();
-  }, [page, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, debouncedSearch, statusTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reportFileUrl = (r) => {
     const p = r?.reportUrl || r?.localPath || null;
@@ -97,50 +92,38 @@ const RcReports = () => {
     }
   };
 
+  // Reason column for the Failed tab (admin bureau failed-tab pattern).
+  const reasonColumn = {
+    header: "Reason", field: "reason", minWidth: 220,
+    render: (r) => {
+      const reason = r.failureReason || "Verification failed";
+      return (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", maxWidth: 340 }}>
+          {r.failureCategory && <Chip label={r.failureCategory} size="small" color="error" variant="outlined" />}
+          <Tooltip title={reason}>
+            <Typography sx={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: r.failureCategory ? 200 : 300 }}>
+              {reason}
+            </Typography>
+          </Tooltip>
+        </Box>
+      );
+    },
+  };
+
+  // Compact 4-column layout (admin has 5 with Partner ID — meaningless here):
+  // Date | Reg No | Status | Report. (Reason appended before Report on Failed tab.)
   const columns = [
+    {
+      header: "Date", field: "createdAt", nowrap: true, minWidth: 150,
+      render: (r) => <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{fmtDateTime(r.createdAt)}</Typography>,
+    },
     {
       header: "Reg No", field: "vehicleNumber", nowrap: true, minWidth: 130,
       render: (r) => <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.82rem", whiteSpace: "nowrap" }}>{r.vehicleNumber}</Typography>,
     },
     {
-      header: "Owner", field: "ownerName", minWidth: 160,
-      render: (r) => (
-        <Typography title={r.ownerName || "—"} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.ownerName || "—"}
-        </Typography>
-      ),
-    },
-    {
       header: "Status", field: "status", nowrap: true, minWidth: 110,
       render: (r) => <StatusBadge status={r.status === "Success" ? "Success" : r.status === "Failed" ? "Failed" : "Pending"} />,
-    },
-    {
-      header: "Model", field: "model", minWidth: 150,
-      render: (r) => (
-        <Typography title={r.rcData?.model || "—"} sx={{ fontSize: "0.8rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.rcData?.model || "—"}
-        </Typography>
-      ),
-    },
-    {
-      header: "Insurance Upto", field: "insurance", nowrap: true, minWidth: 120,
-      render: (r) => <Typography sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{fmtDate(r.rcData?.vehicle_insurance_upto)}</Typography>,
-    },
-    {
-      header: "Tax Upto", field: "tax", nowrap: true, minWidth: 110,
-      render: (r) => <Typography sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{fmtDate(r.rcData?.vehicle_tax_upto)}</Typography>,
-    },
-    {
-      header: "Permit Upto", field: "permit", nowrap: true, minWidth: 110,
-      render: (r) => <Typography sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{fmtDate(r.rcData?.permit_valid_upto)}</Typography>,
-    },
-    {
-      header: "RC Expiry", field: "expiry", nowrap: true, minWidth: 110,
-      render: (r) => <Typography sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{fmtDate(r.rcData?.rc_expiry_date)}</Typography>,
-    },
-    {
-      header: "Verified On", field: "createdAt", nowrap: true, minWidth: 150,
-      render: (r) => <Typography sx={{ fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>{fmtDateTime(r.createdAt)}</Typography>,
     },
     {
       header: "Report", field: "pdf", align: "right", width: 80,
@@ -165,6 +148,11 @@ const RcReports = () => {
     },
   ];
 
+  // Reason sits before the Report column on the Failed tab only.
+  const tableColumns = statusTab === "Failed"
+    ? [...columns.slice(0, -1), reasonColumn, columns[columns.length - 1]]
+    : columns;
+
   return (
     <Box sx={{ maxWidth: 1280, mx: "auto" }}>
       <Box sx={{ mb: 3 }}>
@@ -173,6 +161,15 @@ const RcReports = () => {
           Every vehicle RC you have verified, with validity details. Files are retained for 90 days.
         </Typography>
       </Box>
+
+      <Tabs
+        value={statusTab}
+        onChange={(_, v) => { setStatusTab(v); setPage(1); }}
+        sx={{ mb: 2, minHeight: 36, "& .MuiTab-root": { minHeight: 36, textTransform: "none", fontWeight: 700 } }}
+      >
+        <Tab label="Successful" value="Success" />
+        <Tab label="Failed" value="Failed" />
+      </Tabs>
 
       <FilterBar
         search={{
@@ -191,10 +188,10 @@ const RcReports = () => {
       ) : (
         <>
           <DataTable
-            title="RC Verifications"
-            columns={columns}
+            title={`RC Verifications — ${statusTab === "Success" ? "Successful" : "Failed"} (${rows.length})`}
+            columns={tableColumns}
             data={rows}
-            emptyMessage="No RC verifications yet."
+            emptyMessage={statusTab === "Success" ? "No successful RC verifications yet." : "No failed RC verifications."}
             pageSize={limit}
           />
           <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>

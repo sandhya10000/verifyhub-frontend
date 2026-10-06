@@ -5,7 +5,6 @@ import {
   Button,
   Grid,
   Paper,
-  Chip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
@@ -28,7 +27,12 @@ const FALLBACK_GST = { base: 10, gstRate: 0, total: 10 };
 
 const Plans = () => {
   const navigate = useNavigate();
-  const { user, refreshWallet } = useAuth();
+  // Pricing is hidden from first-time partners until their first top-up —
+  // direct visits bounce to Add Funds (funded partners always pass).
+  const { user, refreshWallet, hasToppedUp, isLoading } = useAuth();
+  useEffect(() => {
+    if (!isLoading && hasToppedUp === false) navigate('/partner/add-funds', { replace: true });
+  }, [isLoading, hasToppedUp, navigate]);
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [ai, setAi] = useState(FALLBACK_AI);
   const [rc, setRc] = useState(FALLBACK_RC);
@@ -126,14 +130,11 @@ const Plans = () => {
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Paper elevation={0} sx={{ p: 2.5, borderRadius: 1, border: '1px solid #E8EEF5', bgcolor: '#fff', height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>AI analysis</Typography>
-              <Chip label="+ GST" size="small" sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontSize: '0.62rem', fontWeight: 700, height: 22 }} />
-            </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>AI analysis</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Credit report analyzer</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>{inr0(ai.total)}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              Base {inr0(ai.base)} + {ai.gstRate}% GST · fail {inr0(aiFail)} flat
+              per analysis · fail {inr0(aiFail)} flat
             </Typography>
           </Paper>
         </Grid>

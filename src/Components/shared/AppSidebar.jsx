@@ -84,10 +84,12 @@ const AppSidebar = ({
           {!collapsed && (
             <ListItemText
               primary={item.text}
-              slotProps={{ primary: {
-                fontSize: '0.85rem', fontWeight: active ? 600 : 500,
-                style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-              } }}
+              slotProps={{
+                primary: {
+                  fontSize: '0.85rem', fontWeight: active ? 600 : 500,
+                  style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+                }
+              }}
             />
           )}
           {!collapsed && item.badge != null && Number(item.badge) > 0 && (
@@ -130,9 +132,8 @@ const AppSidebar = ({
       {/* Logo row */}
       <Box sx={{ px: collapsed ? 1 : 2, pt: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
         {!collapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center',justifyContent: 'center', gap: 1, flexGrow: 1, minWidth: 0 }}>
             <Logo height={30} />
-            <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>VerifyHub</Typography>
           </Box>
         )}
         {collapsed && (
@@ -148,8 +149,10 @@ const AppSidebar = ({
       </Box>
 
       {/* Nav groups */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', px: collapsed ? 1 : 1.5, py: 1,
-        '&::-webkit-scrollbar': { width: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.15)', borderRadius: 1 } }}>
+      <Box sx={{
+        flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', px: collapsed ? 1 : 1.5, py: 1,
+        '&::-webkit-scrollbar': { width: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.15)', borderRadius: 1 }
+      }}>
         {navGroups.map((group, gi) => (
           <React.Fragment key={gi}>
             {group.label && !collapsed && (

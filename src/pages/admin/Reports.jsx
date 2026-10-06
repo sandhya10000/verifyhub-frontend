@@ -111,9 +111,10 @@ const AdminReports = () => {
       let creditMapped = [];
 
       if (creditRes.data.success && Array.isArray(creditRes.data.data)) {
+        // All bureaus render, including CIBIL. (A stale "CIBIL duplicates AI"
+        // filter was removed — AI rows never appear on this tab by design.)
+        // TODO(multi-plan-restore): no action needed here.
         creditMapped = creditRes.data.data
-          // safety net: CIBIL rows were duplicates of AI analyses
-          .filter((r) => (r.bureau || "").toUpperCase() !== "CIBIL")
           .map((r) => ({
             id: r._id,
             date: formatDate(r.createdAt),

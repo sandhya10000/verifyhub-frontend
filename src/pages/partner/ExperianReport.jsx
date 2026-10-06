@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import useAuth from "../../context/useAuth";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import { creditAPI } from "../../services/authService";
 
@@ -1271,12 +1272,14 @@ const ExperianReport = () => {
                   <FieldLabel required>State</FieldLabel>
                   <TextField
                     fullWidth
+                    select
                     name="stateName"
                     value={formData.stateName}
                     onChange={handleChange}
-                    placeholder="Enter state"
                     sx={fieldSx}
-                  />
+                  >
+                    {stateMenuItems}
+                  </TextField>
                 </Grid>
 
                 {/* CITY */}

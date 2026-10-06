@@ -6,6 +6,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Has the partner ever completed a wallet credit (top-up or admin-added
+  // funds)? Drives the first-time sidebar (Add Funds) vs funded sidebar
+  // (Pricing) swap. null = not yet loaded from the server.
+  const [hasToppedUp, setHasToppedUp] = useState(null);
 
   useEffect(() => {
     // Rehydrate on app load
@@ -51,6 +55,11 @@ export const AuthProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = await res.json();
+      if (data?.success) {
+        if (data.data?.lastRecharge !== undefined) {
+          setHasToppedUp(!!data.data.lastRecharge);
+        }
+      }
       if (data?.success && data.data?.walletBalance != null) {
         setUser((prev) => {
           if (!prev) return prev;
@@ -70,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshWallet }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshWallet, hasToppedUp, setHasToppedUp }}>
       {children}
     </AuthContext.Provider>
   );
