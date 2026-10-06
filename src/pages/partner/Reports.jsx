@@ -8,6 +8,7 @@ import TypePill from "../../Components/shared/TypePill";
 import FilterBar from "../../Components/shared/FilterBar";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
+import useInstagramModal from "../../Components/shared/useInstagramModal";
 
 const REPORT_TABS = [
   { key: "credit-bureau", label: "Credit Bureau Reports" },
@@ -64,6 +65,8 @@ const Reports = () => {
     : "credit-bureau";
   const activeTab = REPORT_TABS.find((t) => t.key === activeKey);
   const isAiTab = activeKey === "ai";
+
+  const { showInstagramModal, instagramModal } = useInstagramModal();
 
   // ============================================================
   // STATES
@@ -639,6 +642,9 @@ const Reports = () => {
         setTimeout(() => {
           window.URL.revokeObjectURL(url);
         }, 1000);
+        
+        // Trigger Instagram follow popup after successful AI report download
+        showInstagramModal();
       }
     } catch (err) {
       console.error("[REPORT HTML] Download failed:", err);
@@ -856,6 +862,9 @@ const Reports = () => {
           />
         </>
       )}
+      
+      {/* Render the Instagram Follow Modal */}
+      {instagramModal}
     </Box>
   );
 };
