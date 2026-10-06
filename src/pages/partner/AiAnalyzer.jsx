@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import useAuth from "../../context/useAuth";
-import CustomReportCard from "../../features/customReport/CustomReportCard";
 import {
   Box,
   Typography,
@@ -834,9 +833,6 @@ const AiAnalyzer = () => {
           </CardContent>
         </Card>
       </Box>
-
-      {/* Custom Report Request Feature */}
-      <CustomReportCard />
     </Box>
   );
 };

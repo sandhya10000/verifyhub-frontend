@@ -99,7 +99,7 @@ const CustomReportCard = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Sparkles size={24} color={tokens.colors.primary} />
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: tokens.colors.text.primary }}>
-              Custom Branded Report
+              AI Custom Branded Report
             </Typography>
           </Box>
 
