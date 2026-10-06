@@ -73,6 +73,26 @@ const Support = () => {
 
   useEffect(() => { fetchMyTickets(); }, []);
 
+  // Mark admin replies as seen the moment the partner opens this page.
+  // This stamps supportLastSeenAt on the backend so the sidebar badge clears.
+  useEffect(() => {
+    const markSeen = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${API_BASE_URL}/tickets/mark-seen`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        // Immediately tell the sidebar to refresh its count (badge → 0)
+        window.dispatchEvent(new Event('ticketUpdated'));
+      } catch {
+        // silent — badge clearing is non-critical
+      }
+    };
+    markSeen();
+  }, []);
+
   // Poll open thread every 15s
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {

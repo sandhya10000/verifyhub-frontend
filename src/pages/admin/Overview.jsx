@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
-import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, PlanMixList, timeAgo } from '../../Components/admin/AdminWidgets';
+import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, timeAgo } from '../../Components/admin/AdminWidgets';
 
 const API = (path) => {
   const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -28,8 +28,6 @@ const arrowDelta = (pct) => {
   return `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%`;
 };
 
-const TIER_LABEL = { startup: 'Start-Up', starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
-
 const AdminOverview = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -39,7 +37,6 @@ const AdminOverview = () => {
   const [err, setErr] = useState(false);
   const [range, setRange] = useState(14);
   const [money, setMoney] = useState([]);
-  const [plans, setPlans] = useState([]);
   const [bureau, setBureau] = useState([]);
   const [top, setTop] = useState([]);
   const [activity, setActivity] = useState({ pulls: [], recentTickets: [], lowWallets: [] });
@@ -52,17 +49,15 @@ const AdminOverview = () => {
       setErr(false);
       const h = authHeaders();
       const get = (p) => fetch(API(p), { headers: h }).then((r) => r.json()).catch(() => ({ success: false }));
-      const [s, m, pl, b, tp, ra] = await Promise.all([
+      const [s, m, b, tp, ra] = await Promise.all([
         get('/admin/overview/summary'),
         get(`/admin/overview/money-timeseries?days=${range}`),
-        get('/admin/overview/plan-distribution'),
         get('/admin/overview/bureau-split'),
         get('/admin/overview/top-partners?limit=5'),
         get('/admin/overview/recent-activity'),
       ]);
       if (s.success) setSummary(s.data); else setErr(true);
       if (m.success) setMoney(m.data);
-      if (pl.success) setPlans(pl.data);
       if (b.success) setBureau(b.data);
       if (tp.success) setTop(tp.data);
       if (ra.success) setActivity(ra.data);
@@ -93,39 +88,41 @@ const AdminOverview = () => {
   const s = summary || {};
   const openTotal = (s.openTickets ?? 0) + (s.inProgressTickets ?? 0);
 
-  const kpiRow1 = [
+  // Single KPI strip: Reports · Collected · Consumed · Partners · Tickets (5 across)
+  const kpiRow = [
     {
       icon: <FileText size={18} />, iconBg: '#EFF6FF', iconColor: '#3B82F6',
       title: 'Reports', value: err ? '—' : `${s.reportsToday ?? 0} / ${s.reportsThisMonth ?? 0}`,
       delta: arrowDelta(s.todayDeltaPct), deltaTone: (s.todayDeltaPct ?? 0) >= 0 ? 'up' : 'down',
       subtitle: `Today / This month · ${s.failedThisMonth ?? 0} failed`,
+      to: '/admin/reports',
     },
     {
       icon: <TrendingUp size={18} />, iconBg: '#ECFDF5', iconColor: '#10B981',
       title: 'Collected This Month', value: err ? '—' : inrShort(s.collectedMonth), valueColor: '#059669',
       delta: arrowDelta(s.collectedDeltaPct), deltaTone: (s.collectedDeltaPct ?? 0) >= 0 ? 'up' : 'down',
       subtitle: 'Successful recharges',
+      to: '/admin/transactions',
     },
     {
       icon: <TrendingDown size={18} />, iconBg: '#F5F3FF', iconColor: '#8B5CF6',
       title: 'Consumed This Month', value: err ? '—' : inrShort(s.consumedMonth),
       delta: arrowDelta(s.consumedDeltaPct), deltaTone: (s.consumedDeltaPct ?? 0) >= 0 ? 'down' : 'up',
       subtitle: `Incl. ${inrShort(s.failFeeMonth)} fail fees`,
+      to: '/admin/transactions',
     },
-  ];
-
-  const kpiRow2 = [
     {
       icon: <Users size={18} />, iconBg: '#F5F3FF', iconColor: '#8B5CF6',
       title: 'Partners', value: err ? '—' : `${s.newPartnersToday ?? 0} / ${s.totalPartners ?? 0}`,
       delta: `+${s.newPartnersWeek ?? 0} this week`, deltaTone: 'up',
       subtitle: 'Added today / Total till now',
+      to: '/admin/partners',
     },
     {
       icon: <Ticket size={18} />, iconBg: '#FFF7ED', iconColor: '#F59E0B',
       title: 'Open Tickets', value: err ? '—' : String(openTotal),
       subtitle: `${s.openTickets ?? 0} open · ${s.inProgressTickets ?? 0} in progress`,
-      action: <Button size="small" variant="text" sx={{ fontSize: '0.68rem', minWidth: 0 }} onClick={() => navigate('/admin/support')}>Open →</Button>,
+      to: '/admin/support',
     },
   ];
 
@@ -151,10 +148,6 @@ const AdminOverview = () => {
       ),
     },
     {
-      header: 'Tier', field: 'tier', nowrap: true, minWidth: 80,
-      render: (r) => <Typography variant="caption" sx={{ fontWeight: 700, color: '#8B5CF6', whiteSpace: 'nowrap' }}>{r.tier ? (TIER_LABEL[r.tier] || r.tier) : '—'}</Typography>,
-    },
-    {
       header: 'Bureau', field: 'bureau', nowrap: true, minWidth: 90,
       render: (r) => <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.bureau}</Typography>,
     },
@@ -175,6 +168,7 @@ const AdminOverview = () => {
 
   const lowWallets = activity.lowWallets || [];
   const recentTickets = activity.recentTickets || [];
+  const failedPulls = activity.failedPulls || [];
 
   return (
     <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
@@ -204,23 +198,22 @@ const AdminOverview = () => {
       </Box>
 
       {/* KPI rows */}
-      {[kpiRow1, kpiRow2].map((row, ri) => (
-        <Grid container spacing={2} sx={{ mb: 2 }} key={ri}>
-          {loading ? Array.from({ length: row.length }).map((_, i) => (
-            <Grid key={i} size={{ xs: 12, sm: 6, md: 12 / row.length }}>
-              <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
-            </Grid>
-          )) : row.map((k) => (
-            <Grid key={k.title} size={{ xs: 12, sm: 6, md: 12 / row.length }}>
-              <KpiCard {...k} subtitle={err ? 'Could not load' : k.subtitle} />
-            </Grid>
-          ))}
-        </Grid>
-      ))}
+      {/* KPI strip — all widgets in one row (5 across on desktop) */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {loading ? Array.from({ length: 5 }).map((_, i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
+            <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
+          </Grid>
+        )) : kpiRow.map((k) => (
+          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
+            <KpiCard {...k} subtitle={err ? 'Could not load' : k.subtitle} onClick={k.to ? () => navigate(k.to) : undefined} />
+          </Grid>
+        ))}
+      </Grid>
 
-      {/* Money hero + plan mix */}
+      {/* Money hero (full width) */}
       <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12 }}>
           <ChartCard title="Collected vs consumed" subtitle={`Last ${range} days · the profit pulse`} height={220}>
             {loading ? <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} /> : (
               money.some((d) => (d.collected || 0) + (d.consumed || 0) > 0)
@@ -235,20 +228,12 @@ const AdminOverview = () => {
             )}
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <ChartCard
-            title="Plan mix" subtitle="Partners · collected per tier" height={220}
-            action={<Button size="small" variant="text" sx={{ fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/pricing')}>Pricing →</Button>}
-          >
-            {loading ? <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} /> : <PlanMixList data={plans} />}
-          </ChartCard>
-        </Grid>
       </Grid>
 
       {/* Bureau + top partners */}
       <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
         <Grid size={{ xs: 12, md: 6 }}>
-          <ChartCard title="Bureau split" subtitle="Successful pulls · all time" height={200}>
+          <ChartCard title="Bureau split" subtitle="Pulls + verifications · all time" height={200}>
             {loading ? <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} /> : <BureauDonutPanel data={bureau} />}
           </ChartCard>
         </Grid>
@@ -287,7 +272,7 @@ const AdminOverview = () => {
                     <ListItem sx={{ px: 0, py: 0.6 }}>
                       <ListItemText
                         primary={<Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }} noWrap>{w.name || w.email}</Typography>}
-                        secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{w.activePlan ? `${TIER_LABEL[w.activePlan] || w.activePlan} · ` : ''}{w.email || ''}</Typography>}
+                        secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{w.email || ''}</Typography>}
                       />
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{inr(w.walletBalance)}</Typography>
                     </ListItem>
@@ -320,6 +305,31 @@ const AdminOverview = () => {
                 <b>{s.failedThisMonth ?? 0}</b> this month · <b>{inrShort(s.failFeeMonth)}</b> fail-fee earned
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>Success rate {s.successRate ?? 100}%</Typography>
+              <Divider sx={{ my: 1 }} />
+              {failedPulls.length === 0 ? (
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>No failed pulls lately ✓</Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {failedPulls.map((f, i) => (
+                    <Box key={String(f.id) || i}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.74rem', display: 'block' }} noWrap title={`${f.customer} · ${f.partner}`}>
+                            {f.customer}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.68rem', display: 'block' }} noWrap>
+                            {f.bureau} · {f.partner}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.74rem', flexShrink: 0 }}>
+                          {f.charge != null ? `₹${Number(f.charge).toLocaleString('en-IN')}` : '—'}
+                        </Typography>
+                      </Box>
+                      {i < failedPulls.length - 1 && <Divider />}
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Paper>
           </Box>
         </Grid>

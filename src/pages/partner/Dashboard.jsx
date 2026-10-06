@@ -7,13 +7,13 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format } from "date-fns";
 import {
-  RefreshCw, Download, FileText, BarChart3, Wallet, IndianRupee,
+  RefreshCw, Download, FileText, Wallet,
     Percent, AlertTriangle, Ticket, Bot, Building2, Plus, CircleDot,
 } from "lucide-react";
 import useAuth from "../../context/useAuth";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
-import { KpiCard, ChartCard, TrendChart, ScoreBars, timeAgo } from "../../Components/partner/PartnerWidgets";
+import { KpiCard, ChartCard, TrendChart, timeAgo } from "../../Components/partner/PartnerWidgets";
 
 const API = (path) => {
   const base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -60,7 +60,6 @@ const PartnerDashboard = () => {
   const [range, setRange] = useState(14);
   const [metric, setMetric] = useState("reports"); // reports | spend
   const [trend, setTrend] = useState([]);
-  const [scores, setScores] = useState([]);
   const [recent, setRecent] = useState({ pulls: [], recentTxns: [], recentTickets: [] });
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
@@ -70,10 +69,9 @@ const PartnerDashboard = () => {
       setRefreshing(true);
       setErr(false);
       const h = authHeaders();
-      const [sm, t, sc, rc] = await Promise.all([
+      const [sm, t, rc] = await Promise.all([
         axios.get(API("/partner/overview/summary"), { headers: h }).then((r) => r.data),
         axios.get(API(`/partner/overview/timeseries?days=${range}`), { headers: h }).then((r) => r.data),
-        axios.get(API("/partner/overview/score-mix"), { headers: h }).then((r) => r.data),
         axios.get(API("/partner/overview/recent"), { headers: h }).then((r) => r.data),
       ]);
       if (sm.success) {
@@ -84,7 +82,6 @@ const PartnerDashboard = () => {
         }
       } else setErr(true);
       if (t.success) setTrend(t.data);
-      if (sc.success) setScores(sc.data);
       if (rc.success) setRecent(rc.data);
       setUpdatedAt(new Date());
     } catch (e) {
@@ -120,58 +117,42 @@ const PartnerDashboard = () => {
   };
 
   const s = summary || {};
-  const scoreTotal = scores.reduce((sum, b) => sum + (b.count || 0), 0);
   const openTotal = (s.openTickets ?? 0) + (s.inProgressTickets ?? 0);
   const lowWallet = (s.walletBalance ?? 0) < LOW_BALANCE_AT;
 
-  const kpiRow1 = [
+  // Single KPI strip: Reports · Wallet · Success · Failed · Tickets (5 across)
+  const kpiRow = [
     {
       icon: <FileText size={18} />, iconBg: "#EFF6FF", iconColor: "#3B82F6",
-      title: "Reports Today", value: err ? "—" : String(s.reportsToday ?? 0),
+      title: "Reports", value: err ? "—" : `${s.reportsToday ?? 0} / ${s.reportsThisMonth ?? 0}`,
       delta: arrowDelta(s.todayDeltaPct), deltaTone: (s.todayDeltaPct ?? 0) >= 0 ? "up" : "down",
-      subtitle: `${s.reportsToday ?? 0} pulled today`,
-    },
-    {
-      icon: <BarChart3 size={18} />, iconBg: "#ECFDF5", iconColor: "#10B981",
-      title: "Reports This Month", value: err ? "—" : String(s.reportsThisMonth ?? 0),
-      delta: arrowDelta(s.monthDeltaPct), deltaTone: (s.monthDeltaPct ?? 0) >= 0 ? "up" : "down",
-      subtitle: `${s.failedThisMonth ?? 0} failed · ${s.successRate ?? 100}% success`,
+      subtitle: `Today / This month · ${s.failedThisMonth ?? 0} failed`,
+      to: "/partner/account/reports",
     },
     {
       icon: <Wallet size={18} />, iconBg: "#F5F3FF", iconColor: "#8B5CF6",
       title: "Wallet Balance", value: err ? "—" : inr(s.walletBalance), valueColor: "#2563EB",
       subtitle: lowWallet ? `Below ₹${LOW_BALANCE_AT} — top up soon` : "Available for pulls",
-    
-    },
-    {
-      icon: <IndianRupee size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
-      title: "Spent This Month", value: err ? "—" : inrShort(s.spentThisMonth),
-      subtitle: s.lastRecharge
-        ? `Last top-up ${inrShort(s.lastRecharge.amount)} · ${timeAgo(s.lastRecharge.createdAt)}`
-        : "No top-up yet",
-    },
-  ];
+      to: "/partner/add-funds",
 
-  const kpiRow2 = [
+    },
     {
       icon: <Percent size={18} />, iconBg: "#ECFDF5", iconColor: "#10B981",
       title: "Success Rate", value: err ? "—" : `${s.successRate ?? 100}%`,
       subtitle: `${s.failedThisMonth ?? 0} failures · billed same as success`,
+      to: "/partner/account/reports",
     },
     {
       icon: <AlertTriangle size={18} />, iconBg: "#FEF2F2", iconColor: "#EF4444",
       title: "Failed Pulls", value: err ? "—" : String(s.failedThisMonth ?? 0),
       subtitle: "Failed pulls billed same as success",
+      to: "/partner/account/reports",
     },
     {
       icon: <Ticket size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
       title: "My Tickets", value: err ? "—" : String(openTotal),
       subtitle: `${s.openTickets ?? 0} open · ${s.inProgressTickets ?? 0} in progress`,
-      action: (
-        <Button size="small" variant="text" sx={{ fontSize: "0.68rem", minWidth: 0 }} onClick={() => navigate("/partner/account/support")}>
-          New →
-        </Button>
-      ),
+      to: "/partner/account/support",
     },
   ];
 
@@ -247,28 +228,15 @@ const PartnerDashboard = () => {
         </Box>
       </Box>
 
-      {/* KPI row 1 */}
+      {/* KPI strip — all widgets in one row (5 across on desktop) */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        {loading ? Array.from({ length: 4 }).map((_, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+        {loading ? Array.from({ length: 5 }).map((_, i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
             <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
           </Grid>
-        )) : kpiRow1.map((k) => (
-          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 3 }}>
-            <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} />
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* KPI row 2 */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        {loading ? Array.from({ length: 3 }).map((_, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
-            <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
-          </Grid>
-        )) : kpiRow2.map((k) => (
-          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 4 }}>
-            <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} />
+        )) : kpiRow.map((k) => (
+          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
+            <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} onClick={k.to ? () => navigate(k.to) : undefined} />
           </Grid>
         ))}
       </Grid>
@@ -298,9 +266,9 @@ const PartnerDashboard = () => {
         ))}
       </Grid>
 
-      {/* Trend + score mix */}
+      {/* Trend (full width) */}
       <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12 }}>
           <ChartCard
             title={metric === "reports" ? "My report volume" : "My spend"}
             subtitle={metric === "reports" ? `Last ${range} days · daily pulls` : `Last ${range} days · report charges`}
@@ -321,15 +289,6 @@ const PartnerDashboard = () => {
                 color={metric === "reports" ? "#4F46E5" : "#F59E0B"} money={metric === "spend"}
               />
             )}
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <ChartCard
-            title="My score mix"
-            subtitle={scoreTotal > 0 ? `${scoreTotal} scored reports` : "Credit health bands"}
-            height={210}
-          >
-            {loading ? <Skeleton variant="rounded" height={210} sx={{ borderRadius: 2 }} /> : <ScoreBars data={scores} />}
           </ChartCard>
         </Grid>
       </Grid>

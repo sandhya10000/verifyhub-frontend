@@ -59,12 +59,40 @@ const PartnerLayout = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [creditReportsOpen, setCreditReportsOpen] = useState(false);
+  const [unreadReplies, setUnreadReplies] = useState(0);
   const currentDrawerWidth = DRAWER_WIDTH;
 
   useEffect(() => {
     const isOnCreditRoute = location.pathname.startsWith('/partner/credit-reports');
     setCreditReportsOpen(isOnCreditRoute);
   }, [location.pathname]);
+
+  // Unseen admin replies → badge on the Support nav item (same pattern as
+  // the admin sidebar: poll + refresh on 'ticketUpdated' events).
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_BASE_URL}/tickets/unread-count`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) setUnreadReplies(data.count);
+      } catch (error) {
+        console.error('Failed to fetch unread replies:', error);
+      }
+    };
+
+    fetchUnread();
+    const pollInterval = setInterval(fetchUnread, 30_000);
+    window.addEventListener('ticketUpdated', fetchUnread);
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('ticketUpdated', fetchUnread);
+    };
+  }, []);
 
   const { user, logout, refreshWallet, hasToppedUp } = useAuth();
 
@@ -184,7 +212,7 @@ const PartnerLayout = () => {
     { text: "Activity", icon: <Activity size={18} />, path: "/partner/account/activity" },
     { text: "Transaction History", icon: <Clock size={18} />, path: "/partner/account/transactions" },
     { text: "Profile", icon: <User size={18} />, path: "/partner/account/profile" },
-    { text: "Support", icon: <Headphones size={18} />, path: "/partner/account/support" },
+    { text: "Support", icon: <Headphones size={18} />, path: "/partner/account/support", badge: unreadReplies },
   ];
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
