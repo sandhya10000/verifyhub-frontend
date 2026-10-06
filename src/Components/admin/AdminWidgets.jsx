@@ -7,12 +7,19 @@ import {
 
 const TONE_COLOR = { up: '#10B981', down: '#EF4444', info: '#3B82F6', muted: '#64748B' };
 
-// Compact KPI card: tinted icon tile + label + big value + delta/subtitle + optional action
+// Compact KPI card: tinted icon tile + label + big value + delta/subtitle + optional action.
+// Pass onClick to make the whole card a navigation target (pointer + hover lift).
 export const KpiCard = ({
   icon, iconBg = '#EFF6FF', iconColor = '#3B82F6',
-  title, value, valueColor, delta, deltaTone = 'up', subtitle, action,
+  title, value, valueColor, delta, deltaTone = 'up', subtitle, action, onClick,
 }) => (
-  <Paper sx={{ borderRadius: 1, border: '1px solid', borderColor: '#E8EEF5', boxShadow: '0 1px 3px rgba(15,30,51,0.08)', p: 2, height: '100%', bgcolor: 'background.paper' }}>
+  <Paper
+    onClick={onClick}
+    sx={{
+      borderRadius: 1, border: '1px solid', borderColor: '#E8EEF5', boxShadow: '0 1px 3px rgba(15,30,51,0.08)', p: 2, height: '100%', bgcolor: 'background.paper',
+      ...(onClick ? { cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.15s', '&:hover': { boxShadow: '0 4px 14px rgba(15,30,51,0.12)', transform: 'translateY(-1px)' } } : {}),
+    }}
+  >
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
       <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
@@ -84,13 +91,14 @@ const COLORS = ['#4F46E5', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4'
 export const BUREAU_COLORS = {
   CRIF: '#8B5CF6', EXPERIAN: '#F59E0B', CIBIL: '#10B981', EQUIFAX: '#06B6D4',
   AI: '#3B82F6', 'AI Analysis': '#3B82F6',
+  'RC Verification': '#EC4899', 'GST Verification': '#14B8A6',
 };
 export const bureauColor = (name, i = 0) =>
   BUREAU_COLORS[String(name || '').toUpperCase()] || BUREAU_COLORS[name] || COLORS[i % COLORS.length];
 
 // Donut with centre total + custom side legend (dot · name · count)
 export const BureauDonutPanel = ({ data }) => {
-  const ORDER = ['AI Analysis', 'EXPERIAN', 'CRIF', 'CIBIL', 'EQUIFAX'];
+  const ORDER = ['AI Analysis', 'EXPERIAN', 'CRIF', 'CIBIL', 'EQUIFAX', 'RC Verification', 'GST Verification'];
   const counts = Object.fromEntries((data || []).map((d) => [d.name, d.value || 0]));
   const rows = [
     ...ORDER.map((name) => ({ name, value: counts[name] || 0 })),
@@ -130,25 +138,9 @@ export const BureauDonutPanel = ({ data }) => {
   );
 };
 
-// Slim score bars with value labels
-export const ScoreBars = ({ data }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <BarChart data={data} margin={{ top: 14, right: 8, left: 0, bottom: 0 }} barCategoryGap="38%">
-      <CartesianGrid stroke="#F1F5F9" vertical={false} />
-      <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
-      <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} width={34} />
-      <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#F8FAFC' }} />
-      <Bar dataKey="count" barSize={16} radius={[5, 5, 0, 0]} name="Reports">
-        {data.map((_, i) => <Cell key={i} fill={['#EF4444', '#F59E0B', '#10B981'][i] || COLORS[i]} fillOpacity={0.9} />)}
-        <LabelList dataKey="count" position="top" style={{ fontSize: 11, fontWeight: 700, fill: '#475569' }} />
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-);
-
-// Ranked partner rows: rank · name · tier chip · progress · count · spend
+// Relative timestamps: "2 mins ago", "3 hours ago", "1 day ago"
+// Ranked partner rows: rank · name · progress · count · spend
 const RANK_COLORS = ['#8B5CF6', '#60A5FA', '#34D399', '#FBBF24', '#F472B6'];
-const TIER_LABEL = { startup: 'Start-Up', starter: 'Starter', growth: 'Growth', pro: 'Pro', enterprise: 'Enterprise' };
 
 export const TopPartnersList = ({ data }) => {
   const max = Math.max(1, ...data.map((d) => d.reports || 0));
@@ -163,11 +155,6 @@ export const TopPartnersList = ({ data }) => {
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.name}>
               {d.name}
             </Typography>
-            {d.tier && (
-              <Typography variant="caption" sx={{ color: '#8B5CF6', fontSize: '0.64rem', fontWeight: 700 }}>
-                {TIER_LABEL[d.tier] || d.tier}
-              </Typography>
-            )}
           </Box>
           <Box sx={{ flex: 1, height: 10, borderRadius: 5, bgcolor: '#F1F5F9', overflow: 'hidden' }}>
             <Box sx={{ height: '100%', width: `${Math.max(4, Math.round(((d.reports || 0) / max) * 100))}%`, borderRadius: 5, bgcolor: RANK_COLORS[i % RANK_COLORS.length] }} />
@@ -182,37 +169,6 @@ export const TopPartnersList = ({ data }) => {
       ))}
       {data.length === 0 && (
         <Typography variant="caption" sx={{ color: 'text.disabled', textAlign: 'center' }}>No partners yet</Typography>
-      )}
-    </Box>
-  );
-};
-
-// Plan-mix rows: tier dot · name · partners · collected · float
-const TIER_COLORS = { startup: '#06B6D4', starter: '#94A3B8', growth: '#60A5FA', pro: '#8B5CF6', enterprise: '#F59E0B' };
-
-export const PlanMixList = ({ data }) => {
-  const max = Math.max(1, ...data.map((d) => d.partners || 0));
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, justifyContent: 'center', height: '100%' }}>
-      {data.map((d) => (
-        <Box key={d.tier} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: TIER_COLORS[d.tier] || '#94A3B8', flexShrink: 0 }} />
-          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem', width: 82, flexShrink: 0, textTransform: 'capitalize' }}>
-            {d.tier}
-          </Typography>
-          <Box sx={{ flex: 1, height: 10, borderRadius: 5, bgcolor: '#F1F5F9', overflow: 'hidden' }}>
-            <Box sx={{ height: '100%', width: `${Math.max(4, Math.round(((d.partners || 0) / max) * 100))}%`, borderRadius: 5, bgcolor: TIER_COLORS[d.tier] || '#94A3B8' }} />
-          </Box>
-          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.76rem', width: 30, textAlign: 'right', flexShrink: 0 }} title="Partners">
-            {d.partners}
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#10B981', fontWeight: 700, fontSize: '0.68rem', width: 56, textAlign: 'right', flexShrink: 0 }} title="Collected from this tier">
-            ₹{Number(d.collected || 0).toLocaleString('en-IN')}
-          </Typography>
-        </Box>
-      ))}
-      {data.length === 0 && (
-        <Typography variant="caption" sx={{ color: 'text.disabled', textAlign: 'center' }}>No data yet</Typography>
       )}
     </Box>
   );

@@ -20,7 +20,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import CallMadeIcon from '@mui/icons-material/CallMade';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
 import DataTable from '../../Components/shared/DataTable';
@@ -444,7 +443,6 @@ const PartnerDetail = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75, borderLeft: { md: '1px solid #eef1f6' }, pl: { md: 4 } }}>
                   <InfoRow icon={<CalendarTodayIcon sx={{ fontSize: 15, color: '#64748b' }} />} label="Date of Joining" value={fmtDate(partner.createdAt)} />
                   <InfoRow icon={<AccessTimeIcon sx={{ fontSize: 15, color: '#64748b' }} />} label="Last Login" value={partner.lastLoginAt ? fmtDT(partner.lastLoginAt) : '—'} />
-                  <InfoRow icon={<StarBorderIcon sx={{ fontSize: 15, color: '#64748b' }} />} label="Active Plan" value={partner.activePlan ? String(partner.activePlan).toUpperCase() : '—'} />
                   <InfoRow
                     icon={<Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: isActive ? '#16a34a' : '#e05252', ml: '3px', mr: '4px' }} />}
                     label="Account Status"

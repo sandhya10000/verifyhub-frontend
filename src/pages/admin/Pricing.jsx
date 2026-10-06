@@ -196,8 +196,11 @@ const AdminPricing = () => {
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState(null);
   const [diffOpen, setDiffOpen] = useState(false);
-  const [sim, setSim] = useState({ cibil: 100, experian: 50, crif: 50, equifax: 50, ai: 20, rc: 100, gst: 100 });
-  const setSimField = (k, v) => setSim((s) => ({ ...s, [k]: v === '' ? '' : Number(v) }));
+  const [sim, setSim] = useState({
+    cibil: { succ: 100, fail: 0 }, experian: { succ: 50, fail: 0 }, crif: { succ: 50, fail: 0 },
+    equifax: { succ: 50, fail: 0 }, ai: { succ: 20, fail: 0 }, rc: { succ: 100, fail: 0 }, gst: { succ: 100, fail: 0 },
+  });
+  const setSimField = (k, leg, v) => setSim((s) => ({ ...s, [k]: { ...s[k], [leg]: v === '' ? '' : Number(v) } }));
 
   const fetchPricing = async () => {
     try {
@@ -270,14 +273,30 @@ const AdminPricing = () => {
     { product: 'RC verification', success: inr(rcTotal), fail: `${inr(rcTotal)} (same)` },
     { product: 'GST verification', success: inr(gstTotal), fail: `${inr(gstTotal)} (same)` },
   ];
-  const simTotal =
-    (Number(sim.cibil) || 0) * (Number(row.cibil) || 0) +
-    (Number(sim.experian) || 0) * (Number(row.experian) || 0) +
-    (Number(sim.crif) || 0) * (Number(row.crif) || 0) +
-    (Number(sim.equifax) || 0) * (Number(row.equifax) || 0) +
-    (Number(sim.ai) || 0) * aiTotal +
-    (Number(sim.rc) || 0) * rcTotal +
-    (Number(sim.gst) || 0) * gstTotal;
+  // Simulator rates = live effective rates (same source as the Success/Fail table above).
+  const SIM_PRODUCTS = [
+    { key: 'cibil', label: 'CIBIL' }, { key: 'experian', label: 'Experian' },
+    { key: 'crif', label: 'CRIF' }, { key: 'equifax', label: 'Equifax' },
+    { key: 'ai', label: 'AI' }, { key: 'rc', label: 'RC' }, { key: 'gst', label: 'GST' },
+  ];
+  const simRates = {
+    cibil: { succ: Number(row.cibil) || 0, fail: Number(row.cibil) || 0 },
+    experian: { succ: Number(row.experian) || 0, fail: Number(row.experian) || 0 },
+    crif: { succ: Number(row.crif) || 0, fail: Number(row.crif) || 0 },
+    equifax: { succ: Number(row.equifax) || 0, fail: Number(row.equifax) || 0 },
+    ai: { succ: aiTotal, fail: aiFail },
+    rc: { succ: rcTotal, fail: rcTotal },
+    gst: { succ: gstTotal, fail: gstTotal },
+  };
+  const simRows = SIM_PRODUCTS.map((p) => {
+    const succ = Number(sim[p.key]?.succ) || 0;
+    const fail = Number(sim[p.key]?.fail) || 0;
+    const succAmt = succ * simRates[p.key].succ;
+    const failAmt = fail * simRates[p.key].fail;
+    return { ...p, succ, fail, succRate: simRates[p.key].succ, failRate: simRates[p.key].fail, amount: succAmt + failAmt, failAmt };
+  });
+  const simTotal = simRows.reduce((s, r) => s + r.amount, 0);
+  const simFailTotal = simRows.reduce((s, r) => s + r.failAmt, 0);
 
   return (
     <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
@@ -453,6 +472,7 @@ const AdminPricing = () => {
                 </Grid>
               </Paper>
             </Grid>
+            {/* Hidden in single-plan mode — value retained in DB for multi-plan restore.
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>Failure fallback</Typography>
@@ -464,26 +484,44 @@ const AdminPricing = () => {
                 </Grid>
               </Paper>
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            */}
+            <Grid size={{ xs: 12 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
                   <Calculator size={15} color="#2563eb" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Revenue simulator</Typography>
                 </Box>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1.5 }}>Pull counts × live success rates (fails bill the same, so estimate holds).</Typography>
-                <Grid container spacing={1.5}>
-                  {[
-                    ['cibil', 'CIBIL'], ['experian', 'Experian'], ['crif', 'CRIF'], ['equifax', 'Equifax'],
-                    ['ai', 'AI'], ['rc', 'RC'], ['gst', 'GST'],
-                  ].map(([k, label]) => (
-                    <Grid size={{ xs: 6, sm: 3 }} key={k}>
-                      <NumField label={label} value={sim[k]} onChange={(v) => setSimField(k, v)} />
-                    </Grid>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1.5 }}>Per-product success × fail volumes at live rates. Fail legs use the fail rates from the table above.</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.4fr 1fr', gap: 1, alignItems: 'center', px: 0.5 }}>
+                    {['Product', 'Success', 'Failed', 'Rate applied', 'Amount'].map((h) => (
+                      <Typography key={h} variant="caption" sx={{ fontWeight: 700, color: '#8A94A6', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: h === 'Product' ? 'left' : 'center' }}>
+                        {h}
+                      </Typography>
+                    ))}
+                  </Box>
+                  {simRows.map((r) => (
+                    <Box key={r.key} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.4fr 1fr', gap: 1, alignItems: 'center', bgcolor: '#F8FAFC', borderRadius: 2, px: 1, py: 0.75 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{r.label}</Typography>
+                      <NumField label="Succ" value={sim[r.key]?.succ} onChange={(v) => setSimField(r.key, 'succ', v)} />
+                      <NumField label="Fail" value={sim[r.key]?.fail} onChange={(v) => setSimField(r.key, 'fail', v)} />
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.4 }}>
+                        {inr(r.succRate)} / {inr(r.failRate)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.82rem', textAlign: 'right' }}>
+                        ₹{Math.round(r.amount).toLocaleString('en-IN')}
+                      </Typography>
+                    </Box>
                   ))}
-                </Grid>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, mt: 1.5 }}>
-                  ≈ ₹{Math.round(simTotal).toLocaleString('en-IN')}
-                </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mt: 1.5, flexWrap: 'wrap' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                    ≈ ₹{Math.round(simTotal).toLocaleString('en-IN')}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    of which fail-fees ₹{Math.round(simFailTotal).toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
               </Paper>
             </Grid>
           </Grid>

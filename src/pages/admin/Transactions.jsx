@@ -17,7 +17,6 @@ const DATE_MAX = "2100-12-31";
 const TYPE_OPTIONS = ["All", "CREDIT", "DEBIT"];
 const STATUS_OPTIONS = ["All", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
 const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS", "CUSTOM_BRAND_FEE"];
-const TIER_OPTIONS = ["All", "startup", "starter", "growth", "pro", "enterprise"];
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api");
 
@@ -50,7 +49,7 @@ const AdminTransactions = () => {
   const limit = 50;
 
   const [filters, setFilters] = useState({
-    type: "All", status: "All", purpose: "All", tier: "All",
+    type: "All", status: "All", purpose: "All",
     startDate: "", endDate: "", partnerSearch: "",
   });
 
@@ -95,12 +94,11 @@ const AdminTransactions = () => {
 
   const handleExport = () => {
     const csv = [
-      ["Date", "Partner", "Email", "Tier", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
+      ["Date", "Partner", "Email", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
       ...rows.map((r) => [
         r.createdAt ? new Date(r.createdAt).toISOString() : "",
         fmtName(r.userId).replace(/,/g, ""),
         (r.userId?.email || "").replace(/,/g, ""),
-        r.planTier || "",
         r.type, r.purpose,
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
         r.status, r.orderId || "", r.paymentId || "",
@@ -128,14 +126,6 @@ const AdminTransactions = () => {
           <Typography title={fmtName(r.userId)} sx={{ fontWeight: 600, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fmtName(r.userId)}</Typography>
           <Typography title={r.userId?.email || ""} sx={{ fontSize: "0.7rem", color: "#8A94A6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.userId?.email || ""}</Typography>
         </Box>
-      ),
-    },
-    {
-      header: "Tier", field: "planTier", nowrap: true, minWidth: 80,
-      render: (r) => (
-        <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: r.planTier ? "#8B5CF6" : "#B0B8C5", textTransform: "capitalize", whiteSpace: "nowrap" }}>
-          {r.planTier || "—"}
-        </Typography>
       ),
     },
     {
@@ -223,8 +213,6 @@ const AdminTransactions = () => {
             onChange: (v) => { setFilters((prev) => ({ ...prev, status: v })); setPage(1); } },
           { name: "purpose", label: "Purpose", value: filters.purpose, options: PURPOSE_OPTIONS, minWidth: 140,
             onChange: (v) => { setFilters((prev) => ({ ...prev, purpose: v })); setPage(1); } },
-          { name: "tier", label: "Tier", value: filters.tier, options: TIER_OPTIONS, minWidth: 110,
-            onChange: (v) => { setFilters((prev) => ({ ...prev, tier: v })); setPage(1); } },
         ]}
         dates={[
           { name: "startDate", value: filters.startDate, min: DATE_MIN, max: filters.endDate || DATE_MAX,

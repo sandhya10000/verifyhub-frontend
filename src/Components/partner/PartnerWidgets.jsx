@@ -2,17 +2,23 @@ import React from 'react';
 import { Paper, Typography, Box } from '@mui/material';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  BarChart, Bar, Cell, LabelList,
 } from 'recharts';
 
 const TONE_COLOR = { up: '#10B981', down: '#EF4444', info: '#3B82F6', muted: '#64748B' };
 
-// Compact KPI card: tinted icon tile + label + big value + delta/subtitle + optional action
+// Compact KPI card: tinted icon tile + label + big value + delta/subtitle + optional action.
+// Pass onClick to make the whole card a navigation target (pointer + hover lift).
 export const KpiCard = ({
   icon, iconBg = '#EFF6FF', iconColor = '#3B82F6',
-  title, value, valueColor, delta, deltaTone = 'up', subtitle, action,
+  title, value, valueColor, delta, deltaTone = 'up', subtitle, action, onClick,
 }) => (
-  <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2, height: '100%', bgcolor: 'background.paper' }}>
+  <Paper
+    onClick={onClick}
+    sx={{
+      borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2, height: '100%', bgcolor: 'background.paper',
+      ...(onClick ? { cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.15s', '&:hover': { boxShadow: '0 4px 14px rgba(15,30,51,0.12)', transform: 'translateY(-1px)' } } : {}),
+    }}
+  >
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
       <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
@@ -77,22 +83,6 @@ export const TrendChart = ({ data, dataKey = 'reports', color = '#4F46E5', label
         activeDot={{ r: 3.5, strokeWidth: 1.5, stroke: '#fff' }} name={label}
       />
     </AreaChart>
-  </ResponsiveContainer>
-);
-
-// Slim score bars with value labels
-export const ScoreBars = ({ data }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <BarChart data={data} margin={{ top: 14, right: 8, left: 0, bottom: 0 }} barCategoryGap="38%">
-      <CartesianGrid stroke="#F1F5F9" vertical={false} />
-      <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
-      <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} width={34} />
-      <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#F8FAFC' }} />
-      <Bar dataKey="count" barSize={16} radius={[5, 5, 0, 0]} name="Reports">
-        {data.map((_, i) => <Cell key={i} fill={['#EF4444', '#F59E0B', '#10B981'][i]} fillOpacity={0.9} />)}
-        <LabelList dataKey="count" position="top" style={{ fontSize: 11, fontWeight: 700, fill: '#475569' }} />
-      </Bar>
-    </BarChart>
   </ResponsiveContainer>
 );
 
