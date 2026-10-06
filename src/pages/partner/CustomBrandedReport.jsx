@@ -9,8 +9,9 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Radio,
 } from '@mui/material';
-import { Sparkles, Check, CheckCircle2, PhoneCall } from 'lucide-react';
+import { Sparkles, Check, CheckCircle2, PhoneCall, Wallet, CreditCard } from 'lucide-react';
 import useAuth from '../../context/useAuth';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -50,10 +51,25 @@ const CHECKLIST = [
   'Approved once, applied to all your future reports',
 ];
 
+// One-time fee (₹, flat GST-inclusive). Server is the source of truth via
+// GET /quote — this is the instant fallback before the quote loads.
+const FALLBACK_PRICE = 2500;
+
+const inr0 = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+const loadRazorpayScript = () => new Promise((resolve) => {
+  if (window.Razorpay) return resolve(true);
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
 
 const validateEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 const validatePhone = (v) => {
@@ -160,7 +176,8 @@ const StatusView = ({ request }) => (
       {[
         { label: 'Request ID', value: request.requestId },
         { label: 'Email', value: request.email },
-        { label: 'Phone', value: request.phone.length === 10 ? `+91 ${request.phone}` : request.phone },
+        { label: 'Phone', value: request.phone?.length === 10 ? `+91 ${request.phone}` : request.phone },
+        ...(request.amount != null ? [{ label: 'Amount paid', value: `${inr0(request.amount)} · ${request.paymentMethod === 'WALLET' ? 'Wallet credits' : 'Razorpay'} · Paid` }] : []),
         { label: 'Submitted on', value: fmt(request.createdAt) },
       ].map(({ label, value }) => (
         <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
@@ -176,22 +193,29 @@ const StatusView = ({ request }) => (
 // Main page
 // ---------------------------------------------------------------------------
 const CustomBrandedReportPage = () => {
-  const { user } = useAuth();
+  const { user, login, token } = useAuth();
 
   // Remote state
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [activeRequest, setActiveRequest] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
+  // Price quote (server is source of truth)
+  const [quote, setQuote] = useState({ price: FALLBACK_PRICE, walletBalance: user?.walletBalance ?? 0, canAffordWallet: true });
+  const price = quote.price ?? FALLBACK_PRICE;
+
   // Form state
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [touched, setTouched] = useState({ email: false, phone: false });
+  // Step 1 = contact details, Step 2 = payment (revealed only after submit)
+  const [detailsConfirmed, setDetailsConfirmed] = useState(false);
 
-  // Submission state
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitted, setSubmitted] = useState(false); // shows success in-page after submit
+  // Payment state (details-then-pay: contact first, then one-time fee)
+  const [payMethod, setPayMethod] = useState('wallet'); // 'wallet' | 'razorpay'
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
+  const [needsRecharge, setNeedsRecharge] = useState(false);
 
   // ── Pre-fill from profile ──────────────────────────────────────────────────
   useEffect(() => {
@@ -203,16 +227,26 @@ const CustomBrandedReportPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // ── Fetch current request status ───────────────────────────────────────────
+  // ── Fetch current request status + price quote ─────────────────────────────
   useEffect(() => {
     const load = async () => {
       setLoadingStatus(true);
       setFetchError(null);
       try {
-        const res = await axios.get(`${API_BASE}/partner/custom-branded-report`, {
-          headers: authHeader(),
-        });
-        setActiveRequest(res.data.data || null);
+        const [statusRes, quoteRes] = await Promise.all([
+          axios.get(`${API_BASE}/partner/custom-branded-report`, { headers: authHeader() }),
+          axios.get(`${API_BASE}/partner/custom-branded-report/quote`, { headers: authHeader() }).catch(() => null),
+        ]);
+        setActiveRequest(statusRes.data.data || null);
+        if (quoteRes?.data?.data) setQuote(quoteRes.data.data);
+        // Resumable unpaid skeleton: details were already submitted, so land
+        // directly on the payment step with the saved contact pre-filled.
+        const existing = statusRes.data.data;
+        if (existing && existing.paymentStatus !== 'Paid') {
+          if (existing.email) setEmail(existing.email);
+          if (existing.phone) setPhone(String(existing.phone).replace(/^\+91/, '').replace(/\D/g, ''));
+          setDetailsConfirmed(true);
+        }
       } catch (err) {
         console.error('[CustomBrandedReportPage] fetch error:', err);
         setFetchError('Could not load your request status. Please try again.');
@@ -230,40 +264,151 @@ const CustomBrandedReportPage = () => {
     : '';
   const formValid = validateEmail(email) && validatePhone(phone);
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const syncWalletBalance = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/partner/custom-branded-report/quote`, { headers: authHeader() });
+      if (res.data?.data) setQuote(res.data.data);
+      return res.data?.data;
+    } catch {
+      return null;
+    }
+  };
+
+  // ── Wallet payment (₹2500 flat debit) ──────────────────────────────────────
+  const handleWalletPay = async () => {
     setTouched({ email: true, phone: true });
-    if (!formValid || submitting) return;
-
-    setSubmitting(true);
-    setSubmitError(null);
-
+    if (!formValid || paying) return;
+    setPaying(true);
+    setPayError(null);
+    setNeedsRecharge(false);
     try {
       const res = await axios.post(
-        `${API_BASE}/partner/custom-branded-report`,
+        `${API_BASE}/partner/custom-branded-report/pay/wallet`,
         { email: email.trim(), phone: phone.replace(/\D/g, '') },
         { headers: authHeader() },
       );
       setActiveRequest(res.data.data);
-      setSubmitted(true);
+      if (user && token && res.data.walletBalance != null) {
+        login({ ...user, walletBalance: res.data.walletBalance }, token);
+        setQuote((q) => ({ ...q, walletBalance: res.data.walletBalance, canAffordWallet: res.data.walletBalance >= price }));
+      } else {
+        syncWalletBalance();
+      }
     } catch (err) {
       if (err.response?.data?.code === 'DUPLICATE_REQUEST') {
-        // Another tab already submitted — just load the existing one
         setActiveRequest(err.response.data.data);
-        setSubmitted(true);
+      } else if (err.response?.data?.code === 'INSUFFICIENT_BALANCE') {
+        const bal = err.response.data.balance ?? quote.walletBalance;
+        setQuote((q) => ({ ...q, walletBalance: bal, canAffordWallet: false }));
+        setNeedsRecharge(true);
+        setPayError(err.response.data.message || 'Insufficient wallet balance. Please recharge.');
       } else {
-        setSubmitError(
-          err.response?.data?.message || 'Submission failed. Please try again.',
-        );
+        setPayError(err.response?.data?.message || 'Wallet payment failed. Please try again.');
       }
     } finally {
-      setSubmitting(false);
+      setPaying(false);
     }
   };
 
+  // ── Razorpay payment (direct one-time fee order) ───────────────────────────
+  const handleRazorpayPay = async () => {
+    setTouched({ email: true, phone: true });
+    if (!formValid || paying) return;
+    setPaying(true);
+    setPayError(null);
+    setNeedsRecharge(false);
+    try {
+      const sdkOk = await loadRazorpayScript();
+      if (!sdkOk || !window.Razorpay) {
+        setPayError('Payment gateway failed to load. Check your connection and retry.');
+        setPaying(false);
+        return;
+      }
+      const headers = authHeader();
+      const { data } = await axios.post(
+        `${API_BASE}/partner/custom-branded-report/order`,
+        { email: email.trim(), phone: phone.replace(/\D/g, '') },
+        { headers },
+      );
+      if (data?.code === 'DUPLICATE_REQUEST') {
+        setActiveRequest(data.data);
+        setPaying(false);
+        return;
+      }
+      if (!data?.orderId || !data?.keyId) {
+        setPayError(data?.message || 'Could not start online payment. Please retry.');
+        setPaying(false);
+        return;
+      }
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        order_id: data.orderId,
+        name: 'Verify Hub',
+        description: `Custom Branded Report one-time fee ${inr0(price)}`,
+        image: `${window.location.origin}/Logo.jpeg`,
+        prefill: { name: user?.name || '', email: email.trim(), contact: phone.replace(/\D/g, '') },
+        theme: { color: '#2563EB' },
+        handler: async (resp) => {
+          try {
+            const verifyRes = await axios.post(
+              `${API_BASE}/partner/custom-branded-report/verify`,
+              {
+                razorpay_order_id: resp.razorpay_order_id,
+                razorpay_payment_id: resp.razorpay_payment_id,
+                razorpay_signature: resp.razorpay_signature,
+              },
+              { headers },
+            );
+            if (verifyRes.data?.success) {
+              setActiveRequest(verifyRes.data.data);
+            } else {
+              setPayError(verifyRes.data?.message || 'Payment verification failed.');
+            }
+          } catch (err) {
+            console.error('[CustomBrandedReportPage] verify error:', err);
+            setPayError(err?.response?.data?.message || 'Payment verification failed. If money was debited, retry — verification is idempotent.');
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      rzp.on('payment.failed', () => setPaying(false));
+      rzp.open();
+    } catch (err) {
+      console.error('[CustomBrandedReportPage] razorpay error:', err);
+      if (err.response?.data?.code === 'DUPLICATE_REQUEST') {
+        setActiveRequest(err.response.data.data);
+      } else {
+        setPayError(err?.response?.data?.message || 'Could not start online payment. Please retry.');
+      }
+      setPaying(false);
+    }
+  };
+
+  // ── Step 1 submit: validate details, then reveal the payment step ─────────
+  const handleDetailsSubmit = () => {
+    setTouched({ email: true, phone: true });
+    if (!formValid) return;
+    setPayError(null);
+    setNeedsRecharge(false);
+    setDetailsConfirmed(true);
+  };
+
+  const handlePay = () => {
+    if (payMethod === 'wallet') return handleWalletPay();
+    return handleRazorpayPay();
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
-  const showStatus = Boolean(activeRequest); // already has an active request
+  const isPaidActive = Boolean(
+    activeRequest && activeRequest.paymentStatus === 'Paid' && activeRequest.status === 'Active',
+  );
+  const isUnpaidSkeleton = Boolean(
+    activeRequest && activeRequest.paymentStatus !== 'Paid',
+  );
 
   return (
     <Box sx={{ pb: 8 }}>
@@ -364,63 +509,228 @@ const CustomBrandedReportPage = () => {
               {/* ── Divider ── */}
               <Box sx={{ borderTop: `1px solid ${tk.border}` }} />
 
-              {/* ── Status view OR form ── */}
-              {showStatus ? (
+              {/* ── Status view OR payment form ── */}
+              {isPaidActive ? (
                 <StatusView request={activeRequest} />
               ) : (
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: tk.text.primary }}>
-                    Request Callback
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: tk.text.muted, mt: -1.5 }}>
-                    Leave your contact details and we'll reach out to you.
-                  </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  {/* ── One-time price card ── */}
+                  <Box
+                    sx={{
+                      bgcolor: '#EFF6FF', border: '1px solid #BFDBFE',
+                      borderRadius: 2.5, p: 2.5,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap',
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, color: tk.text.primary, fontSize: '1.05rem' }}>
+                        {inr0(price)} <Box component="span" sx={{ fontWeight: 600, fontSize: '0.82rem', color: tk.text.secondary }}>one-time</Box>
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: tk.text.secondary, mt: 0.5, lineHeight: 1.5 }}>
+                        Branding setup fee — paid once. AI analysis reports are still charged separately at the current AI rate.
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label="One-time"
+                      size="small"
+                      sx={{ bgcolor: tk.primary, color: '#fff', fontWeight: 700, borderRadius: '9999px' }}
+                    />
+                  </Box>
 
-                  {/* Email field */}
-                  <Field
-                    id="cbr-email"
-                    label="Email address"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => setTouched((p) => ({ ...p, email: true }))}
-                    error={emailErr}
-                    placeholder="you@company.com"
-                    disabled={submitting}
-                  />
+                  {isUnpaidSkeleton && (
+                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                      You have an unfinished payment for {activeRequest.requestId}. Complete the payment below to activate your request.
+                    </Alert>
+                  )}
 
-                  {/* Phone field */}
-                  <Field
-                    id="cbr-phone"
-                    label="Phone number"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    onBlur={() => setTouched((p) => ({ ...p, phone: true }))}
-                    error={phoneErr}
-                    placeholder="9XXXXXXXXX"
-                    hint="10-digit Indian mobile number (optional +91 prefix)"
-                    disabled={submitting}
-                  />
+                  {/* ── Step 1: contact details (payment stays hidden) ── */}
+                  {!detailsConfirmed ? (
+                    <>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: tk.text.primary }}>
+                        Request Callback
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: tk.text.muted, mt: -1.5 }}>
+                        Leave your contact details and we'll reach out to you.
+                      </Typography>
 
-                  {submitError && (
-                    <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setSubmitError(null)}>
-                      {submitError}
+                      {/* Email field */}
+                      <Field
+                        id="cbr-email"
+                        label="Email address"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() => setTouched((p) => ({ ...p, email: true }))}
+                        error={emailErr}
+                        placeholder="you@company.com"
+                        disabled={paying}
+                      />
+
+                      {/* Phone field */}
+                      <Field
+                        id="cbr-phone"
+                        label="Phone number"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onBlur={() => setTouched((p) => ({ ...p, phone: true }))}
+                        error={phoneErr}
+                        placeholder="9XXXXXXXXX"
+                        hint="10-digit Indian mobile number (optional +91 prefix)"
+                        disabled={paying}
+                      />
+
+                      <Button
+                        id="cbr-submit-btn"
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        onClick={handleDetailsSubmit}
+                        startIcon={<PhoneCall size={18} />}
+                        sx={pillBtn}
+                      >
+                        Submit
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: tk.text.primary }}>
+                        {isUnpaidSkeleton ? 'Complete payment' : 'Request Callback'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: tk.text.muted, mt: -1.5 }}>
+                        Choose how to pay the one-time fee, and we'll reach out to you.
+                      </Typography>
+
+                      {/* Confirmed contact summary with edit */}
+                      <Box
+                        sx={{
+                          bgcolor: '#F8FAFC', border: `1px solid ${tk.border}`,
+                          borderRadius: 2, p: 2, display: 'flex',
+                          alignItems: 'center', justifyContent: 'space-between', gap: 2,
+                        }}
+                      >
+                        <Box>
+                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: tk.text.primary }}>
+                            {email.trim()}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.82rem', color: tk.text.muted }}>
+                            {phone.replace(/\D/g, '').length === 10 ? `+91 ${phone.replace(/\D/g, '')}` : phone}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          onClick={() => !paying && setDetailsConfirmed(false)}
+                          disabled={paying}
+                          sx={{ fontWeight: 700, textTransform: 'none', flexShrink: 0 }}
+                        >
+                          Edit
+                        </Button>
+                      </Box>
+
+                  {/* ── Payment method picker ── */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: tk.text.secondary, letterSpacing: '0.04em' }}>
+                      PAYMENT METHOD <Box component="span" sx={{ color: tk.error }}>*</Box>
+                    </Typography>
+
+                    {/* Wallet option */}
+                    <Box
+                      onClick={() => !paying && setPayMethod('wallet')}
+                      sx={{
+                        border: `1.5px solid ${payMethod === 'wallet' ? tk.borderFocus : tk.border}`,
+                        borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5,
+                        cursor: paying ? 'not-allowed' : 'pointer',
+                        bgcolor: payMethod === 'wallet' ? '#EFF6FF' : '#fff',
+                        transition: 'border-color 0.15s',
+                      }}
+                    >
+                      <Radio checked={payMethod === 'wallet'} onChange={() => setPayMethod('wallet')} disabled={paying} sx={{ p: 0 }} />
+                      <Wallet size={20} color={tk.primary} style={{ flexShrink: 0 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: tk.text.primary }}>
+                          Wallet credits
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: quote.canAffordWallet ? tk.text.muted : tk.error }}>
+                          Balance {inr0(quote.walletBalance)}
+                          {!quote.canAffordWallet && ` — short by ${inr0(price - quote.walletBalance)}, recharge to use this option`}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: tk.text.primary }}>
+                        {inr0(price)}
+                      </Typography>
+                    </Box>
+
+                    {/* Razorpay option */}
+                    <Box
+                      onClick={() => !paying && setPayMethod('razorpay')}
+                      sx={{
+                        border: `1.5px solid ${payMethod === 'razorpay' ? tk.borderFocus : tk.border}`,
+                        borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5,
+                        cursor: paying ? 'not-allowed' : 'pointer',
+                        bgcolor: payMethod === 'razorpay' ? '#EFF6FF' : '#fff',
+                        transition: 'border-color 0.15s',
+                      }}
+                    >
+                      <Radio checked={payMethod === 'razorpay'} onChange={() => setPayMethod('razorpay')} disabled={paying} sx={{ p: 0 }} />
+                      <CreditCard size={20} color={tk.primary} style={{ flexShrink: 0 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: tk.text.primary }}>
+                          Razorpay
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: tk.text.muted }}>
+                          UPI · Cards · Net banking · Wallets
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: tk.text.primary }}>
+                        {inr0(price)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {payError && (
+                    <Alert
+                      severity="error"
+                      sx={{ borderRadius: 2 }}
+                      onClose={() => { setPayError(null); setNeedsRecharge(false); }}
+                      action={needsRecharge ? (
+                        <Button
+                          size="small"
+                          sx={{ fontWeight: 700, textTransform: 'none', whiteSpace: 'nowrap' }}
+                          onClick={() => { window.location.href = '/partner/add-funds'; }}
+                        >
+                          Add funds
+                        </Button>
+                      ) : undefined}
+                    >
+                      {payError}
                     </Alert>
                   )}
 
                   <Button
-                    id="cbr-submit-btn"
-                    type="submit"
+                    id="cbr-pay-btn"
                     variant="contained"
                     fullWidth
                     size="large"
-                    disabled={submitting}
-                    startIcon={submitting ? <CircularProgress size={18} sx={{ color: '#94A3B8' }} /> : <PhoneCall size={18} />}
+                    disabled={paying}
+                    onClick={handlePay}
+                    startIcon={paying
+                      ? <CircularProgress size={18} sx={{ color: '#94A3B8' }} />
+                      : (payMethod === 'wallet' ? <Wallet size={18} /> : <PhoneCall size={18} />)}
                     sx={pillBtn}
                   >
-                    {submitting ? 'Submitting…' : 'Request Callback'}
+                    {paying
+                      ? (payMethod === 'wallet' ? 'Processing wallet payment…' : 'Opening Razorpay…')
+                      : (payMethod === 'wallet'
+                        ? `Pay ${inr0(price)} with wallet`
+                        : `Pay ${inr0(price)} with Razorpay`)}
                   </Button>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center' }}>
+                    {payMethod === 'wallet'
+                      ? 'Debited instantly from your wallet. Ledgered under Custom Brand Fee.'
+                      : 'Secured via Razorpay · Cards · Net banking · UPI · Wallets'}
+                  </Typography>
+                    </>
+                  )}
                 </Box>
               )}
             </CardContent>
