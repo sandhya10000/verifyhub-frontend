@@ -141,6 +141,7 @@ const ExperianReport = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [reportData, setReportData] = useState(null);
+  const [successPopup, setSuccessPopup] = useState(false);
 
   // ============================================================
   // HANDLE INPUT CHANGE
@@ -374,6 +375,7 @@ const ExperianReport = () => {
     try {
       setError("");
       setSuccess("");
+      setSuccessPopup(false);
       setReportData(null);
 
       // --------------------------------------------------------
@@ -451,9 +453,7 @@ const ExperianReport = () => {
 
         setReportData(data);
 
-        setSuccess(
-          responseData?.message || "Experian report generated successfully.",
-        );
+        setSuccessPopup(true);
 
         // Pull deducted from wallet server-side
         refreshWallet();
@@ -652,280 +652,406 @@ const ExperianReport = () => {
         px: 2,
       }}
     >
-      <Box sx={{ maxWidth: 1100, mx: "auto" }}>
-      {/* ==========================================
-          HERO
-      ========================================== */}
-      <Box
-        sx={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: "24px",
-          background:
-            "linear-gradient(100deg, #0a1633 0%, #10255c 48%, #1d4ed8 100%)",
-          color: "#fff",
-          px: { xs: 2.5, sm: 4, md: 5 },
-          py: { xs: 3, md: 3.5 },
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 2,
-          mb: 3,
+      <Dialog
+        open={successPopup}
+        onClose={() => setSuccessPopup(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            overflow: "hidden",
+            boxShadow: "0 25px 70px rgba(0,0,0,0.25)",
+          },
         }}
       >
-        {/* decorative glows */}
-        <Box
+        <DialogContent
           sx={{
-            position: "absolute",
-            right: -60,
-            top: -90,
-            width: 270,
-            height: 270,
-            borderRadius: "50%",
-            bgcolor: "rgba(255,255,255,0.08)",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            right: 130,
-            bottom: -120,
-            width: 210,
-            height: 210,
-            borderRadius: "50%",
-            bgcolor: "rgba(255,255,255,0.06)",
-          }}
-        />
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2.25,
-            position: "relative",
-            zIndex: 1,
-            minWidth: 0,
+            textAlign: "center",
+            px: { xs: 3, sm: 5 },
+            py: { xs: 4, sm: 5 },
           }}
         >
           <Box
             sx={{
-              width: 64,
-              height: 64,
-              flexShrink: 0,
-              borderRadius: "18px",
-              bgcolor: "#2563eb",
+              width: 82,
+              height: 82,
+              mx: "auto",
+              mb: 2.5,
+              borderRadius: "50%",
+              bgcolor: "#dcfce7",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 10px 24px rgba(37,99,235,0.5)",
             }}
           >
-            <DescriptionIcon sx={{ fontSize: 34, color: "#fff" }} />
+            <CheckCircleIcon
+              sx={{
+                fontSize: 52,
+                color: "#16a34a",
+              }}
+            />
           </Box>
 
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: { xs: "1.6rem", sm: "2rem" },
-                fontWeight: 800,
-                lineHeight: 1.15,
-                color: "#fff",
-                m: 0,
-              }}
-            >
-              Experian Report
-            </Typography>
+          <Typography
+            sx={{
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "#0f1e3d",
+              mb: 1,
+            }}
+          >
+            Report Generated Successfully
+          </Typography>
 
-            <Typography
-              sx={{
-                mt: 0.5,
-                color: "#c7d2e8",
-                fontSize: { xs: "0.85rem", sm: "0.95rem" },
-              }}
-            >
-              Get your Experian credit summary securely and hassle-free.
-            </Typography>
-          </Box>
-        </Box>
+          <Typography
+            sx={{
+              fontSize: "0.95rem",
+              color: "#64748b",
+              lineHeight: 1.6,
+              mb: 3,
+            }}
+          >
+            Your Experian credit report has been generated successfully.
+          </Typography>
 
-        {/* score-card illustration */}
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => setSuccessPopup(false)}
+            sx={{
+              py: 1.4,
+              borderRadius: "12px",
+              backgroundColor: "#1f66e5",
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: "1rem",
+              boxShadow: "none",
+              "&:hover": {
+                backgroundColor: "#1857c4",
+                boxShadow: "none",
+              },
+            }}
+          >
+            Continue
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Box sx={{ maxWidth: 1100, mx: "auto" }}>
+        {/* ==========================================
+          HERO
+      ========================================== */}
         <Box
           sx={{
-            display: { xs: "none", sm: "block" },
             position: "relative",
-            width: 200,
-            height: 152,
-            flexShrink: 0,
-            zIndex: 1,
+            overflow: "hidden",
+            borderRadius: "24px",
+            background:
+              "linear-gradient(100deg, #0a1633 0%, #10255c 48%, #1d4ed8 100%)",
+            color: "#fff",
+            px: { xs: 2.5, sm: 4, md: 5 },
+            py: { xs: 3, md: 3.5 },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            mb: 3,
           }}
         >
-          {/* back card */}
+          {/* decorative glows */}
           <Box
             sx={{
               position: "absolute",
-              right: 66,
-              top: 2,
-              width: 118,
-              height: 146,
-              bgcolor: "rgba(219,234,254,0.8)",
-              borderRadius: 2,
-              transform: "rotate(-7deg)",
-              p: 1.25,
+              right: -60,
+              top: -90,
+              width: 270,
+              height: 270,
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.08)",
             }}
-          >
-            <Box sx={{ height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.7)" }} />
-            <Box sx={{ mt: 1, height: 7, width: "70%", borderRadius: 1, bgcolor: "rgba(255,255,255,0.55)" }} />
-            <Box sx={{ mt: 1, height: 7, borderRadius: 1, bgcolor: "rgba(255,255,255,0.4)" }} />
-          </Box>
-
-          {/* front card */}
+          />
           <Box
             sx={{
               position: "absolute",
-              right: 6,
-              top: 8,
-              width: 134,
-              bgcolor: "#fff",
-              borderRadius: 2,
-              p: 1.25,
-              boxShadow: "0 18px 36px rgba(2,6,23,0.4)",
-              transform: "rotate(4deg)",
+              right: 130,
+              bottom: -120,
+              width: 210,
+              height: 210,
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.06)",
+            }}
+          />
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2.25,
+              position: "relative",
+              zIndex: 1,
+              minWidth: 0,
             }}
           >
             <Box
               sx={{
-                display: "inline-block",
-                bgcolor: "#0ea5e9",
-                color: "#fff",
-                fontSize: "0.6rem",
-                fontWeight: 800,
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                letterSpacing: "0.06em",
+                width: 64,
+                height: 64,
+                flexShrink: 0,
+                borderRadius: "18px",
+                bgcolor: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 10px 24px rgba(37,99,235,0.5)",
               }}
             >
-              EXPERIAN
+              <DescriptionIcon sx={{ fontSize: 34, color: "#fff" }} />
             </Box>
-            <Box sx={{ mt: 1, height: 6, borderRadius: 1, bgcolor: "#dbe4f0" }} />
-            <Box sx={{ mt: 0.75, height: 6, width: "70%", borderRadius: 1, bgcolor: "#e7edf5" }} />
+
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: { xs: "1.6rem", sm: "2rem" },
+                  fontWeight: 800,
+                  lineHeight: 1.15,
+                  color: "#fff",
+                  m: 0,
+                }}
+              >
+                Experian Report
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: 0.5,
+                  color: "#c7d2e8",
+                  fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                }}
+              >
+                Get your Experian credit summary securely and hassle-free.
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* score-card illustration */}
+          <Box
+            sx={{
+              display: { xs: "none", sm: "block" },
+              position: "relative",
+              width: 200,
+              height: 152,
+              flexShrink: 0,
+              zIndex: 1,
+            }}
+          >
+            {/* back card */}
             <Box
-              component="svg"
-              viewBox="0 0 120 74"
-              sx={{ width: "100%", display: "block", mt: 0.25 }}
+              sx={{
+                position: "absolute",
+                right: 66,
+                top: 2,
+                width: 118,
+                height: 146,
+                bgcolor: "rgba(219,234,254,0.8)",
+                borderRadius: 2,
+                transform: "rotate(-7deg)",
+                p: 1.25,
+              }}
             >
-              <defs>
-                <linearGradient id="experianGaugeHero" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0" stopColor="#ef4444" />
-                  <stop offset="0.5" stopColor="#f59e0b" />
-                  <stop offset="1" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M12 60 A48 48 0 0 1 108 60"
-                fill="none"
-                stroke="url(#experianGaugeHero)"
-                strokeWidth="10"
-                strokeLinecap="round"
+              <Box
+                sx={{
+                  height: 7,
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.7)",
+                }}
               />
-              <line
-                x1="60"
-                y1="60"
-                x2="92.6"
-                y2="44.7"
-                stroke="#0f172a"
-                strokeWidth="3"
-                strokeLinecap="round"
+              <Box
+                sx={{
+                  mt: 1,
+                  height: 7,
+                  width: "70%",
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.55)",
+                }}
               />
-              <circle cx="60" cy="60" r="4" fill="#0f172a" />
-              <text
-                x="60"
-                y="48"
-                textAnchor="middle"
-                fontSize="15"
-                fontWeight="800"
-                fill="#0f172a"
+              <Box
+                sx={{
+                  mt: 1,
+                  height: 7,
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.4)",
+                }}
+              />
+            </Box>
+
+            {/* front card */}
+            <Box
+              sx={{
+                position: "absolute",
+                right: 6,
+                top: 8,
+                width: 134,
+                bgcolor: "#fff",
+                borderRadius: 2,
+                p: 1.25,
+                boxShadow: "0 18px 36px rgba(2,6,23,0.4)",
+                transform: "rotate(4deg)",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "inline-block",
+                  bgcolor: "#0ea5e9",
+                  color: "#fff",
+                  fontSize: "0.6rem",
+                  fontWeight: 800,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  letterSpacing: "0.06em",
+                }}
               >
-                774
-              </text>
-              <text
-                x="60"
-                y="71"
-                textAnchor="middle"
-                fontSize="7"
-                fill="#64748b"
+                EXPERIAN
+              </Box>
+              <Box
+                sx={{ mt: 1, height: 6, borderRadius: 1, bgcolor: "#dbe4f0" }}
+              />
+              <Box
+                sx={{
+                  mt: 0.75,
+                  height: 6,
+                  width: "70%",
+                  borderRadius: 1,
+                  bgcolor: "#e7edf5",
+                }}
+              />
+              <Box
+                component="svg"
+                viewBox="0 0 120 74"
+                sx={{ width: "100%", display: "block", mt: 0.25 }}
               >
-                Good Score
-              </text>
+                <defs>
+                  <linearGradient
+                    id="experianGaugeHero"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
+                    <stop offset="0" stopColor="#ef4444" />
+                    <stop offset="0.5" stopColor="#f59e0b" />
+                    <stop offset="1" stopColor="#22c55e" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M12 60 A48 48 0 0 1 108 60"
+                  fill="none"
+                  stroke="url(#experianGaugeHero)"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="60"
+                  y1="60"
+                  x2="92.6"
+                  y2="44.7"
+                  stroke="#0f172a"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <circle cx="60" cy="60" r="4" fill="#0f172a" />
+                <text
+                  x="60"
+                  y="48"
+                  textAnchor="middle"
+                  fontSize="15"
+                  fontWeight="800"
+                  fill="#0f172a"
+                >
+                  774
+                </text>
+                <text
+                  x="60"
+                  y="71"
+                  textAnchor="middle"
+                  fontSize="7"
+                  fill="#64748b"
+                >
+                  Good Score
+                </text>
+              </Box>
             </Box>
           </Box>
         </Box>
-      </Box>
 
-      {/* ==========================================
+        {/* ==========================================
           FORM CARD
       ========================================== */}
-      <Box
-        sx={{
-          backgroundColor: "#fff",
-          borderRadius: 2,
-          border: "1px solid #e5e7eb",
-          boxShadow: "none",
-          px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 2.5, sm: 3.5 },
-        }}
-      >
-        {/* ==================================================
-            MAIN FORM
-        ================================================== */}
-        <Card
-          elevation={0}
+        <Box
           sx={{
-            borderRadius: 3,
-            border: "none",
-            backgroundColor: "transparent",
+            backgroundColor: "#fff",
+            borderRadius: 2,
+            border: "1px solid #e5e7eb",
             boxShadow: "none",
+            px: { xs: 2, sm: 3, md: 4 },
+            py: { xs: 2.5, sm: 3.5 },
           }}
         >
-          <CardContent sx={{ p: 0 }}>
-            {/* FORM TITLE */}
-            <Box mb={3} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* ==================================================
+            MAIN FORM
+        ================================================== */}
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border: "none",
+              backgroundColor: "transparent",
+              boxShadow: "none",
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              {/* FORM TITLE */}
               <Box
-                sx={{
-                  width: 52,
-                  height: 52,
-                  flexShrink: 0,
-                  borderRadius: "14px",
-                  bgcolor: "#e8f1fe",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                mb={3}
+                sx={{ display: "flex", alignItems: "center", gap: 2 }}
               >
-                <PersonIcon sx={{ fontSize: 28, color: "#2563eb" }} />
-              </Box>
-              <Box>
-                <Typography
+                <Box
                   sx={{
-                    fontSize: "1.35rem",
-                    fontWeight: 800,
-                    color: "#0f1e3d",
+                    width: 52,
+                    height: 52,
+                    flexShrink: 0,
+                    borderRadius: "14px",
+                    bgcolor: "#e8f1fe",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  Customer Details
-                </Typography>
+                  <PersonIcon sx={{ fontSize: 28, color: "#2563eb" }} />
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "1.35rem",
+                      fontWeight: 800,
+                      color: "#0f1e3d",
+                    }}
+                  >
+                    Customer Details
+                  </Typography>
 
-                <Typography
-                  sx={{
-                    mt: 0.25,
-                    fontSize: "0.9rem",
-                    color: "#64748b",
-                  }}
-                >
-                  Enter the customer details required for Experian verification.
-                </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.25,
+                      fontSize: "0.9rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Enter the customer details required for Experian
+                    verification.
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
               {error && (
                 <Alert
                   severity="error"
@@ -1295,7 +1421,6 @@ const ExperianReport = () => {
                     sx={fieldSx}
                   />
                 </Grid>
-
               </Grid>
 
               {/* =================================================
