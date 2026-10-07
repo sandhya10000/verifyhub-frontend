@@ -30,7 +30,14 @@ import {
   Typography,
   Paper,
   MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
+import { Link } from "react-router-dom";
 import DataTable from "../../Components/shared/DataTable";
 import TypePill from "../../Components/shared/TypePill";
 import RowActions from "../../Components/shared/RowActions";
@@ -234,6 +241,234 @@ const CrifReport = () => {
     }
   };
 
+  const getScoreColor = (score) => {
+    const numericScore = Number(score);
+
+    if (!Number.isFinite(numericScore)) {
+      return "default";
+    }
+
+    if (numericScore >= 750) {
+      return "success";
+    }
+
+    if (numericScore >= 700) {
+      return "info";
+    }
+
+    if (numericScore >= 650) {
+      return "warning";
+    }
+
+    return "error";
+  };
+
+  const getCrifResponseBody = (response) => {
+    return response?.data ?? response ?? {};
+  };
+
+  const getCrifVerify = (response) => {
+    const body = getCrifResponseBody(response);
+
+    return (
+      body?.data?.verify ||
+      body?.verify ||
+      body?.data?.reportData?.data?.verify ||
+      body?.reportData?.data?.verify ||
+      null
+    );
+  };
+
+  const isCrifVerificationSuccess = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    if (verify) {
+      const result = verify?.result || {};
+      const bureauData = result?.bureauData || {};
+      const creditReport = bureauData?.credit_report || {};
+
+      const bureauStatus = String(creditReport?.HEADER?.STATUS || "")
+        .trim()
+        .toUpperCase();
+
+      const resultStatusSuccess =
+        result?.status === 1 ||
+        result?.status === "1" ||
+        result?.status === true ||
+        String(result?.status || "").toLowerCase() === "success";
+
+      return (
+        verify?.ok === true &&
+        Number(verify?.status) === 200 &&
+        resultStatusSuccess &&
+        bureauStatus === "SUCCESS" &&
+        Object.keys(creditReport).length > 0
+      );
+    }
+
+    // Existing/old backend response support
+    return (
+      body?.success === true &&
+      String(body?.status || "").toLowerCase() === "success"
+    );
+  };
+
+  const normalizeCrifReport = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    if (verify) {
+      const result = verify?.result || {};
+      const bureauData = result?.bureauData || {};
+      const creditReport = bureauData?.credit_report || {};
+      const header = creditReport?.HEADER || {};
+
+      const scoreValue =
+        creditReport?.SCORES?.SCORE?.["SCORE-VALUE"] ??
+        creditReport?.SCORES?.SCORE?.score ??
+        null;
+
+      const reportId =
+        header?.["REPORT-ID"] ||
+        header?.["REPORT_ID"] ||
+        body?.reportId ||
+        null;
+
+      const reportUrl =
+        bureauData?.credit_report_link ||
+        body?.reportUrl ||
+        body?.pdfUrl ||
+        null;
+
+      const score =
+        scoreValue !== null && scoreValue !== undefined && scoreValue !== ""
+          ? Number(scoreValue)
+          : null;
+
+      const customer =
+        creditReport?.["PERSONAL-INFO"] ||
+        creditReport?.PERSONAL_INFO ||
+        creditReport?.PERSONALINFO ||
+        {};
+
+      return {
+        _id: body?.creditReportId || body?.data?._id || body?._id || null,
+
+        creditReportId: body?.creditReportId || body?.data?._id || null,
+
+        reportId,
+
+        orderId: body?.orderId || result?.txn_id || null,
+
+        transactionId: result?.txn_id || null,
+
+        name:
+          bureauData?.name ||
+          customer?.NAME ||
+          body?.name ||
+          body?.data?.name ||
+          "",
+
+        fullName:
+          bureauData?.name ||
+          customer?.NAME ||
+          body?.fullName ||
+          body?.name ||
+          "",
+
+        mobile: bureauData?.mobile || body?.mobile || body?.data?.mobile || "",
+
+        mobileNumber:
+          bureauData?.mobile || body?.mobile || body?.data?.mobile || "",
+
+        pan: bureauData?.pan || body?.pan || body?.panNumber || "",
+
+        panNumber: bureauData?.pan || body?.pan || body?.panNumber || "",
+
+        dateOfIssue:
+          header?.["DATE-OF-ISSUE"] || header?.["DATE_OF_ISSUE"] || null,
+
+        dateOfRequest:
+          header?.["DATE-OF-REQUEST"] || header?.["DATE_OF_REQUEST"] || null,
+
+        score: Number.isFinite(score) ? score : null,
+
+        bureau: "CRIF",
+
+        status: "Success",
+
+        reportUrl,
+
+        pdfUrl: reportUrl,
+
+        localPath: body?.localPath || body?.data?.localPath || null,
+
+        reportData: body,
+
+        bureauData,
+
+        creditReport,
+
+        header,
+
+        verificationMessage:
+          verify?.message ||
+          result?.message ||
+          "Verification completed successfully",
+
+        verificationStatus: verify?.status || 200,
+
+        transactionStatus: result?.status || 1,
+      };
+    }
+
+    // Old backend response support
+    const report =
+      body?.data && typeof body.data === "object" ? body.data : body;
+
+    return {
+      ...report,
+
+      _id: report?._id || body?.creditReportId || body?._id || null,
+
+      creditReportId: body?.creditReportId || report?._id || null,
+
+      reportId: body?.reportId || report?.reportId || null,
+
+      score: body?.score ?? report?.score ?? null,
+
+      reportUrl:
+        body?.reportUrl ||
+        report?.reportUrl ||
+        report?.pdfUrl ||
+        report?.localPath ||
+        null,
+
+      pdfUrl: body?.reportUrl || report?.reportUrl || report?.pdfUrl || null,
+
+      localPath: body?.localPath || report?.localPath || null,
+
+      reportData: report?.reportData || body,
+
+      status: "Success",
+
+      verificationMessage:
+        body?.message || "Verification completed successfully",
+    };
+  };
+
+  const getCrifSuccessMessage = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    return (
+      verify?.message ||
+      verify?.result?.message ||
+      body?.message ||
+      "Verification completed successfully"
+    );
+  };
   // ============================================================
   // GET SAVED CRIF REPORT
   // ============================================================
@@ -252,13 +487,14 @@ const CrifReport = () => {
 
       const response = await creditAPI.generateCrifReport(reportId);
 
-      console.log("[CRIF GET RESPONSE]:", response);
-
       const data = response?.data ?? response;
 
-      // ============================================================
-      // DUPLICATE CRIF REPORT
-      // ============================================================
+      console.log("[CRIF GET RESPONSE]:", data);
+
+      // ========================================================
+      // DUPLICATE
+      // ========================================================
+
       if (data?.status === "duplicate") {
         setError(
           data?.message || "A CRIF credit report already exists for this PAN.",
@@ -267,15 +503,44 @@ const CrifReport = () => {
         return false;
       }
 
-      // ============================================================
-      // GET REPORT OBJECT
-      // ============================================================
+      // ========================================================
+      // NEW INDICONNECT RESPONSE
+      // ========================================================
+
+      if (getCrifVerify(data)) {
+        if (!isCrifVerificationSuccess(data)) {
+          showErrorPopup(
+            getCrifSuccessMessage(data) || "CRIF verification failed.",
+          );
+
+          setReportData(null);
+          setActiveStep(0);
+
+          return false;
+        }
+
+        const normalizedReport = normalizeCrifReport(data);
+
+        console.log("[CRIF GET] Normalized report:", normalizedReport);
+
+        setCrifResponse(data);
+
+        setReportData(normalizedReport);
+
+        setActiveStep(2);
+
+        setSuccessPopup(true);
+
+        return true;
+      }
+
+      // ========================================================
+      // OLD RESPONSE
+      // ========================================================
+
       const report =
         data?.data && typeof data.data === "object" ? data.data : null;
 
-      // ============================================================
-      // NO REPORT DATA
-      // ============================================================
       if (!report) {
         showErrorPopup(
           data?.message ||
@@ -288,53 +553,37 @@ const CrifReport = () => {
         return false;
       }
 
-      // ============================================================
-      // CRIF REPORT STATUS
-      // ============================================================
       const reportStatus = report?.reportData?.data?.status;
 
-      console.log("[CRIF REPORT STATUS]:", reportStatus);
+      // ========================================================
+      // QUESTION
+      // ========================================================
 
-      // ============================================================
-      // QUESTION RESPONSE
-      // ============================================================
       if (reportStatus === "question") {
         const questionInfo = report?.reportData?.data?.data;
 
-        console.log("[CRIF QUESTION INFO]:", questionInfo);
-
-        // Question available
         if (questionInfo?.question) {
-          const updatedQuestionData = {
+          setQuestionData({
             question: questionInfo.question,
-            optionsList: Array.isArray(questionInfo.optionsList)
+
+            options: Array.isArray(questionInfo.optionsList)
               ? questionInfo.optionsList
               : [],
+
             orderId: questionInfo.orderId || null,
+
             reportId: questionInfo.reportId || null,
-            file: report?.reportData?.data?.file || null,
-            redirectURL: questionInfo.redirectURL || null,
-          };
+          });
 
-          console.log("[CRIF QUESTION DATA]:", updatedQuestionData);
-
-          // Save complete response
           setCrifResponse(data);
 
-          // Save question
-          setQuestionData(updatedQuestionData);
-
-          // Clear old report
           setReportData(null);
 
-          // IMPORTANT:
-          // Go to CRIF question screen
           setActiveStep(1);
 
           return true;
         }
 
-        // Question status but question itself is missing
         showErrorPopup(
           "CRIF verification is pending, but the verification question was not received.",
         );
@@ -345,17 +594,19 @@ const CrifReport = () => {
         return false;
       }
 
-      // ============================================================
-      // FINAL REPORT
-      // ============================================================
-      const hasReportUrl = Boolean(
-        report?.reportUrl || report?.pdfUrl || report?.localPath,
-      );
+      // ========================================================
+      // OLD FINAL REPORT
+      // ========================================================
 
-      // ============================================================
-      // REPORT NOT FOUND
-      // ============================================================
-      if (!hasReportUrl) {
+      const normalizedReport = normalizeCrifReport(data);
+
+      const hasReport =
+        normalizedReport?.reportUrl ||
+        normalizedReport?.pdfUrl ||
+        normalizedReport?.localPath ||
+        normalizedReport?.reportId;
+
+      if (!hasReport) {
         showErrorPopup(
           "CRIF report data was not found. The CRIF report could not be generated.",
         );
@@ -366,22 +617,18 @@ const CrifReport = () => {
         return false;
       }
 
-      // ============================================================
-      // FINAL SUCCESS
-      // ============================================================
-      setReportData(report);
+      setReportData(normalizedReport);
+
       setCrifResponse(data);
 
       setActiveStep(2);
+
       setSuccessPopup(true);
 
       return true;
     } catch (error) {
       console.error("[CRIF GET ERROR]:", error);
 
-      // ============================================================
-      // DUPLICATE FROM AXIOS ERROR RESPONSE
-      // ============================================================
       const errorData = error?.response?.data;
 
       if (errorData?.status === "duplicate") {
@@ -393,13 +640,9 @@ const CrifReport = () => {
         return false;
       }
 
-      // ============================================================
-      // GENERAL ERROR
-      // ============================================================
-      const errorMessage =
-        errorData?.message || error?.message || "Unable to get CRIF report.";
-
-      setError(errorMessage);
+      setError(
+        errorData?.message || error?.message || "Unable to get CRIF report.",
+      );
 
       return false;
     } finally {
@@ -531,11 +774,7 @@ const CrifReport = () => {
     setRecentReportsOpen(false);
     setRecentSearch("");
 
-    const success = await handleGetCrifReport(reportId);
-
-    if (success) {
-      setSuccessPopup(true);
-    }
+    await handleGetCrifReport(reportId);
   };
 
   // ============================================================
@@ -626,7 +865,37 @@ const CrifReport = () => {
       console.log("[CRIF FRONTEND] Response:", data);
 
       // ========================================================
-      // VERIFICATION QUESTION
+      // NEW INDICONNECT SUCCESS RESPONSE
+      // ========================================================
+
+      if (getCrifVerify(data)) {
+        console.log("[CRIF] Indiconnect verify response detected");
+
+        if (!isCrifVerificationSuccess(data)) {
+          throw new Error(
+            getCrifSuccessMessage(data) || "CRIF verification failed",
+          );
+        }
+
+        const normalizedReport = normalizeCrifReport(data);
+
+        console.log("[CRIF] Normalized report:", normalizedReport);
+
+        setCrifResponse(data);
+
+        setReportData(normalizedReport);
+
+        setActiveStep(2);
+
+        setSuccessPopup(true);
+
+        refreshWallet();
+
+        return;
+      }
+
+      // ========================================================
+      // OLD QUESTION RESPONSE
       // ========================================================
 
       if (data?.status === "question") {
@@ -649,53 +918,35 @@ const CrifReport = () => {
       }
 
       // ========================================================
-      // DIRECT SUCCESS
+      // OLD DIRECT SUCCESS RESPONSE
       // ========================================================
 
-      if (data?.success === true && data?.status === "success") {
-        console.log("[CRIF] Direct success response:", data);
+      if (
+        data?.success === true &&
+        String(data?.status).toLowerCase() === "success"
+      ) {
+        const normalizedReport = normalizeCrifReport(data);
 
         setCrifResponse(data);
 
-        const reportId =
-          data?.data?._id ||
-          data?.data?.id ||
-          data?._id ||
-          data?.id ||
-          data?.reportId;
+        setReportData(normalizedReport);
 
-        if (data?.data && typeof data.data === "object") {
-          setReportData(data.data);
+        setActiveStep(2);
 
-          setSuccessPopup(true);
+        setSuccessPopup(true);
 
-          // Pull deducted server-side — refresh context balance
-          refreshWallet();
+        refreshWallet();
 
-          setActiveStep(2);
-
-          return;
-        }
-
-        if (reportId) {
-          const success = await handleGetCrifReport(reportId);
-
-          if (success) {
-            refreshWallet();
-          }
-
-          return;
-        }
-
-        throw new Error("CRIF report ID not found.");
+        return;
       }
 
       throw new Error(data?.message || "Unable to fetch CRIF report");
     } catch (error) {
       console.error("[CRIF FRONTEND] Error:", error);
 
-      // Failed pulls can carry a nominal fail fee — sync balance
-      if (error?.response?.data?.failureCharge) refreshWallet();
+      if (error?.response?.data?.failureCharge) {
+        refreshWallet();
+      }
 
       setError(
         error?.response?.data?.message ||
