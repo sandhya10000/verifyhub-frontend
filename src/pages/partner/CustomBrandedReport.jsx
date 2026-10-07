@@ -13,12 +13,11 @@ import {
 } from '@mui/material';
 import { Sparkles, Check, CheckCircle2, PhoneCall, Wallet, CreditCard } from 'lucide-react';
 import useAuth from '../../context/useAuth';
+import BrandedSamples from './BrandedSamples';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// ---------------------------------------------------------------------------
-// Design tokens (mirrors the rest of the portal)
-// ---------------------------------------------------------------------------
+
 const tk = {
   primary: '#2563EB',
   primaryHover: '#1D4ED8',
@@ -435,7 +434,7 @@ const CustomBrandedReportPage = () => {
       </Box>
 
       {/* ── Main content ── */}
-      <Box sx={{ maxWidth: 700, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 900, mx: 'auto' }}>
         {loadingStatus ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={32} sx={{ color: tk.primary }} />
@@ -505,6 +504,9 @@ const CustomBrandedReportPage = () => {
                   ))}
                 </Box>
               </Box>
+
+              {/* ── Sample branded reports ── */}
+              {!isPaidActive && <BrandedSamples />}
 
               {/* ── Divider ── */}
               <Box sx={{ borderTop: `1px solid ${tk.border}` }} />

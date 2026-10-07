@@ -22,6 +22,8 @@ import {
   Mail,
   Check,
   ChevronDown,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 
 const LANGUAGE_OPTIONS = [
@@ -152,6 +154,7 @@ const AiAnalyzer = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
 
+  const [invalidReportWarning, setInvalidReportWarning] = useState(false);
   const [chunkProgress, setChunkProgress] = useState(null);
 
   const fileInputRef = useRef(null);
@@ -163,6 +166,9 @@ const AiAnalyzer = () => {
     setAnalysisResult(null);
     setAnalysisId(null);
     setChunkProgress(null);
+    if (file) {
+      setInvalidReportWarning(false);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -279,12 +285,23 @@ const AiAnalyzer = () => {
               refreshWallet();
               clearInterval(intervalId);
             } else if (status === "failed") {
-              setError(debugError || errorMessage || "Analysis failed");
-              setIsAnalyzing(false);
-              setChunkProgress(null);
-              // Fail fee deducted server-side — refresh context balance
-              refreshWallet();
-              clearInterval(intervalId);
+              if (response.data.errorCode === "NOT_A_CREDIT_REPORT") {
+                setInvalidReportWarning(true);
+                resetForNewFile(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+                setIsAnalyzing(false);
+                refreshWallet();
+                clearInterval(intervalId);
+              } else {
+                setError(errorMessage || "Analysis failed");
+                setIsAnalyzing(false);
+                setChunkProgress(null);
+                // Fail fee deducted server-side — refresh context balance
+                refreshWallet();
+                clearInterval(intervalId);
+              }
             }
           }
         } catch (err) {
@@ -659,6 +676,60 @@ const AiAnalyzer = () => {
                 from the report before uploading.
               </Typography>
             </Box>
+
+            {/* Invalid Report Warning */}
+            {invalidReportWarning && (
+              <Box
+                sx={{
+                  bgcolor: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  color: "#92400E",
+                  p: 2,
+                  borderRadius: 2,
+                  display: "flex",
+                  gap: 1.5,
+                  alignItems: "flex-start",
+                  position: "relative"
+                }}
+              >
+                <AlertTriangle
+                  size={18}
+                  style={{ flexShrink: 0, marginTop: 2, color: "#D97706" }}
+                />
+                <Box sx={{ flexGrow: 1, pr: 3 }}>
+                  <Typography variant="body2" sx={{ fontSize: "0.85rem", lineHeight: 1.5 }}>
+                    <Box component="span" sx={{ fontWeight: 700, display: "block", mb: 0.25 }}>
+                      Upload a valid credit report
+                    </Box>
+                    The file you uploaded doesn't look like a credit report. Please upload a PDF report from CIBIL, Experian, Equifax or CRIF.
+                    <Box component="span" sx={{ display: "block", mt: 0.5, color: "#B45309" }}>
+                      You have not been charged for this upload.
+                    </Box>
+                  </Typography>
+                </Box>
+                <Box
+                  component="button"
+                  onClick={() => setInvalidReportWarning(false)}
+                  sx={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#B45309',
+                    padding: 0,
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': { opacity: 0.7 }
+                  }}
+                  aria-label="Dismiss warning"
+                >
+                  <X size={16} />
+                </Box>
+              </Box>
+            )}
 
             {/* Output Language Selector */}
             <Box>
