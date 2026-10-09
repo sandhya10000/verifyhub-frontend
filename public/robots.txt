@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Auth pages — no indexing value
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+
+# Partner portal (authentication-gated)
+Disallow: /partner/
+
+# Admin console (authentication-gated)
+Disallow: /admin/
+
+Sitemap: https://verifyhub.in/sitemap.xml
