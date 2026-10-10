@@ -204,7 +204,6 @@ const PartnerLayout = () => {
       children: [
         { text: "Credit Bureau Reports", icon: <ShieldCheck size={16} />, path: "/partner/account/reports/credit-bureau" },
         { text: "AI Analysed Reports", icon: <Bot size={16} />, path: "/partner/account/reports/ai" },
-        { text: "AI Custom Branded Reports", icon: <Palette size={16} />, path: "/partner/custom-reports" },
         { text: "Vehicle RC Reports", icon: <CarFront size={16} />, path: "/partner/account/rc-reports" },
         { text: "GST Reports", icon: <ReceiptText size={16} />, path: "/partner/account/gst-reports" },
       ],

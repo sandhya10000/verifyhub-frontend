@@ -31,7 +31,7 @@ const BUREAUS = [
   {
     logo: 'CIBIL',
     name: 'Credit Information Bureau India',
-    status: 'soon',
+    status: 'live',
     desc: 'The largest and most widely used credit bureau in India, covering 600 M+ credit-active consumers.',
     pts: ['Credit score (300–900)', 'Full CIBIL report', 'Account & enquiry history'],
     href: '/contact',
@@ -47,7 +47,7 @@ const BUREAUS = [
   {
     logo: 'Equifax',
     name: 'Equifax Credit Information',
-    status: 'soon',
+    status: 'live',
     desc: 'Comprehensive bureau data with alternative-data enrichment to extend credit access.',
     pts: ['Equifax credit score', 'Account summary', 'Payment pattern analysis'],
     href: '/contact',
@@ -229,9 +229,6 @@ const CreditBureauAPI = () => {
                   <ul className="cba-bureau-pts">
                     {b.pts.map((pt) => <li key={pt}>{pt}</li>)}
                   </ul>
-                  <RouterLink to={b.href} className="cba-bureau-arrow">
-                    Learn more <span aria-hidden="true">→</span>
-                  </RouterLink>
                 </article>
               ))}
             </div>

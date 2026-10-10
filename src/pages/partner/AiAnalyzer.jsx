@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import useInstagramModal from "../../Components/shared/useInstagramModal";
 import useAuth from "../../context/useAuth";
 import {
   Box,
@@ -136,8 +135,6 @@ const AiAnalyzer = () => {
     refreshWallet();
     popupAnalysisIdRef.current = null;
   };
-
-  const { showInstagramModal, instagramModal } = useInstagramModal({ onClose: resetAnalyzer });
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
@@ -355,9 +352,7 @@ const AiAnalyzer = () => {
 
       setIsDownloading(false);
       
-      // Trigger Instagram follow popup after successful download
       popupAnalysisIdRef.current = analysisId;
-      showInstagramModal();
     } catch (err) {
       console.error("[AiAnalyzer] Download failed:", err);
       setDownloadError("Failed to download analysis report.");
@@ -931,8 +926,6 @@ const AiAnalyzer = () => {
           </CardContent>
         </Card>
       </Box>
-      {/* Render the Instagram Follow Modal */}
-      {instagramModal}
     </Box>
   );
 };
