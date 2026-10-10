@@ -191,12 +191,19 @@ const PartnerDashboard = () => {
       message: p.status === "Success" ? `Report pulled · ${p.customer}` : `Report failed · ${p.customer}`,
       sub: p.bureau, timestamp: p.createdAt, amount: 0,
     })),
-    ...(recent.recentTxns || []).map((t) => ({
-      id: `t-${t._id}`, type: t.type === "CREDIT" ? "recharge" : "spend",
-      message: t.type === "CREDIT" ? "Wallet recharged" : "Report charge",
-      sub: t.purpose?.replace(/_/g, " ") || "", timestamp: t.createdAt,
-      amount: t.type === "CREDIT" ? t.amount : -Math.abs(t.amount),
-    })),
+    ...(recent.recentTxns || []).map((t) => {
+      const failed = String(t.status || "").toUpperCase() === "FAILED";
+      const isCredit = t.type === "CREDIT";
+      return {
+        id: `t-${t._id}`, type: failed ? "fail" : isCredit ? "recharge" : "spend",
+        message: failed
+          ? isCredit ? "Wallet recharge failed" : "Report charge failed"
+          : isCredit ? "Wallet recharged" : "Report charge",
+        sub: t.purpose?.replace(/_/g, " ") || "", timestamp: t.createdAt,
+        amount: isCredit ? t.amount : -Math.abs(t.amount),
+        failed,
+      };
+    }),
   ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
 
   const dotColor = (type) => type === "pull" || type === "recharge" ? "#10B981" : type === "fail" ? "#EF4444" : type === "spend" ? "#F59E0B" : "#3B82F6";
@@ -324,17 +331,21 @@ const PartnerDashboard = () => {
               <Divider sx={{ my: 1 }} />
               {(recent.recentTxns || []).length === 0
                 ? <Typography variant="caption" sx={{ color: "text.disabled" }}>No transactions yet</Typography>
-                : (recent.recentTxns || []).slice(0, 3).map((t) => (
+                : (recent.recentTxns || []).slice(0, 3).map((t) => {
+                  const tFailed = String(t.status || "").toUpperCase() === "FAILED";
+                  const tCredit = t.type === "CREDIT";
+                  return (
                   <Box key={t._id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.4 }}>
-                    <CircleDot size={10} color={t.type === "CREDIT" ? "#10B981" : "#F59E0B"} fill="currentColor" />
+                    <CircleDot size={10} color={tFailed ? "#EF4444" : tCredit ? "#10B981" : "#F59E0B"} fill="currentColor" />
                     <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem", fontWeight: 600 }} noWrap>
-                      {t.type === "CREDIT" ? "Top-up" : "Report charge"}
+                      {tFailed ? (tCredit ? "Top-up failed" : "Charge failed") : tCredit ? "Top-up" : "Report charge"}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: t.type === "CREDIT" ? "success.main" : "text.primary" }}>
-                      {t.type === "CREDIT" ? "+" : "−"}{inrShort(t.amount)}
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: tFailed ? "error.main" : tCredit ? "success.main" : "text.primary" }}>
+                      {tCredit ? "+" : "−"}{inrShort(t.amount)}
                     </Typography>
                   </Box>
-                ))}
+                  );
+                })}
               <Button size="small" variant="text" sx={{ mt: 0.5, fontSize: "0.72rem", minWidth: 0, p: 0 }} onClick={() => navigate("/partner/account/transactions")}>
                 Full history →
               </Button>
@@ -400,7 +411,7 @@ const PartnerDashboard = () => {
                           {a.sub ? `${a.sub} · ` : ""}{timeAgo(a.timestamp)}
                         </Typography>
                         {a.amount !== 0 && (
-                          <Typography variant="caption" sx={{ color: a.amount > 0 ? "success.main" : "text.disabled", fontWeight: 700 }}>
+                          <Typography variant="caption" sx={{ color: a.failed ? "error.main" : a.amount > 0 ? "success.main" : "text.disabled", fontWeight: 700 }}>
                             {a.amount > 0 ? `+${inrShort(a.amount)}` : `−${inrShort(Math.abs(a.amount))}`}
                           </Typography>
                         )}

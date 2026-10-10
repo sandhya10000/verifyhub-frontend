@@ -11,13 +11,14 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-// Single-plan launch mode: admin edits ONE Standard Plan card (the Starter
-// row); it is mirrored to all tiers on save (backend mirrors too as a safety
-// net). Set SINGLE_PLAN_MODE=false to restore the 5-tier editor below.
+// Single-plan launch mode: admin edits ONE pricing card (bureau rates +
+// wallet guards, backed by the Starter row); it is mirrored to all tiers on
+// save (backend mirrors too as a safety net). Set SINGLE_PLAN_MODE=false to
+// restore the 5-tier editor below.
 // TODO(multi-plan-restore): remove SINGLE_PLAN_MODE + mirror, restore per-tier editing.
 const SINGLE_PLAN_MODE = true;
 const SINGLE_PLAN_KEY = 'starter';
-const SINGLE_PLAN_LABEL = 'Standard Plan';
+const SINGLE_PLAN_LABEL = 'Bureau pricing & guards';
 const TIERS = [
   { key: 'startup', label: 'Start-Up' },
   { key: 'starter', label: 'Starter' },
@@ -25,9 +26,10 @@ const TIERS = [
   { key: 'pro', label: 'Pro' },
   { key: 'enterprise', label: 'Enterprise' },
 ];
-// Single-plan inputs: CIBIL fail bills the same as success, so no fail input.
+// Single-plan inputs: bureau per-pull rates only. No Recharge input — the
+// top-up floor lives in Guards (top-level minRecharge). No fail input —
+// CIBIL fail bills the same as success.
 const SINGLE_MONEY_FIELDS = [
-  { key: 'recharge', label: 'Recharge ₹' },
   { key: 'cibil', label: 'CIBIL ₹' },
   { key: 'experian', label: 'Experian ₹' },
   { key: 'crif', label: 'CRIF ₹' },
@@ -100,63 +102,55 @@ const eff = (base, gstRate) => (Number(base) || 0) * (1 + (Number(gstRate) || 0)
 // Module-level on purpose: defining this inside AdminPricing remounts all
 // inputs on every keystroke (new component identity per render) and steals
 // input focus. Receives everything via props so it never remounts.
-const SinglePlanCard = ({ row, onField }) => {
+const SinglePlanCard = ({ row, onField, minRecharge, lowBalanceThreshold, onFlat }) => {
   const Icon = SINGLE_META.icon;
   return (
     <Paper
       sx={{
         borderRadius: 4, border: '2px solid #c7d2fe', boxShadow: 'none',
-        p: { xs: 2, sm: 2.5 }, mb: 2,
-        display: 'flex', gap: { xs: 2, md: 3 }, alignItems: 'center',
-        flexWrap: 'wrap',
+        p: { xs: 2, sm: 2.5 }, mb: 2, boxSizing: 'border-box',
       }}
     >
-      {/* plan identity */}
-      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', minWidth: 200, maxWidth: 250, flex: '1 1 200px' }}>
+      {/* card identity: title + sub para */}
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
         <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 3, bgcolor: SINGLE_META.tint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={22} color={SINGLE_META.color} />
         </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="body2" sx={{ fontWeight: 800 }}>{SINGLE_PLAN_LABEL}</Typography>
-            <Chip label="Active launch plan" size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontWeight: 700, fontSize: '0.6rem', height: 20 }} />
-          </Box>
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>{SINGLE_PLAN_LABEL}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4, mt: 0.25 }}>
             {SINGLE_META.blurb}
           </Typography>
         </Box>
       </Box>
 
-      {/* money inputs with live per-pull preview */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 1.25, flex: '6 1 420px', minWidth: 280 }}>
+      {/* bureau per-pull rates */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1.25 }}>
         {SINGLE_MONEY_FIELDS.map((f) => (
           <TierMoneyField
             key={f.key}
             label={f.label}
             value={row?.[f.key]}
             onChange={(v) => onField(f.key, v)}
-            hint={f.key === 'recharge' ? 'min balance' : `${inr(row?.[f.key])} / pull`}
+            hint={`${inr(row?.[f.key])} / pull`}
           />
         ))}
       </Box>
 
-      {/* plan overview */}
-      <Box sx={{ bgcolor: SINGLE_META.overviewBg, borderRadius: 3, p: 1.75, minWidth: 180, flex: '1 1 180px', maxWidth: 230 }}>
-        <Typography variant="caption" sx={{ fontWeight: 800, color: SINGLE_META.color, display: 'block', mb: 1 }}>
-          Plan overview
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-          <Wallet size={13} color={SINGLE_META.color} />
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Min. recharge: <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>₹{Number(row.recharge ?? 0).toLocaleString('en-IN')}</Box>
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FileText size={13} color={SINGLE_META.color} />
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Fails bill: <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>same as success (AI ₹100 flat)</Box>
-          </Typography>
-        </Box>
+      {/* wallet guards — one row */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.25, mt: 1.5 }}>
+        <TierMoneyField
+          label="Min recharge ₹"
+          value={minRecharge}
+          onChange={(v) => onFlat('minRecharge', v)}
+          hint="top-up floor"
+        />
+        <TierMoneyField
+          label="Low-wallet ₹"
+          value={lowBalanceThreshold}
+          onChange={(v) => onFlat('lowBalanceThreshold', v)}
+          hint="alert threshold"
+        />
       </Box>
     </Paper>
   );
@@ -168,7 +162,7 @@ const diffPricing = (cur, saved) => {
   const out = [];
   const row = cur.plans?.[SINGLE_PLAN_KEY] || {};
   const srow = saved.plans?.[SINGLE_PLAN_KEY] || {};
-  const labels = { recharge: 'Recharge ₹', cibil: 'CIBIL ₹', experian: 'Experian ₹', crif: 'CRIF ₹', equifax: 'Equifax ₹' };
+  const labels = { cibil: 'CIBIL ₹', experian: 'Experian ₹', crif: 'CRIF ₹', equifax: 'Equifax ₹' };
   for (const [k, label] of Object.entries(labels)) {
     if (Number(row[k]) !== Number(srow[k])) out.push({ label: `${SINGLE_PLAN_LABEL} · ${label}`, from: srow[k], to: row[k] });
   }
@@ -335,16 +329,22 @@ const AdminPricing = () => {
         <Skeleton variant="rounded" height={420} sx={{ borderRadius: 2.5 }} />
       ) : (
         <>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{SINGLE_PLAN_MODE ? SINGLE_PLAN_LABEL : 'Plan tiers'}</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {SINGLE_PLAN_MODE
-                ? 'The single live price list — mirrored to all tier rows on save.'
-                : 'Configure report prices for each partner plan.'}
-            </Typography>
-          </Box>
+          {!SINGLE_PLAN_MODE && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Plan tiers</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Configure report prices for each partner plan.
+              </Typography>
+            </Box>
+          )}
           {SINGLE_PLAN_MODE ? (
-            <SinglePlanCard row={row} onField={(f, v) => setPlan(SINGLE_PLAN_KEY, f, v)} />
+            <SinglePlanCard
+              row={row}
+              onField={(f, v) => setPlan(SINGLE_PLAN_KEY, f, v)}
+              minRecharge={pricing.minRecharge}
+              lowBalanceThreshold={pricing.lowBalanceThreshold}
+              onFlat={setFlat}
+            />
           ) : (
             /* TODO(multi-plan-restore): this 5-tier editor returns when SINGLE_PLAN_MODE=false */
             TIERS.map((t) => {
@@ -425,7 +425,7 @@ const AdminPricing = () => {
           </Paper>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>AI analysis</Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · totals include GST</Typography>
@@ -442,7 +442,7 @@ const AdminPricing = () => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>RC / GST verification</Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Success or fail — both bill this rate</Typography>
@@ -457,19 +457,6 @@ const AdminPricing = () => {
                 <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 1.5 }}>
                   Effective: RC ₹{rcTotal.toFixed(2)} · GST ₹{gstTotal.toFixed(2)}
                 </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Guards</Typography>
-                <Grid container spacing={1.5}>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="Min recharge ₹" value={pricing.minRecharge} onChange={(v) => setFlat('minRecharge', v)} />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <NumField label="Low-wallet ₹" value={pricing.lowBalanceThreshold} onChange={(v) => setFlat('lowBalanceThreshold', v)} />
-                  </Grid>
-                </Grid>
               </Paper>
             </Grid>
             {/* Hidden in single-plan mode — value retained in DB for multi-plan restore.
@@ -541,7 +528,7 @@ const AdminPricing = () => {
             </Box>
           ))}
           <Alert severity="info" sx={{ mt: 1.5, borderRadius: 1 }}>
-            Applies to new pulls only — past ledger rows are untouched. In single-plan mode the Standard row mirrors to all tiers.
+            Applies to new pulls only — past ledger rows are untouched. In single-plan mode the bureau row mirrors to all tiers.
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
