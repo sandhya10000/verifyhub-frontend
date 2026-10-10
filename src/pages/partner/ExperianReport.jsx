@@ -348,19 +348,6 @@ const ExperianReport = () => {
       const responseData = response?.data;
 
       // ========================================================
-      // DUPLICATE PAN
-      // ========================================================
-
-      if (responseData?.status === "duplicate") {
-        setError(
-          responseData?.message ||
-            "An Experian credit report already exists for this PAN.",
-        );
-
-        return;
-      }
-
-      // ========================================================
       // SUCCESS
       // ========================================================
 
@@ -395,19 +382,6 @@ const ExperianReport = () => {
       console.error("[REACT] Experian Report Error:", err);
 
       const backendError = err?.response?.data;
-
-      // ========================================================
-      // DUPLICATE PAN FROM HTTP 409
-      // ========================================================
-
-      if (backendError?.status === "duplicate") {
-        setError(
-          backendError?.message ||
-            "An Experian credit report already exists for this PAN.",
-        );
-
-        return;
-      }
 
       // ========================================================
       // OTHER ERRORS

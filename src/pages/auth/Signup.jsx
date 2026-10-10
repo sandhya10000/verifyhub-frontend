@@ -30,6 +30,7 @@ const Signup = () => {
   const [savedData, setSavedData] = useState(null);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [otpOnWhatsApp, setOtpOnWhatsApp] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [verifying, setVerifying] = useState(false);
 
@@ -52,7 +53,8 @@ const Signup = () => {
   }, [cooldown]);
 
   const sendOtp = async (email, phone) => {
-    await authService.sendSignupOtp(email, phone);
+    const res = await authService.sendSignupOtp(email, phone);
+    setOtpOnWhatsApp(res?.whatsapp === "sent");
     setOtpSent(true);
     setCooldown(60);
   };
@@ -98,7 +100,11 @@ const Signup = () => {
     try {
       setError(null);
       if (!/^\d{6}$/.test(otp)) {
-        setError("Enter the 6-digit OTP sent to your email");
+        setError(
+          otpOnWhatsApp
+            ? "Enter the 6-digit OTP sent to your email and WhatsApp"
+            : "Enter the 6-digit OTP sent to your email",
+        );
         return;
       }
       setVerifying(true);
@@ -124,7 +130,9 @@ const Signup = () => {
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           {step === 1
             ? "Join VerifyHub as a partner to start pulling reports"
-            : `Enter the OTP sent to ${savedData?.email}`}
+            : otpOnWhatsApp
+              ? `Enter the OTP sent to ${savedData?.email} and WhatsApp`
+              : `Enter the OTP sent to ${savedData?.email}`}
         </Typography>
 
         {error && (
@@ -287,7 +295,9 @@ const Signup = () => {
           <Box>
             {otpSent && (
               <Alert severity="success" sx={{ mb: 3 }}>
-                OTP sent! Check inbox/spam. It expires in 10 minutes.
+                {otpOnWhatsApp
+                  ? "OTP sent to your email and WhatsApp! Check inbox/spam. It expires in 10 minutes."
+                  : "OTP sent to your email! Check inbox/spam. It expires in 10 minutes."}
               </Alert>
             )}
             <Box sx={{ mb: 3 }}>

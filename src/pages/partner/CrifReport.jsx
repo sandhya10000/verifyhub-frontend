@@ -493,18 +493,6 @@ const CrifReport = () => {
       console.log("[CRIF GET RESPONSE]:", data);
 
       // ========================================================
-      // DUPLICATE
-      // ========================================================
-
-      if (data?.status === "duplicate") {
-        setError(
-          data?.message || "A CRIF credit report already exists for this PAN.",
-        );
-
-        return false;
-      }
-
-      // ========================================================
       // NEW INDICONNECT RESPONSE
       // ========================================================
 
@@ -631,15 +619,6 @@ const CrifReport = () => {
       console.error("[CRIF GET ERROR]:", error);
 
       const errorData = error?.response?.data;
-
-      if (errorData?.status === "duplicate") {
-        setError(
-          errorData?.message ||
-            "A CRIF credit report already exists for this PAN.",
-        );
-
-        return false;
-      }
 
       setError(
         errorData?.message || error?.message || "Unable to get CRIF report.",
