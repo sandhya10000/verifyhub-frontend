@@ -21,7 +21,6 @@ const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
-const CustomReportsPage = lazy(() => import("../features/customReport/CustomReportsPage"));
 const CustomBrandedReportPage = lazy(() => import("../pages/partner/CustomBrandedReport"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
 const RechargePlans = lazy(() => import("../pages/partner/Plans"));
@@ -198,7 +197,6 @@ const AppRoutes = () => {
           <Route path="pricing" element={<RechargePlans />} />
           <Route path="ai-analyzer" element={<AiAnalyzer />} />
           <Route path="custom-branded-report" element={<CustomBrandedReportPage />} />
-          <Route path="custom-reports" element={<CustomReportsPage />} />
           <Route
             path="account/*"
             element={<PlaceholderPage title="Account" />}

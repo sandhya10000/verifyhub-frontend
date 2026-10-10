@@ -10,9 +10,9 @@ import shieldImg from '../assets/verifyhub_shield_high_quality.png';
 
 /* ================= BUREAU CARDS DATA ================= */
 const BUREAU_CARDS = [
-  { key: 'cibil',    name: 'CIBIL',      title: 'Credit Information Bureau', live: false, color: 'var(--blue)', arrow: 'var(--blue)',  glow: 'rgba(59,130,246,.08)' },
+  { key: 'cibil',    name: 'CIBIL',      title: 'Credit Information Bureau', live: true, color: 'var(--blue)', arrow: 'var(--green)',  glow: 'rgba(59,130,246,.08)' },
   { key: 'experian', name: '✦ Experian', title: 'Experian',                  live: true,  color: '#9b2bc7',     arrow: 'var(--green)', glow: 'rgba(155,43,199,.07)', to: '/credit-bureau-api' },
-  { key: 'equifax',  name: 'EQUIFAX',    title: 'Equifax',                   live: false, color: '#e31837',     arrow: 'var(--slate)', glow: 'rgba(227,24,55,.06)' },
+  { key: 'equifax',  name: 'EQUIFAX',    title: 'Equifax',                   live: true, color: '#e31837',    arrow: 'var(--green)', glow: 'rgba(227,24,55,.06)' },
   { key: 'crif',     name: '≋ CRIF',     title: 'CRIF',                      live: true,  color: '#26364d',     arrow: 'var(--green)', glow: 'rgba(16,185,129,.07)', to: '/credit-bureau-api' },
 ];
 
@@ -507,7 +507,7 @@ const Home = () => {
                 <Box sx={{ width: '1px', height: '30px', background: 'var(--line)' }} />
 
                 <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>2</Box>
+                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>4</Box>
                   <Box sx={{ fontSize: { xs: '11px', md: '12px' }, color: 'var(--slate-lt)', mt: 0.5 }}>Live connections</Box>
                 </Box>
 
