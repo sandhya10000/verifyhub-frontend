@@ -114,8 +114,12 @@ const secondaryBtnSx = {
 };
 
 const AiAnalyzer = () => {
-  const { refreshWallet } = useAuth();
-  
+  const { refreshWallet, hasToppedUp } = useAuth();
+  // Fresh partners who never topped up don't see per-analysis pricing —
+  // same rule as the Pricing nav item (Add Funds shown instead until the
+  // first top-up). null (still loading) shows prices to avoid a flash.
+  const showPrice = hasToppedUp !== false;
+
   const popupAnalysisIdRef = useRef(null);
 
   const resetAnalyzer = () => {
@@ -512,8 +516,13 @@ const AiAnalyzer = () => {
             AI Credit Report Analyzer
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748B", mt: 0.25 }}>
-            Turn any bureau report into a plain-language risk summary,
-            obligation map, and download-ready lending recommendation — <strong>₹118</strong> per analysis.
+            {showPrice ? (
+              <>Turn any bureau report into a plain-language risk summary,
+              obligation map, and download-ready lending recommendation — <strong>₹118</strong> per analysis.</>
+            ) : (
+              <>Turn any bureau report into a plain-language risk summary,
+              obligation map, and download-ready lending recommendation.</>
+            )}
           </Typography>
         </Box>
       </Box>
