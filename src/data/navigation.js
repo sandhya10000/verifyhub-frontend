@@ -1,26 +1,20 @@
 export const NAV_LINKS = [
   { label: 'AI Credit Report', url: '/#ai-credit-report' },
   { label: 'Integrations', url: '/#integrations' },
-  { label: 'Pricing', url: '/#' },
 ];
 
 export const FOOTER_LINKS = [
   {
     title: 'Products',
     links: [
-      { label: 'Credit Bureau API', url: '/#products' },
-      { label: 'Identity & KYC', url: '/#products' },
-      { label: 'Statement Analyzer', url: '/#products' },
-      { label: 'AI Decisioning', url: '/#products' },
-      { label: 'Monitoring', url: '/#products' },
+      { label: 'Credit Bureau API', url: '/credit-bureau-api' },
+      { label: 'AI Decisioning', url: '/ai-decisioning' },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'About us', url: '#' },
-      { label: 'Careers', url: '#' },
-      { label: 'Blog', url: '#' },
+      { label: 'About us', url: '/about-us' },
       { label: 'Contact', url: '/contact' },
     ],
   },

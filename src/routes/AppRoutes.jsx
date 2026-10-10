@@ -21,14 +21,27 @@ const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
+const CustomBrandedReportPage = lazy(() => import("../pages/partner/CustomBrandedReport"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
+const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
+const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
+const AdminRcReports = lazy(() => import("../pages/admin/RcReports"));
+const AdminGstReports = lazy(() => import("../pages/admin/GstReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
+const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
+const AdminPricing = lazy(() => import("../pages/admin/Pricing"));
+const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
+const AdminSettings = lazy(() => import("../pages/admin/Settings"));
 
 const Activity = lazy(() => import("../pages/partner/Activity"));
 const Reports = lazy(() => import("../pages/partner/Reports"));
+const RcVerification = lazy(() => import("../pages/partner/RcVerification"));
+const RcReports = lazy(() => import("../pages/partner/RcReports"));
+const GstVerification = lazy(() => import("../pages/partner/GstVerification"));
+const GstReports = lazy(() => import("../pages/partner/GstReports"));
 const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
 const Profile = lazy(() => import("../pages/partner/Profile"));
 const Support = lazy(() => import("../pages/partner/Support"));
@@ -43,6 +56,9 @@ const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("../pages/TermsOfService"));
 const GrievanceOfficer = lazy(() => import("../pages/GrievanceOfficer"));
 const DataProtection = lazy(() => import("../pages/DataProtection"));
+const CreditBureauAPI = lazy(() => import("../pages/CreditBureauAPI"));
+const AIDecisioning = lazy(() => import("../pages/AIDecisioning"));
+const AboutUs = lazy(() => import("../pages/AboutUs"));
 
 const AppRoutes = () => {
   return (
@@ -80,6 +96,9 @@ const AppRoutes = () => {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/grievance-officer" element={<GrievanceOfficer />} />
           <Route path="/data-protection" element={<DataProtection />} />
+          <Route path="/credit-bureau-api" element={<CreditBureauAPI />} />
+          <Route path="/ai-decisioning" element={<AIDecisioning />} />
+          <Route path="/about-us" element={<AboutUs />} />
         </Route>
 
         {/* Auth */}
@@ -95,6 +114,11 @@ const AppRoutes = () => {
             path="add-funds"
             element={<AddFunds />}
           />
+          {/* Legacy URL — redirects to the separate Pricing tab */}
+          <Route
+            path="plans"
+            element={<Navigate to="/partner/pricing" replace />}
+          />
           <Route
             path="credit-reports"
             element={<PlaceholderPage title="Credit Reports" />}
@@ -109,7 +133,44 @@ const AppRoutes = () => {
           />
           <Route
             path="account/reports"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/rc"
+            element={<RcVerification />}
+          />
+          <Route
+            path="account/rc-reports"
+            element={<RcReports />}
+          />
+          <Route
+            path="account/reports/gst"
+            element={<GstVerification />}
+          />
+          <Route
+            path="account/gst-reports"
+            element={<GstReports />}
+          />
+          <Route
+            path="account/reports/:bureau"
             element={<Reports />}
+          />
+          {/* Legacy per-bureau URLs → merged credit-bureau tab */}
+          <Route
+            path="account/reports/cibil"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/experian"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/crif"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
+          />
+          <Route
+            path="account/reports/equifax"
+            element={<Navigate to="/partner/account/reports/credit-bureau" replace />}
           />
           <Route
             path="account/transactions"
@@ -132,8 +193,10 @@ const AppRoutes = () => {
             element={<EquifaxReport />}
           />
           <Route path="/partner/credit-reports/crif" element={<CrifReport />} />
-          <Route path="pricing" element={<PlaceholderPage title="Pricing" />} />
+          {/* Separate Pricing tab: all products' rates, read-only (single plan auto-applies) */}
+          <Route path="pricing" element={<RechargePlans />} />
           <Route path="ai-analyzer" element={<AiAnalyzer />} />
+          <Route path="custom-branded-report" element={<CustomBrandedReportPage />} />
           <Route
             path="account/*"
             element={<PlaceholderPage title="Account" />}
@@ -149,8 +212,12 @@ const AppRoutes = () => {
             element={<AdminPartners />}
           />
           <Route
+            path="partners/:id"
+            element={<AdminPartnerDetail />}
+          />
+          <Route
             path="pricing"
-            element={<PlaceholderPage title="Pricing Control" />}
+            element={<AdminPricing />}
           />
           <Route path="api" element={<PlaceholderPage title="API Control" />} />
           <Route
@@ -159,11 +226,23 @@ const AppRoutes = () => {
           />
           <Route
             path="transactions"
-            element={<PlaceholderPage title="Transactions" />}
+            element={<AdminTransactions />}
           />
           <Route
             path="reports"
             element={<AdminReports />}
+          />
+          <Route
+            path="ai-reports"
+            element={<AdminAiReports />}
+          />
+          <Route
+            path="rc-reports"
+            element={<AdminRcReports />}
+          />
+          <Route
+            path="gst-reports"
+            element={<AdminGstReports />}
           />
           <Route
             path="support"
@@ -171,7 +250,7 @@ const AppRoutes = () => {
           />
           <Route
             path="settings"
-            element={<PlaceholderPage title="Settings" />}
+            element={<AdminSettings />}
           />
         </Route>
 

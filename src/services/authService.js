@@ -38,6 +38,12 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       window.location.href = "/";
     }
+    if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_DEACTIVATED") {
+      // Suspended by admin — drop the session and surface the reason on login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      // window.location.href = "/login?deactivated=1";
+    }
     return Promise.reject(error);
   },
 );
@@ -167,6 +173,28 @@ export const creditAPI = {
   },
   getCreditBureauDetails: async () => {
     const response = await api.get("/credit/user/details");
+    return response.data;
+  },
+  verifyRc: async (payload) => await api.post("/rc/verify-rc", payload),
+  verifyGst: async (payload) => await api.post("/gst/verify-gst", payload),
+  getMyGstVerifications: async (opts = 20) => {
+    const params = typeof opts === "number"
+      ? { limit: opts }
+      : { page: 1, limit: 20, ...opts };
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v != null)),
+    ).toString();
+    const response = await api.get(`/gst/my-verifications?${query}`);
+    return response.data;
+  },
+  getMyRcVerifications: async (opts = 20) => {
+    const params = typeof opts === "number"
+      ? { limit: opts }
+      : { page: 1, limit: 20, ...opts };
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v != null)),
+    ).toString();
+    const response = await api.get(`/rc/my-verifications?${query}`);
     return response.data;
   },
 };

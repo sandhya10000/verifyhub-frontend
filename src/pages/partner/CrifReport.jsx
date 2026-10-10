@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import useAuth from "../../context/useAuth";
 
 import {
   Alert,
@@ -27,16 +28,20 @@ import {
   Stepper,
   TextField,
   Typography,
-  TableContainer,
   Paper,
+  MenuItem,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  TableCell,
-  TableBody,
-  Link,
-  MenuItem,
 } from "@mui/material";
+import { Link } from "react-router-dom";
+import DataTable from "../../Components/shared/DataTable";
+import TypePill from "../../Components/shared/TypePill";
+import RowActions from "../../Components/shared/RowActions";
+import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import {
   AccountBalance,
@@ -75,8 +80,6 @@ const initialFormData = {
   pincode: "",
   stateName: "",
   cityName: "",
-  addressLine1: "",
-  addressLine2: "",
   customerConsent: "Y",
 };
 
@@ -88,6 +91,7 @@ const initialQuestionData = {
 };
 
 const CrifReport = () => {
+  const { refreshWallet } = useAuth();
   const toLocalISO = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -99,7 +103,6 @@ const CrifReport = () => {
   const [recentLoading, setRecentLoading] = useState(false);
 
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
   const [formData, setFormData] = useState(initialFormData);
 
@@ -110,6 +113,8 @@ const CrifReport = () => {
   const [reportData, setReportData] = useState(null);
 
   const [crifResponse, setCrifResponse] = useState(null);
+  const [errorPopup, setErrorPopup] = useState(false);
+  const [errorPopupMessage, setErrorPopupMessage] = useState("");
 
   // ============================================================
   // RECENT REPORT STATES
@@ -120,6 +125,12 @@ const CrifReport = () => {
   const [recentReports, setRecentReports] = useState([]);
 
   const [recentSearch, setRecentSearch] = useState("");
+  const [successPopup, setSuccessPopup] = useState(false);
+  //helper function for error pop up alert
+  const showErrorPopup = (message) => {
+    setErrorPopupMessage(message);
+    setErrorPopup(true);
+  };
 
   // ============================================================
   // HANDLE INPUT
@@ -169,7 +180,6 @@ const CrifReport = () => {
 
   const clearMessages = () => {
     setError("");
-    setSuccessMessage("");
   };
 
   // ============================================================
@@ -206,17 +216,22 @@ const CrifReport = () => {
     if (!reportData) return;
 
     let finalUrl = reportData.reportUrl || reportData.pdfUrl;
-    
+
     if (reportData.localPath) {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:5000";
       const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
-      const localPath = reportData.localPath.startsWith("/") ? reportData.localPath : `/${reportData.localPath}`;
-      
+      const localPath = reportData.localPath.startsWith("/")
+        ? reportData.localPath
+        : `/${reportData.localPath}`;
+
       const encodedPath = localPath
         .split("/")
-        .map((part, index) => (index === 0 || index === 1 ? part : encodeURIComponent(part)))
+        .map((part, index) =>
+          index === 0 || index === 1 ? part : encodeURIComponent(part),
+        )
         .join("/");
-        
+
       finalUrl = `${baseUrl}${encodedPath}`;
     }
 
@@ -227,6 +242,234 @@ const CrifReport = () => {
     }
   };
 
+  const getScoreColor = (score) => {
+    const numericScore = Number(score);
+
+    if (!Number.isFinite(numericScore)) {
+      return "default";
+    }
+
+    if (numericScore >= 750) {
+      return "success";
+    }
+
+    if (numericScore >= 700) {
+      return "info";
+    }
+
+    if (numericScore >= 650) {
+      return "warning";
+    }
+
+    return "error";
+  };
+
+  const getCrifResponseBody = (response) => {
+    return response?.data ?? response ?? {};
+  };
+
+  const getCrifVerify = (response) => {
+    const body = getCrifResponseBody(response);
+
+    return (
+      body?.data?.verify ||
+      body?.verify ||
+      body?.data?.reportData?.data?.verify ||
+      body?.reportData?.data?.verify ||
+      null
+    );
+  };
+
+  const isCrifVerificationSuccess = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    if (verify) {
+      const result = verify?.result || {};
+      const bureauData = result?.bureauData || {};
+      const creditReport = bureauData?.credit_report || {};
+
+      const bureauStatus = String(creditReport?.HEADER?.STATUS || "")
+        .trim()
+        .toUpperCase();
+
+      const resultStatusSuccess =
+        result?.status === 1 ||
+        result?.status === "1" ||
+        result?.status === true ||
+        String(result?.status || "").toLowerCase() === "success";
+
+      return (
+        verify?.ok === true &&
+        Number(verify?.status) === 200 &&
+        resultStatusSuccess &&
+        bureauStatus === "SUCCESS" &&
+        Object.keys(creditReport).length > 0
+      );
+    }
+
+    // Existing/old backend response support
+    return (
+      body?.success === true &&
+      String(body?.status || "").toLowerCase() === "success"
+    );
+  };
+
+  const normalizeCrifReport = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    if (verify) {
+      const result = verify?.result || {};
+      const bureauData = result?.bureauData || {};
+      const creditReport = bureauData?.credit_report || {};
+      const header = creditReport?.HEADER || {};
+
+      const scoreValue =
+        creditReport?.SCORES?.SCORE?.["SCORE-VALUE"] ??
+        creditReport?.SCORES?.SCORE?.score ??
+        null;
+
+      const reportId =
+        header?.["REPORT-ID"] ||
+        header?.["REPORT_ID"] ||
+        body?.reportId ||
+        null;
+
+      const reportUrl =
+        bureauData?.credit_report_link ||
+        body?.reportUrl ||
+        body?.pdfUrl ||
+        null;
+
+      const score =
+        scoreValue !== null && scoreValue !== undefined && scoreValue !== ""
+          ? Number(scoreValue)
+          : null;
+
+      const customer =
+        creditReport?.["PERSONAL-INFO"] ||
+        creditReport?.PERSONAL_INFO ||
+        creditReport?.PERSONALINFO ||
+        {};
+
+      return {
+        _id: body?.creditReportId || body?.data?._id || body?._id || null,
+
+        creditReportId: body?.creditReportId || body?.data?._id || null,
+
+        reportId,
+
+        orderId: body?.orderId || result?.txn_id || null,
+
+        transactionId: result?.txn_id || null,
+
+        name:
+          bureauData?.name ||
+          customer?.NAME ||
+          body?.name ||
+          body?.data?.name ||
+          "",
+
+        fullName:
+          bureauData?.name ||
+          customer?.NAME ||
+          body?.fullName ||
+          body?.name ||
+          "",
+
+        mobile: bureauData?.mobile || body?.mobile || body?.data?.mobile || "",
+
+        mobileNumber:
+          bureauData?.mobile || body?.mobile || body?.data?.mobile || "",
+
+        pan: bureauData?.pan || body?.pan || body?.panNumber || "",
+
+        panNumber: bureauData?.pan || body?.pan || body?.panNumber || "",
+
+        dateOfIssue:
+          header?.["DATE-OF-ISSUE"] || header?.["DATE_OF_ISSUE"] || null,
+
+        dateOfRequest:
+          header?.["DATE-OF-REQUEST"] || header?.["DATE_OF_REQUEST"] || null,
+
+        score: Number.isFinite(score) ? score : null,
+
+        bureau: "CRIF",
+
+        status: "Success",
+
+        reportUrl,
+
+        pdfUrl: reportUrl,
+
+        localPath: body?.localPath || body?.data?.localPath || null,
+
+        reportData: body,
+
+        bureauData,
+
+        creditReport,
+
+        header,
+
+        verificationMessage:
+          verify?.message ||
+          result?.message ||
+          "Verification completed successfully",
+
+        verificationStatus: verify?.status || 200,
+
+        transactionStatus: result?.status || 1,
+      };
+    }
+
+    // Old backend response support
+    const report =
+      body?.data && typeof body.data === "object" ? body.data : body;
+
+    return {
+      ...report,
+
+      _id: report?._id || body?.creditReportId || body?._id || null,
+
+      creditReportId: body?.creditReportId || report?._id || null,
+
+      reportId: body?.reportId || report?.reportId || null,
+
+      score: body?.score ?? report?.score ?? null,
+
+      reportUrl:
+        body?.reportUrl ||
+        report?.reportUrl ||
+        report?.pdfUrl ||
+        report?.localPath ||
+        null,
+
+      pdfUrl: body?.reportUrl || report?.reportUrl || report?.pdfUrl || null,
+
+      localPath: body?.localPath || report?.localPath || null,
+
+      reportData: report?.reportData || body,
+
+      status: "Success",
+
+      verificationMessage:
+        body?.message || "Verification completed successfully",
+    };
+  };
+
+  const getCrifSuccessMessage = (response) => {
+    const body = getCrifResponseBody(response);
+    const verify = getCrifVerify(response);
+
+    return (
+      verify?.message ||
+      verify?.result?.message ||
+      body?.message ||
+      "Verification completed successfully"
+    );
+  };
   // ============================================================
   // GET SAVED CRIF REPORT
   // ============================================================
@@ -243,37 +486,142 @@ const CrifReport = () => {
 
       console.log("[CRIF GET] Fetching saved report:", reportId);
 
-      const response = await creditAPI.getCrifReport(reportId);
-
-      console.log("[CRIF GET RESPONSE]:", response);
+      const response = await creditAPI.generateCrifReport(reportId);
 
       const data = response?.data ?? response;
 
-      if (data?.success) {
-        setReportData(data.data);
+      console.log("[CRIF GET RESPONSE]:", data);
+
+      // ========================================================
+      // NEW INDICONNECT RESPONSE
+      // ========================================================
+
+      if (getCrifVerify(data)) {
+        if (!isCrifVerificationSuccess(data)) {
+          showErrorPopup(
+            getCrifSuccessMessage(data) || "CRIF verification failed.",
+          );
+
+          setReportData(null);
+          setActiveStep(0);
+
+          return false;
+        }
+
+        const normalizedReport = normalizeCrifReport(data);
+
+        console.log("[CRIF GET] Normalized report:", normalizedReport);
+
+        setCrifResponse(data);
+
+        setReportData(normalizedReport);
+
         setActiveStep(2);
+
+        setSuccessPopup(true);
 
         return true;
       }
 
-      // Some APIs directly return report data
-      if (data?.data && typeof data.data === "object") {
-        setReportData(data.data);
-        setActiveStep(2);
+      // ========================================================
+      // OLD RESPONSE
+      // ========================================================
 
-        return true;
+      const report =
+        data?.data && typeof data.data === "object" ? data.data : null;
+
+      if (!report) {
+        showErrorPopup(
+          data?.message ||
+            "CRIF report data was not found. The CRIF report could not be generated.",
+        );
+
+        setReportData(null);
+        setActiveStep(0);
+
+        return false;
       }
 
-      setError(data?.message || "Unable to get CRIF report");
+      const reportStatus = report?.reportData?.data?.status;
 
-      return false;
+      // ========================================================
+      // QUESTION
+      // ========================================================
+
+      if (reportStatus === "question") {
+        const questionInfo = report?.reportData?.data?.data;
+
+        if (questionInfo?.question) {
+          setQuestionData({
+            question: questionInfo.question,
+
+            options: Array.isArray(questionInfo.optionsList)
+              ? questionInfo.optionsList
+              : [],
+
+            orderId: questionInfo.orderId || null,
+
+            reportId: questionInfo.reportId || null,
+          });
+
+          setCrifResponse(data);
+
+          setReportData(null);
+
+          setActiveStep(1);
+
+          return true;
+        }
+
+        showErrorPopup(
+          "CRIF verification is pending, but the verification question was not received.",
+        );
+
+        setReportData(null);
+        setActiveStep(0);
+
+        return false;
+      }
+
+      // ========================================================
+      // OLD FINAL REPORT
+      // ========================================================
+
+      const normalizedReport = normalizeCrifReport(data);
+
+      const hasReport =
+        normalizedReport?.reportUrl ||
+        normalizedReport?.pdfUrl ||
+        normalizedReport?.localPath ||
+        normalizedReport?.reportId;
+
+      if (!hasReport) {
+        showErrorPopup(
+          "CRIF report data was not found. The CRIF report could not be generated.",
+        );
+
+        setReportData(null);
+        setActiveStep(0);
+
+        return false;
+      }
+
+      setReportData(normalizedReport);
+
+      setCrifResponse(data);
+
+      setActiveStep(2);
+
+      setSuccessPopup(true);
+
+      return true;
     } catch (error) {
       console.error("[CRIF GET ERROR]:", error);
 
+      const errorData = error?.response?.data;
+
       setError(
-        error?.response?.data?.message ||
-        error?.message ||
-        "Unable to get CRIF report",
+        errorData?.message || error?.message || "Unable to get CRIF report.",
       );
 
       return false;
@@ -281,7 +629,6 @@ const CrifReport = () => {
       setLoading(false);
     }
   };
-
   // ============================================================
   // RECENT REPORTS
   // ============================================================
@@ -344,8 +691,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-        error?.message ||
-        "Unable to fetch recent CRIF reports",
+          error?.message ||
+          "Unable to fetch recent CRIF reports",
       );
     } finally {
       setRecentLoading(false);
@@ -358,7 +705,8 @@ const CrifReport = () => {
     }
 
     // 2. Convert local filesystem path to public URL
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const API_BASE_URL =
+      import.meta.env.VITE_API_URL || "http://localhost:5000";
     if (report?.localPath) {
       const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
 
@@ -406,11 +754,7 @@ const CrifReport = () => {
     setRecentReportsOpen(false);
     setRecentSearch("");
 
-    const success = await handleGetCrifReport(reportId);
-
-    if (success) {
-      setSuccessMessage("CRIF report loaded successfully.");
-    }
+    await handleGetCrifReport(reportId);
   };
 
   // ============================================================
@@ -501,7 +845,37 @@ const CrifReport = () => {
       console.log("[CRIF FRONTEND] Response:", data);
 
       // ========================================================
-      // VERIFICATION QUESTION
+      // NEW INDICONNECT SUCCESS RESPONSE
+      // ========================================================
+
+      if (getCrifVerify(data)) {
+        console.log("[CRIF] Indiconnect verify response detected");
+
+        if (!isCrifVerificationSuccess(data)) {
+          throw new Error(
+            getCrifSuccessMessage(data) || "CRIF verification failed",
+          );
+        }
+
+        const normalizedReport = normalizeCrifReport(data);
+
+        console.log("[CRIF] Normalized report:", normalizedReport);
+
+        setCrifResponse(data);
+
+        setReportData(normalizedReport);
+
+        setActiveStep(2);
+
+        setSuccessPopup(true);
+
+        refreshWallet();
+
+        return;
+      }
+
+      // ========================================================
+      // OLD QUESTION RESPONSE
       // ========================================================
 
       if (data?.status === "question") {
@@ -524,52 +898,40 @@ const CrifReport = () => {
       }
 
       // ========================================================
-      // DIRECT SUCCESS
+      // OLD DIRECT SUCCESS RESPONSE
       // ========================================================
 
-      if (data?.success === true && data?.status === "success") {
-        console.log("[CRIF] Direct success response:", data);
+      if (
+        data?.success === true &&
+        String(data?.status).toLowerCase() === "success"
+      ) {
+        const normalizedReport = normalizeCrifReport(data);
 
         setCrifResponse(data);
 
-        const reportId =
-          data?.data?._id ||
-          data?.data?.id ||
-          data?._id ||
-          data?.id ||
-          data?.reportId;
+        setReportData(normalizedReport);
 
-        if (data?.data && typeof data.data === "object") {
-          setReportData(data.data);
+        setActiveStep(2);
 
-          setSuccessMessage("CRIF report fetched successfully.");
+        setSuccessPopup(true);
 
-          setActiveStep(2);
+        refreshWallet();
 
-          return;
-        }
-
-        if (reportId) {
-          const success = await handleGetCrifReport(reportId);
-
-          if (success) {
-            setSuccessMessage("CRIF report fetched successfully.");
-          }
-
-          return;
-        }
-
-        throw new Error("CRIF report ID not found.");
+        return;
       }
 
       throw new Error(data?.message || "Unable to fetch CRIF report");
     } catch (error) {
       console.error("[CRIF FRONTEND] Error:", error);
 
+      if (error?.response?.data?.failureCharge) {
+        refreshWallet();
+      }
+
       setError(
         error?.response?.data?.message ||
-        error?.message ||
-        "Something went wrong while fetching CRIF report",
+          error?.message ||
+          "Something went wrong while fetching CRIF report",
       );
 
       setCrifResponse(null);
@@ -577,28 +939,6 @@ const CrifReport = () => {
       setLoading(false);
     }
   };
-  const getScoreColor = (score) => {
-    const numericScore = Number(score);
-
-    if (!numericScore) {
-      return "default";
-    }
-
-    if (numericScore >= 750) {
-      return "success";
-    }
-
-    if (numericScore >= 700) {
-      return "info";
-    }
-
-    if (numericScore >= 650) {
-      return "warning";
-    }
-
-    return "error";
-  };
-
   // ============================================================
   // SUBMIT ANSWER
   // ============================================================
@@ -682,7 +1022,9 @@ const CrifReport = () => {
         const success = await handleGetCrifReport(savedReportId);
 
         if (success) {
-          setSuccessMessage("CRIF report fetched successfully.");
+          setSuccessPopup(true);
+
+          refreshWallet();
         }
 
         return;
@@ -694,8 +1036,8 @@ const CrifReport = () => {
 
       setError(
         error?.response?.data?.message ||
-        error?.message ||
-        "Unable to submit answer",
+          error?.message ||
+          "Unable to submit answer",
       );
     } finally {
       setLoading(false);
@@ -738,7 +1080,7 @@ const CrifReport = () => {
 
     setError("");
 
-    setSuccessMessage("");
+    setSuccessPopup(false);
 
     setFormData(initialFormData);
 
@@ -953,25 +1295,6 @@ const CrifReport = () => {
                 Fetch customer CRIF credit score and report
               </Typography>
             </Box>
-
-            {/* <Button
-              variant="outlined"
-              size="medium"
-              onClick={handleRecentReports}
-              disabled={recentLoading}
-              startIcon={
-                recentLoading ? <CircularProgress size={17} /> : <Visibility />
-              }
-              sx={{
-                minWidth: 170,
-                height: 42,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
-            >
-              Recent Reports
-            </Button> */}
           </Box>
 
           <Chip
@@ -1047,23 +1370,6 @@ const CrifReport = () => {
         </Card>
 
         {/* =====================================================
-            ALERTS
-        ===================================================== */}
-
-        {successMessage && (
-          <Alert
-            severity="success"
-            onClose={() => setSuccessMessage("")}
-            sx={{
-              mb: 2.5,
-              borderRadius: 2,
-            }}
-          >
-            {successMessage}
-          </Alert>
-        )}
-
-        {/* =====================================================
             STEP 1
         ===================================================== */}
 
@@ -1075,6 +1381,20 @@ const CrifReport = () => {
               overflow: "hidden",
             }}
           >
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 2,
+                  justifyContent: "center",
+                  textAlign: "center",
+                  width: "fit-content",
+                  mx: "auto",
+                }}
+              >
+                {error}
+              </Alert>
+            )}
             <Box
               sx={{
                 px: {
@@ -1315,18 +1635,18 @@ const CrifReport = () => {
                           },
 
                           "& input[type='date']::-webkit-datetime-edit-fields-wrapper":
-                          {
-                            padding: 0,
-                          },
+                            {
+                              padding: 0,
+                            },
 
                           "& input[type='date']::-webkit-calendar-picker-indicator":
-                          {
-                            cursor: "pointer",
-                            opacity: 0.75,
-                            width: 18,
-                            height: 18,
-                            marginLeft: 6,
-                          },
+                            {
+                              cursor: "pointer",
+                              opacity: 0.75,
+                              width: 18,
+                              height: 18,
+                              marginLeft: 6,
+                            },
                         }}
                       />
                     </Box>
@@ -1377,12 +1697,12 @@ const CrifReport = () => {
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
+                        select
                         required
                         label="State"
                         name="stateName"
                         value={formData.stateName}
                         onChange={handleChange}
-                        placeholder="Enter state"
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
@@ -1391,7 +1711,9 @@ const CrifReport = () => {
                           ),
                         }}
                         sx={inputSx}
-                      />
+                      >
+                        {stateMenuItems}
+                      </TextField>
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 3 }}>
@@ -1410,32 +1732,6 @@ const CrifReport = () => {
                             </InputAdornment>
                           ),
                         }}
-                        sx={inputSx}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Address Line 1"
-                        name="addressLine1"
-                        value={formData.addressLine1}
-                        onChange={handleChange}
-                        placeholder="House / Flat / Building / Street"
-                        sx={inputSx}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Address Line 2"
-                        name="addressLine2"
-                        value={formData.addressLine2}
-                        onChange={handleChange}
-                        placeholder="Area / Locality / Landmark"
                         sx={inputSx}
                       />
                     </Grid>
@@ -1821,10 +2117,8 @@ const CrifReport = () => {
 
         {activeStep === 2 && reportData && (
           <Box>
-
             {/* ── SCORE + REPORT INFO ── side-by-side, score is the hero */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
-
               {/* SCORE CARD */}
               <Grid size={{ xs: 12, sm: 12, md: 5 }}>
                 {(() => {
@@ -1916,7 +2210,9 @@ const CrifReport = () => {
                         </Typography>
 
                         {/* SVG Gauge */}
-                        <Box sx={{ position: "relative", width: 200, height: 114 }}>
+                        <Box
+                          sx={{ position: "relative", width: 200, height: 114 }}
+                        >
                           <svg width="200" height="114" viewBox="0 0 200 110">
                             {/* Track */}
                             <path
@@ -2002,55 +2298,163 @@ const CrifReport = () => {
 
               {/* REPORT INFO CARD */}
               <Grid size={{ xs: 12, md: 7 }}>
-                <Card sx={{ height: "100%", borderRadius: 3, boxShadow: "0 4px 18px rgba(0,0,0,.04)" }}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    borderRadius: 3,
+                    boxShadow: "0 4px 18px rgba(0,0,0,.04)",
+                  }}
+                >
                   <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-                      <Typography variant="h6" fontWeight={750}>Report Information</Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography variant="h6" fontWeight={750}>
+                        Report Information
+                      </Typography>
                       <Chip
                         size="small"
-                        icon={<CheckCircle sx={{ fontSize: "0.9rem !important" }} />}
+                        icon={
+                          <CheckCircle sx={{ fontSize: "0.9rem !important" }} />
+                        }
                         label="Report Generated"
                         color="success"
                         sx={{ fontWeight: 600, fontSize: "0.72rem" }}
                       />
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2.5 }}
+                    >
                       Details retrieved from CRIF bureau.
                     </Typography>
                     <Divider sx={{ mb: 2.5 }} />
                     <Grid container spacing={2.5}>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>REPORT ID</Typography>
-                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, wordBreak: "break-word", fontFamily: "monospace", fontSize: "0.85rem" }}>
-                          {reportData.reportId || reportData._id || <Box component="span" sx={{ color: "text.disabled", fontFamily: "inherit" }}>Not available</Box>}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                        >
+                          REPORT ID
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{
+                            mt: 0.5,
+                            wordBreak: "break-word",
+                            fontFamily: "monospace",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {reportData.reportId || reportData._id || (
+                            <Box
+                              component="span"
+                              sx={{
+                                color: "text.disabled",
+                                fontFamily: "inherit",
+                              }}
+                            >
+                              Not available
+                            </Box>
+                          )}
                         </Typography>
                       </Grid>
 
                       {reportData.inquiryId && (
                         <Grid size={{ xs: 12, sm: 6 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>INQUIRY ID</Typography>
-                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, wordBreak: "break-word", fontFamily: "monospace", fontSize: "0.85rem" }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                          >
+                            INQUIRY ID
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            sx={{
+                              mt: 0.5,
+                              wordBreak: "break-word",
+                              fontFamily: "monospace",
+                              fontSize: "0.85rem",
+                            }}
+                          >
                             {reportData.inquiryId}
                           </Typography>
                         </Grid>
                       )}
 
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>REPORT DATE</Typography>
-                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>
-                          {formatDate(reportData.dateOfIssue || reportData.dateOfRequest || reportData.createdAt) || <Box component="span" sx={{ color: "text.disabled" }}>Not available</Box>}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                        >
+                          REPORT DATE
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{ mt: 0.5 }}
+                        >
+                          {formatDate(
+                            reportData.dateOfIssue ||
+                              reportData.dateOfRequest ||
+                              reportData.createdAt,
+                          ) || (
+                            <Box
+                              component="span"
+                              sx={{ color: "text.disabled" }}
+                            >
+                              Not available
+                            </Box>
+                          )}
                         </Typography>
                       </Grid>
 
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>BUREAU</Typography>
-                        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>CRIF High Mark</Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                        >
+                          BUREAU
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{ mt: 0.5 }}
+                        >
+                          CRIF High Mark
+                        </Typography>
                       </Grid>
 
                       {reportData.pan && (
                         <Grid size={{ xs: 12, sm: 6 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>PAN</Typography>
-                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5, fontFamily: "monospace", letterSpacing: 1 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                          >
+                            PAN
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            sx={{
+                              mt: 0.5,
+                              fontFamily: "monospace",
+                              letterSpacing: 1,
+                            }}
+                          >
                             {reportData.pan}
                           </Typography>
                         </Grid>
@@ -2058,8 +2462,20 @@ const CrifReport = () => {
 
                       {reportData.mobile && (
                         <Grid size={{ xs: 12, sm: 6 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>MOBILE</Typography>
-                          <Typography variant="body2" fontWeight={700} sx={{ mt: 0.5 }}>{reportData.mobile}</Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontWeight: 600, letterSpacing: 0.5 }}
+                          >
+                            MOBILE
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            sx={{ mt: 0.5 }}
+                          >
+                            {reportData.mobile}
+                          </Typography>
                         </Grid>
                       )}
                     </Grid>
@@ -2116,21 +2532,24 @@ const CrifReport = () => {
                       },
                       {
                         label: "Current Balance",
-                        value: `₹${reportData.accountSummary.currentBalance ?? 0
-                          }`,
+                        value: `₹${
+                          reportData.accountSummary.currentBalance ?? 0
+                        }`,
                       },
                       {
                         label: "Sanctioned Amount",
-                        value: `₹${reportData.accountSummary.sanctionedAmount ?? 0
-                          }`,
+                        value: `₹${
+                          reportData.accountSummary.sanctionedAmount ?? 0
+                        }`,
                       },
                       {
                         label: "Disbursed Amount",
-                        value: `₹${reportData.accountSummary.disbursedAmount ?? 0
-                          }`,
+                        value: `₹${
+                          reportData.accountSummary.disbursedAmount ?? 0
+                        }`,
                       },
                     ].map((item) => (
-                      <Grid item xs={6} sm={4} md={3} key={item.label}>
+                      <Grid size={{ xs: 6, sm: 4, md: 3 }} key={item.label}>
                         <SummaryCard label={item.label} value={item.value} />
                       </Grid>
                     ))}
@@ -2164,24 +2583,27 @@ const CrifReport = () => {
                   />
 
                   <Grid container spacing={2}>
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Credit History"
-                        value={`${reportData.creditHistory.creditHistoryYears || 0
-                          } Years`}
+                        value={`${
+                          reportData.creditHistory.creditHistoryYears || 0
+                        } Years`}
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Average Account Age"
-                        value={`${reportData.creditHistory.averageAccountAgeYears || 0
-                          } Y ${reportData.creditHistory.averageAccountAgeMonths || 0
-                          } M`}
+                        value={`${
+                          reportData.creditHistory.averageAccountAgeYears || 0
+                        } Y ${
+                          reportData.creditHistory.averageAccountAgeMonths || 0
+                        } M`}
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="New Accounts"
                         value={
@@ -2190,7 +2612,7 @@ const CrifReport = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <SummaryCard
                         label="Recent Inquiries"
                         value={
@@ -2291,14 +2713,22 @@ const CrifReport = () => {
                 flexWrap: "wrap",
               }}
             >
-              <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column-reverse', sm: 'row' }, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  flexDirection: { xs: "column-reverse", sm: "row" },
+                  flexWrap: "wrap",
+                  width: { xs: "100%", md: "auto" },
+                }}
+              >
                 <Button
                   variant="outlined"
                   onClick={handleBack}
                   disabled={loading}
                   startIcon={<ArrowBack />}
                   sx={{
-                    flex: { xs: 1, sm: 'none' },
+                    flex: { xs: 1, sm: "none" },
                     minWidth: { xs: "100%", sm: 120 },
                     height: 46,
                     borderRadius: 2,
@@ -2315,7 +2745,7 @@ const CrifReport = () => {
                   disabled={loading}
                   startIcon={<VisibilityIcon />}
                   sx={{
-                    flex: { xs: 1, sm: 'none' },
+                    flex: { xs: 1, sm: "none" },
                     minWidth: { xs: "100%", sm: 160 },
                     height: 46,
                     borderRadius: 2,
@@ -2351,6 +2781,198 @@ const CrifReport = () => {
             FALLBACK
         ===================================================== */}
       </Box>
+
+      {/* =======================================================
+          CRIF SUCCESS POPUP
+      ======================================================= */}
+
+      <Dialog
+        open={successPopup}
+        onClose={() => setSuccessPopup(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            overflow: "hidden",
+            boxShadow: "0 25px 70px rgba(0,0,0,0.25)",
+          },
+        }}
+      >
+        <DialogContent
+          sx={{
+            textAlign: "center",
+            px: { xs: 3, sm: 5 },
+            py: { xs: 4, sm: 5 },
+          }}
+        >
+          {/* SUCCESS ICON */}
+          <Box
+            sx={{
+              width: 82,
+              height: 82,
+              mx: "auto",
+              mb: 2.5,
+              borderRadius: "50%",
+              bgcolor: "#dcfce7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CheckCircle
+              sx={{
+                fontSize: 52,
+                color: "#16a34a",
+              }}
+            />
+          </Box>
+
+          {/* TITLE */}
+          <Typography
+            sx={{
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "#0f1e3d",
+              mb: 1,
+            }}
+          >
+            Report Generated Successfully
+          </Typography>
+
+          {/* MESSAGE */}
+          <Typography
+            sx={{
+              fontSize: "0.95rem",
+              color: "#64748b",
+              lineHeight: 1.6,
+              mb: 3,
+            }}
+          >
+            Your CRIF credit report has been generated successfully.
+          </Typography>
+
+          {/* CONTINUE BUTTON */}
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => setSuccessPopup(false)}
+            sx={{
+              py: 1.4,
+              borderRadius: "12px",
+              backgroundColor: "#1f66e5",
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: "1rem",
+              boxShadow: "none",
+              "&:hover": {
+                backgroundColor: "#1857c4",
+                boxShadow: "none",
+              },
+            }}
+          >
+            Continue
+          </Button>
+        </DialogContent>
+      </Dialog>
+      {/* =======================================================
+    CRIF ERROR POPUP
+======================================================= */}
+
+      <Dialog
+        open={errorPopup}
+        onClose={() => setErrorPopup(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            overflow: "hidden",
+            boxShadow: "0 25px 80px rgba(0,0,0,0.30)",
+          },
+        }}
+      >
+        <DialogContent
+          sx={{
+            textAlign: "center",
+            px: { xs: 3, sm: 5 },
+            py: { xs: 4, sm: 5 },
+          }}
+        >
+          {/* ERROR ICON */}
+          <Box
+            sx={{
+              width: 88,
+              height: 88,
+              mx: "auto",
+              mb: 2.5,
+              borderRadius: "50%",
+              bgcolor: "#fee2e2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Close
+              sx={{
+                fontSize: 52,
+                color: "#dc2626",
+              }}
+            />
+          </Box>
+
+          {/* TITLE */}
+          <Typography
+            sx={{
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "#0f1e3d",
+              mb: 1,
+            }}
+          >
+            CRIF Report Not Available
+          </Typography>
+
+          {/* MESSAGE */}
+          <Typography
+            sx={{
+              fontSize: "0.95rem",
+              color: "#64748b",
+              lineHeight: 1.7,
+              mb: 3,
+            }}
+          >
+            {errorPopupMessage ||
+              "CRIF report data was not found. Please try again."}
+          </Typography>
+
+          {/* ACTION */}
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => {
+              setErrorPopup(false);
+              setError("");
+              setActiveStep(0);
+            }}
+            sx={{
+              py: 1.4,
+              borderRadius: "12px",
+              backgroundColor: "#dc2626",
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: "1rem",
+              boxShadow: "none",
+              "&:hover": {
+                backgroundColor: "#b91c1c",
+                boxShadow: "none",
+              },
+            }}
+          >
+            Try Again
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {/* =======================================================
           RECENT REPORTS DIALOG
@@ -2410,8 +3032,9 @@ const CrifReport = () => {
                         <TableCell>
                           {report.fullName ||
                             report.name ||
-                            `${report.firstName || ""} ${report.lastName || ""
-                              }`.trim() ||
+                            `${report.firstName || ""} ${
+                              report.lastName || ""
+                            }`.trim() ||
                             "-"}
                         </TableCell>
 
@@ -2425,7 +3048,7 @@ const CrifReport = () => {
 
                         <TableCell>
                           {report.score !== null &&
-                            report.score !== undefined ? (
+                          report.score !== undefined ? (
                             <Chip
                               label={report.score}
                               color={getScoreColor(report.score)}
@@ -2439,8 +3062,8 @@ const CrifReport = () => {
                         <TableCell>
                           {formatDate(
                             report.createdAt ||
-                            report.dateOfIssue ||
-                            report.dateOfRequest,
+                              report.dateOfIssue ||
+                              report.dateOfRequest,
                           )}
                         </TableCell>
 

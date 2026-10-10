@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -7,156 +7,368 @@ import {
   Button,
   TextField,
   Alert,
-  Chip,
   Grid,
-  Paper,
   InputAdornment,
   Divider,
 } from '@mui/material';
-import {
-  QrCode2,
-  Info,
-  CreditCard,
-  CheckCircle,
-} from '@mui/icons-material';
+import { Sparkles, Wallet } from 'lucide-react';
 import useAuth from '../../context/useAuth';
+import axios from 'axios';
+import { planLabel } from './planConfig';
 
-const PRESET_AMOUNTS = [1000, 5000, 10000, 25000];
-const MIN_AMOUNT = 500;
-const UPI_ID = 'payments@verifyhub';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const loadRazorpayScript = () => new Promise((resolve) => {
+  if (window.Razorpay) return resolve(true);
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
+
+const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 const AddFunds = () => {
-  const { user } = useAuth();
-  const [selectedPreset, setSelectedPreset] = useState(5000);
-  const [customAmount, setCustomAmount] = useState('5000');
-  const [activeMethod, setActiveMethod] = useState('upi');
-  const [amountError, setAmountError] = useState('');
-  const [qrReady, setQrReady] = useState(false);
+  // First top-up flips the sidebar from Add Funds to Pricing instantly.
+  const { user, token, login, hasToppedUp, setHasToppedUp } = useAuth();
+  const headerRef = useRef(null);
+  const [showStrip, setShowStrip] = useState(false);
 
-  const parsedAmount = parseFloat(customAmount) || 0;
+  // Sticky reminder strip: appears once the header (with the unlock line)
+  // scrolls out of view — only for never-topped-up partners.
+  useEffect(() => {
+    if (hasToppedUp !== false) { setShowStrip(false); return; }
+    const el = headerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(([entry]) => setShowStrip(!entry.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasToppedUp]);
 
-  const handlePresetClick = (amount) => {
-    setSelectedPreset(amount);
-    setCustomAmount(String(amount));
-    setAmountError('');
-    setQrReady(false);
+  const scrollToTopUp = () => {
+    document.getElementById('topup-amount')?.focus({ preventScroll: false });
+    document.getElementById('topup-amount')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
+  // Floor comes from the server (Pricing.minRecharge, admin-editable) — the
+  // 1000 here is only the pre-fetch placeholder. No forced plan pick —
+  // single plan auto-applies on every recharge.
+  // TODO(multi-plan-restore): restore default floor 200 + plan-pick redirect.
+  const [minRecharge, setMinRecharge] = useState(1000);
+  // ?amount= prefill counts as user-chosen: the live floor must never
+  // overwrite it (or anything the partner typed) once pricing loads.
+  let queryAmount = null;
+  try {
+    const q = new URLSearchParams(window.location.search).get('amount');
+    if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) queryAmount = q;
+  } catch { /* ignore */ }
+  const [amount, setAmount] = useState(queryAmount || '1000');
+  const amountTouchedRef = useRef(!!queryAmount);
+  const [amountError, setAmountError] = useState('');
+  // First funding ever -> plan auto-assigned by slab on the backend.
+  const [firstTimer, setFirstTimer] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [payBanner, setPayBanner] = useState(null); // { tone: 'success'|'error', text }
+  // Shortfall notice when arriving with a prefilled amount.
+  // (Legacy ?forPlan= param is ignored — no plan selection in single-plan mode.)
+  const [forPlanNotice, setForPlanNotice] = useState('');
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const amt = q.get('amount');
+      if (amt && Number(amt) > 0) {
+        setForPlanNotice(`Top up ${inr2(Number(amt))} or more — the single plan applies automatically. See Pricing for all rates.`);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
-  const handleCustomChange = (e) => {
+  const parsedAmount = parseFloat(amount) || 0;
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/partner/pricing/plans`)
+      .then(({ data }) => {
+        if (data?.success && data.data?.minRecharge != null) {
+          setMinRecharge(data.data.minRecharge);
+          // Sync the amount box to the live floor — but never clobber a
+          // ?amount= prefill or anything the partner already typed.
+          if (!amountTouchedRef.current) setAmount(String(data.data.minRecharge));
+        }
+      })
+      .catch(() => { /* default floor stays */ });
+    const t = localStorage.getItem('token');
+    if (t) {
+      axios.get(`${API_BASE_URL}/partner/overview/summary`, { headers: { Authorization: `Bearer ${t}` } })
+        .then(({ data }) => {
+          if (data?.success) setFirstTimer(!data.data?.lastRecharge);
+        })
+        .catch(() => setFirstTimer(false));
+    } else {
+      setFirstTimer(false);
+    }
+  }, []);
+
+  const handleAmountChange = (e) => {
     const val = e.target.value;
     if (/^\d*\.?\d{0,2}$/.test(val)) {
-      setCustomAmount(val);
-      setSelectedPreset(null);
+      amountTouchedRef.current = true;
+      setAmount(val);
       setAmountError('');
-      setQrReady(false);
     }
   };
 
   const handleProceed = () => {
-    const amt = parseFloat(customAmount) || 0;
-    if (amt < MIN_AMOUNT) {
-      setAmountError(`Minimum recharge amount is ₹${MIN_AMOUNT.toLocaleString('en-IN')}`);
+    const amt = parseFloat(amount) || 0;
+    if (amt < minRecharge) {
+      setAmountError(`Minimum top-up is ₹${Number(minRecharge).toLocaleString('en-IN')}`);
       return;
     }
     setAmountError('');
-    if (activeMethod === 'upi') {
-      setQrReady(true);
-    } else {
-      alert(`Redirecting to payment gateway for ₹${amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+    setPayBanner(null);
+    // Gateway is the only way to add funds — pure wallet top-up, no plan attached
+    handleGatewayPay(amt);
+  };
+
+  const handleGatewayPay = async (amt) => {
+    try {
+      setPaying(true);
+      const sdkOk = await loadRazorpayScript();
+      if (!sdkOk || !window.Razorpay) {
+        setPayBanner({ tone: 'error', text: 'Payment gateway failed to load. Check your connection and retry.' });
+        setPaying(false);
+        return;
+      }
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const { data } = await axios.post(
+        `${API_BASE_URL}/wallet-recharge/payment`,
+        { amount: amt },
+        { headers },
+      );
+      if (!data?.success || !data?.orderId || !data?.keyId) {
+        setPayBanner({ tone: 'error', text: data?.message || 'Could not start payment. Please retry.' });
+        setPaying(false);
+        return;
+      }
+      const createdOrderId = data.orderId;
+      // Best-effort: resolve our PENDING row so a dismissed/failed checkout
+      // shows Failed instead of sitting in history as Pending forever.
+      // Silent on failure; server only flips PENDING rows (SUCCESS untouched,
+      // and a same-order retry can still verify to SUCCESS afterwards).
+      const markOrderCancelled = () => {
+        axios.post(`${API_BASE_URL}/wallet-recharge/cancel`, { orderId: createdOrderId }, { headers })
+          .catch(() => { /* non-fatal — row stays Pending until retried */ });
+      };
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        order_id: createdOrderId,
+        name: 'Verify Hub',
+        description: `Wallet recharge ₹${Number(amt).toLocaleString('en-IN')}`,
+        // Absolute platform logo for the checkout header (public/Logo.jpeg —
+        // stable path; Razorpay requires an absolute URL, so derive the
+        // deployed origin at runtime). Overrides any dashboard brand logo.
+        image: `${window.location.origin}/Logo.jpeg`,
+        prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
+        theme: { color: '#3730A3' },
+        handler: async (resp) => {
+          try {
+            const verifyRes = await axios.post(`${API_BASE_URL}/verify/payment`, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            }, { headers });
+            if (verifyRes.data?.success) {
+              const newBalance = verifyRes.data.walletBalance;
+              const newPlan = verifyRes.data.activePlan;
+              // Single-plan mode: no plan pick — recharge lands on the single
+              // plan automatically. TODO(multi-plan-restore): restore needsPlan redirect.
+              if (user && token && newBalance != null) {
+                login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: false }, token);
+              }
+              // First top-up gets an unlock confirmation (reinforces the highlight line).
+              const unlockedNote = firstTimer ? ' All services unlocked — bureau reports, AI analysis, RC & GST verification.' : '';
+              setPayBanner({
+                tone: 'success',
+                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? amt)}.${unlockedNote}`,
+              });
+              if (verifyRes.data.autoAssigned) setFirstTimer(false);
+              // First successful credit: swap the sidebar to Pricing at once.
+              setHasToppedUp?.(true);
+            } else {
+              setPayBanner({ tone: 'error', text: verifyRes.data?.message || 'Payment verification failed.' });
+            }
+          } catch (err) {
+            console.error('Verify payment error:', err);
+            setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Payment verification failed.' });
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: { ondismiss: () => { markOrderCancelled(); setPaying(false); } },
+      });
+      rzp.on('payment.failed', () => { markOrderCancelled(); setPaying(false); });
+      rzp.open();
+    } catch (err) {
+      console.error('Gateway payment error:', err);
+      setPayBanner({ tone: 'error', text: err?.response?.data?.message || 'Could not start payment. Please retry.' });
+      setPaying(false);
     }
   };
 
-  const formatINR = (val) => {
-    const num = parseFloat(val) || 0;
-    return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const agentCode = user?.partner_id || user?.partnerId || user?.id || user?._id || '—';
 
   return (
     <Box>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
+      {/* Professional header */}
+      <Card
+        ref={headerRef}
+        elevation={0}
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '12px',
+          mb: 3,
+          background: 'linear-gradient(135deg, #F4F1FF 0%, #EEF2FF 55%, #ECFDF5 100%)',
+          boxShadow: '0 2px 12px rgba(15,27,45,.06)',
+        }}
+      >
+        <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              width: 56, height: 56, borderRadius: '16px', flexShrink: 0,
+              bgcolor: '#EDE9FE', color: '#6D28D9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Wallet size={30} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', color: 'text.primary', mb: 0.5 }}
+            >
+              Add Funds
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
+              Agent: {user?.name || 'Partner'} · Code: {agentCode}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.25, flexShrink: 0,
+              bgcolor: '#ECFDF5', border: '1.5px solid #A7F3D0', pl: 1, pr: 2, py: 1, borderRadius: 999,
+              boxShadow: '0 2px 8px rgba(5,150,105,.15)', whiteSpace: 'nowrap',
+            }}
+          >
+            <Box
+              sx={{
+                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                bgcolor: '#059669', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Wallet size={17} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#047857', lineHeight: 1, letterSpacing: '0.04em' }}>
+                WALLET
+              </Typography>
+              <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#065F46', lineHeight: 1.25 }}>
+                {inr2(user?.walletBalance ?? 0)}
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+        {/* Banner image nested inside the header (shown always). The PNG
+            carries baked-in black bars (~14.7% top/bottom, measured 108–614 of
+            725px), so the frame crops to the live banner region via matching
+            aspect ratio + cover. */}
+          <Box sx={{ px: { xs: 2, sm: 4 }, pb: { xs: 1.5, sm: 2 } }}>
+            <Box
+              sx={{
+                position: 'relative', width: '100%', aspectRatio: '2170 / 506',
+                overflow: 'hidden', borderRadius: '12px',
+                boxShadow: '0 6px 24px rgba(76,29,149,.18)', bgcolor: '#4C1D95',
+              }}
+            >
+              <Box
+                component="img"
+                src="/Add_Funds_banner.png"
+                alt="One top-up unlocks everything — starting at just ₹10"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', transform: 'scale(1.04)' }}
+              />
+            </Box>
+          </Box>
+      </Card>
+
+      {/* Sticky reminder — shows once the header scrolls away (first-timers only). */}
+      {hasToppedUp === false && showStrip && (
+        <Box
           sx={{
-            fontWeight: 800,
-            fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-            color: 'text.primary',
-            mb: 0.5,
+            position: 'sticky', top: 76, zIndex: 5,
+            mb: 2, p: 1.25, pl: 2, pr: 1.25, borderRadius: '10px',
+            bgcolor: '#fff', border: '1px solid', borderColor: 'divider',
+            boxShadow: '0 4px 16px rgba(15,27,45,.10)',
+            display: 'flex', alignItems: 'center', gap: 1.5,
           }}
         >
-          Add Funds
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1rem' }}>
-          Recharge your wallet instantly. Funds reflect within seconds of a successful payment.
-        </Typography>
-      </Box>
+          <Sparkles size={16} color="#7C3AED" style={{ flexShrink: 0 }} />
+          <Typography
+            sx={{
+              fontWeight: 600, fontSize: '0.85rem', flexGrow: 1, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            One top-up unlocks everything —{' '}
+            <Box component="span" sx={{ fontWeight: 800, color: '#3730A3' }}>
+              starting at just ₹10
+            </Box>
+          </Typography>
+          <Button
+            size="small" variant="contained" disableElevation onClick={scrollToTopUp}
+            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2 }}
+          >
+            Top up now
+          </Button>
+        </Box>
+      )}
 
       {/* Two-column layout */}
       <Grid container spacing={3} sx={{ alignItems: 'flex-start' }}>
-        {/* Left Column: Recharge Amount */}
+        {/* Left: amount + pay */}
         <Grid size={{ xs: 12, md: 8, lg: 7 }}>
           <Card
             elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: '12px',
-              boxShadow: '0 2px 12px rgba(15,27,45,.06)',
-            }}
+            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', boxShadow: '0 2px 12px rgba(15,27,45,.06)' }}
           >
             <CardContent sx={{ p: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, mb: 2.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
-              >
-                Recharge Amount
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
+                Top up your wallet
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
+                Full amount lands in your wallet. The single plan applies automatically — only generated reports are charged. See Pricing for all rates.
               </Typography>
 
-              {/* Preset Amount Buttons */}
-              <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-                {PRESET_AMOUNTS.map((amount) => {
-                  const isSelected = selectedPreset === amount;
-                  return (
-                    <Grid size={{ xs: 6, sm: 3 }} key={amount}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        onClick={() => handlePresetClick(amount)}
-                        sx={{
-                          borderRadius: '10px',
-                          fontWeight: 700,
-                          fontSize: '1rem',
-                          py: 1.5,
-                          px: 1,
-                          borderColor: isSelected ? '#3730A3' : '#E2E8F0',
-                          color: isSelected ? '#3730A3' : 'text.secondary',
-                          bgcolor: isSelected ? '#EEF2FF' : '#fff',
-                          fontFamily: '"Inter", sans-serif',
-                          transition: 'all 0.18s ease',
-                          '&:hover': {
-                            borderColor: '#3730A3',
-                            color: '#3730A3',
-                            bgcolor: '#EEF2FF',
-                          },
-                        }}
-                      >
-                        ₹{amount.toLocaleString('en-IN')}
-                      </Button>
-                    </Grid>
-                  );
-                })}
-              </Grid>
+              {firstTimer && (
+                <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                  Your first top-up of ₹1,000+ activates the single launch plan automatically — free, full amount credited.
+                </Alert>
+              )}
 
-              {/* Custom Amount Input */}
+              {forPlanNotice && (
+                <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                  {forPlanNotice}
+                </Alert>
+              )}
+
               <TextField
                 fullWidth
-                label="Custom amount (₹)"
-                value={customAmount}
-                onChange={handleCustomChange}
+                id="topup-amount"
+                label="Top-up amount (₹)"
+                value={amount}
+                onChange={handleAmountChange}
                 error={!!amountError}
-                helperText={
-                  amountError || 'Minimum recharge ₹500 · No convenience fee on UPI'
-                }
+                helperText={amountError || undefined}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -166,11 +378,7 @@ const AddFunds = () => {
                         </Typography>
                       </InputAdornment>
                     ),
-                    sx: {
-                      fontSize: '1.15rem',
-                      fontWeight: 600,
-                      fontFamily: '"Inter", sans-serif',
-                    },
+                    sx: { fontSize: '1.15rem', fontWeight: 600, fontFamily: '"Inter", sans-serif' },
                   },
                   formHelperText: {
                     sx: { color: amountError ? 'error.main' : 'text.secondary', mt: 0.75 },
@@ -179,318 +387,71 @@ const AddFunds = () => {
                 sx={{ mb: 2.5 }}
               />
 
-              {/* Payment Method Tiles */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                {[
-                  {
-                    id: 'upi',
-                    icon: <QrCode2 sx={{ fontSize: 22 }} />,
-                    title: 'UPI / QR Code',
-                    sub: 'Scan & pay — instant credit',
-                  },
-                  {
-                    id: 'gateway',
-                    icon: <CreditCard sx={{ fontSize: 22 }} />,
-                    title: 'Payment Gateway',
-                    sub: 'Cards · Net banking · Wallets',
-                  },
-                ].map((method) => {
-                  const isActive = activeMethod === method.id;
-                  return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={method.id}>
-                      <Paper
-                        onClick={() => setActiveMethod(method.id)}
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          borderRadius: '10px',
-                          border: '2px solid',
-                          borderColor: isActive ? '#3730A3' : '#E2E8F0',
-                          bgcolor: isActive ? '#EEF2FF' : '#FAFAFA',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          transition: 'all 0.18s ease',
-                          '&:hover': { borderColor: '#3730A3', bgcolor: '#EEF2FF' },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: '8px',
-                            bgcolor: isActive ? '#C7D2FE' : '#F1F5F9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            color: isActive ? '#3730A3' : '#64748B',
-                          }}
-                        >
-                          {method.icon}
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-                            {method.title}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {method.sub}
-                          </Typography>
-                        </Box>
-                        {isActive && <CheckCircle sx={{ color: '#3730A3', fontSize: 18 }} />}
-                      </Paper>
-                    </Grid>
-                  );
-                })}
-              </Grid>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2, textAlign: 'center' }}>
+                Secured via Razorpay · Cards · Net banking · UPI · Wallets
+              </Typography>
 
-              {/* CTA Button */}
+              {payBanner && (
+                <Alert severity={payBanner.tone} onClose={() => setPayBanner(null)} sx={{ mb: 2, borderRadius: '10px' }}>
+                  {payBanner.text}
+                </Alert>
+              )}
+
               <Button
                 fullWidth
                 size="large"
                 onClick={handleProceed}
+                disabled={paying}
                 sx={{
-                  background:
-                    parsedAmount >= MIN_AMOUNT
-                      ? '#3730A3'
-                      : '#E2E8F0',
-                  color: parsedAmount >= MIN_AMOUNT ? '#fff' : '#94A3B8',
+                  background: '#3730A3',
+                  color: '#fff',
                   py: 1.75,
                   borderRadius: '10px',
                   fontSize: '1.05rem',
                   fontWeight: 700,
                   fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                  boxShadow:
-                    parsedAmount >= MIN_AMOUNT
-                      ? '0 4px 16px rgba(55,48,163,.35)'
-                      : 'none',
+                  boxShadow: '0 4px 16px rgba(55,48,163,.35)',
                   transition: 'all 0.2s ease',
-                  cursor: parsedAmount >= MIN_AMOUNT ? 'pointer' : 'not-allowed',
                   '&:hover': {
-                    background:
-                      parsedAmount >= MIN_AMOUNT
-                        ? '#312E81'
-                        : '#E2E8F0',
-                    transform: parsedAmount >= MIN_AMOUNT ? 'translateY(-1px)' : 'none',
-                    boxShadow:
-                      parsedAmount >= MIN_AMOUNT
-                        ? '0 6px 20px rgba(55,48,163,.45)'
-                        : 'none',
+                    background: '#312E81',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 6px 20px rgba(55,48,163,.45)',
                   },
                 }}
               >
-                {parsedAmount >= MIN_AMOUNT
-                  ? `Proceed to Pay ₹${formatINR(customAmount)}`
-                  : parsedAmount > 0
-                  ? `Minimum ₹${MIN_AMOUNT.toLocaleString('en-IN')} required`
-                  : 'Enter an amount to proceed'}
+                {paying ? 'Processing payment…' : `Add ₹${Number(parsedAmount).toLocaleString('en-IN')}`}
               </Button>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Right Column: Pay via UPI QR */}
+        {/* Right: order summary */}
         <Grid size={{ xs: 12, md: 4, lg: 5 }}>
           <Card
             elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: '12px',
-              boxShadow: '0 2px 12px rgba(15,27,45,.06)',
-            }}
+            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', boxShadow: '0 2px 12px rgba(15,27,45,.06)' }}
           >
             <CardContent sx={{ p: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, mb: 2.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}
-              >
-                Pay via UPI QR
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
+                Order Summary
               </Typography>
-
-              {/* QR Code Box */}
-              <Box
-                sx={{
-                  width: '100%',
-                  aspectRatio: '1 / 1',
-                  maxWidth: 240,
-                  mx: 'auto',
-                  mb: 2.5,
-                  borderRadius: '12px',
-                  border: '2px dashed',
-                  borderColor: qrReady ? '#3730A3' : '#CBD5E1',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#F8FAFC',
-                  transition: 'border-color 0.3s ease',
-                }}
-              >
-                {qrReady ? (
-                  <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
-                    <svg
-                      width="100%"
-                      height="100%"
-                      viewBox="0 0 200 200"
-                      xmlns="http://www.w3.org/2000/svg"
-                      style={{ display: 'block' }}
-                    >
-                      <rect width="200" height="200" fill="#fff" />
-                      {/* Top-left position marker */}
-                      <rect x="10" y="10" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="18" y="18" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="24" y="24" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Top-right position marker */}
-                      <rect x="140" y="10" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="148" y="18" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="154" y="24" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Bottom-left position marker */}
-                      <rect x="10" y="140" width="50" height="50" rx="4" fill="#0A1628" />
-                      <rect x="18" y="148" width="34" height="34" rx="2" fill="#fff" />
-                      <rect x="24" y="154" width="22" height="22" rx="2" fill="#0A1628" />
-                      {/* Data modules */}
-                      {[
-                        [70,70],[80,70],[90,70],[110,70],[130,70],
-                        [70,80],[100,80],[120,80],[130,80],
-                        [80,90],[90,90],[110,90],[120,90],
-                        [70,100],[90,100],[100,100],[110,100],[130,100],
-                        [80,110],[90,110],[120,110],[130,110],
-                        [70,120],[100,120],[110,120],
-                        [80,130],[90,130],[110,130],[120,130],[130,130],
-                      ].map(([x, y], i) => (
-                        <rect key={i} x={x} y={y} width="8" height="8" fill="#0A1628" rx="1" />
-                      ))}
-                      {/* Green center logo circle */}
-                      <circle cx="100" cy="100" r="14" fill="#fff" />
-                      <circle cx="100" cy="100" r="10" fill="#3730A3" />
-                      <text x="100" y="104" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">V</text>
-                    </svg>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700, fontSize: '0.8rem' }}>
-                        ₹{formatINR(customAmount)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(9, 1fr)',
-                        gap: '3px',
-                        mb: 1.5,
-                        opacity: 0.2,
-                        mx: 'auto',
-                        width: 'fit-content',
-                      }}
-                    >
-                      {[...Array(81)].map((_, i) => (
-                        <Box
-                          key={i}
-                          sx={{
-                            width: 10,
-                            height: 10,
-                            bgcolor: (i + Math.floor(i / 9)) % 2 === 0 ? '#0A1628' : 'transparent',
-                            borderRadius: '1px',
-                          }}
-                        />
-                      ))}
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.5, display: 'block' }}
-                    >
-                      UPI QR renders here after
-                      <br />
-                      amount is confirmed
-                    </Typography>
-                  </Box>
-                )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet credit</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>+{inr2(parsedAmount)}</Typography>
               </Box>
-
-              {/* UPI ID row */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  bgcolor: '#F8FAFC',
-                  borderRadius: '8px',
-                  px: 2,
-                  py: 1.25,
-                  mb: 2,
-                  border: '1px solid #E2E8F0',
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                    UPI ID
-                  </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", "Roboto Mono", monospace' }}
-                  >
-                    {UPI_ID}
-                  </Typography>
-                </Box>
-                <Chip
-                  label="Copy"
-                  size="small"
-                  onClick={() => navigator.clipboard?.writeText(UPI_ID)}
-                  sx={{
-                    bgcolor: '#EEF2FF',
-                    color: '#3730A3',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: '#C7D2FE' },
-                  }}
-                />
+              <Divider sx={{ my: 1.5 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Total payable</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr2(parsedAmount)}</Typography>
               </Box>
-
-              <Divider sx={{ mb: 2 }} />
-
-              {/* Partner ID callout */}
-              <Alert
-                icon={<Info sx={{ fontSize: 18 }} />}
-                severity="warning"
-                sx={{
-                  bgcolor: '#FFFBEB',
-                  border: '1px solid #FDE68A',
-                  borderRadius: '10px',
-                  '& .MuiAlert-icon': { color: '#D97706', alignItems: 'flex-start', pt: 0.5 },
-                  '& .MuiAlert-message': { lineHeight: 1.5 },
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 500, color: '#92400E' }}>
-                  Add your Partner ID{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      fontWeight: 800,
-                      fontFamily: '"JetBrains Mono", "Roboto Mono", monospace',
-                      bgcolor: '#FEF3C7',
-                      px: 0.75,
-                      py: 0.15,
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {user?.partnerId || user?.id || user?._id || 'Pending'}
-                  </Box>{' '}
-                  in the payment note so credit is matched automatically.
-                </Typography>
-              </Alert>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                GST-inclusive — no extra tax at checkout.
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
+                {firstTimer
+                  ? 'The single launch plan is assigned free on your first ₹1,000+ top-up.'
+                  : 'Full amount lands in your wallet. See Pricing for all rates.'}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

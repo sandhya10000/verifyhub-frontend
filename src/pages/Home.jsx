@@ -8,6 +8,93 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import './Home.css';
 import shieldImg from '../assets/verifyhub_shield_high_quality.png';
 
+/* ================= BUREAU CARDS DATA ================= */
+const BUREAU_CARDS = [
+  { key: 'cibil',    name: 'CIBIL',      title: 'Credit Information Bureau', live: true, color: 'var(--blue)', arrow: 'var(--green)',  glow: 'rgba(59,130,246,.08)' },
+  { key: 'experian', name: '✦ Experian', title: 'Experian',                  live: true,  color: '#9b2bc7',     arrow: 'var(--green)', glow: 'rgba(155,43,199,.07)', to: '/credit-bureau-api' },
+  { key: 'equifax',  name: 'EQUIFAX',    title: 'Equifax',                   live: true, color: '#e31837',    arrow: 'var(--green)', glow: 'rgba(227,24,55,.06)' },
+  { key: 'crif',     name: '≋ CRIF',     title: 'CRIF',                      live: true,  color: '#26364d',     arrow: 'var(--green)', glow: 'rgba(16,185,129,.07)', to: '/credit-bureau-api' },
+];
+
+const arrowStyle = (b) => ({
+  position: 'absolute',
+  right: '20px',
+  bottom: '18px',
+  width: '32px',
+  height: '32px',
+  borderRadius: '50%',
+  border: `1px solid ${b.live ? 'var(--green)' : '#d9e3f1'}`,
+  display: 'grid',
+  placeItems: 'center',
+  color: b.arrow,
+  fontSize: '15px',
+  textDecoration: 'none',
+});
+
+const BureauGrid = ({ addToRevealRefs }) => (
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+      gap: { xs: '14px', md: '18px' },
+    }}
+  >
+    {BUREAU_CARDS.map((b) => (
+      <Box
+        key={b.key}
+        className="pcard reveal"
+        ref={addToRevealRefs}
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          background: '#fff',
+          p: { xs: '20px', md: '26px' },
+          minHeight: { xs: 'auto', md: '210px' },
+          border: '1px solid #e2e9f3',
+          borderRadius: '18px',
+          boxShadow: '0 10px 30px rgba(31,50,90,.06)',
+        }}
+      >
+        <span
+          className="badge-new"
+          style={
+            b.live
+              ? { background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid rgba(16,185,129,.4)' }
+              : { background: '#f4f6f9', color: '#64748b', border: '1px solid #dce3ec' }
+          }
+        >
+          {b.live ? '● Live' : 'Coming Soon'}
+        </span>
+
+        <div style={{ marginTop: '18px', fontSize: '20px', fontWeight: 800, color: b.color }}>{b.name}</div>
+        <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--slate)' }}>{b.title}</div>
+        <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--slate-lt)' }}>Score & full report analysis</div>
+
+        {b.live ? (
+          <RouterLink to={b.to} aria-label={`Learn more about ${b.title}`} className="arrow-link" style={arrowStyle(b)}>
+            →
+          </RouterLink>
+        ) : (
+          <div aria-hidden="true" style={arrowStyle(b)}>→</div>
+        )}
+
+        <div
+          style={{
+            position: 'absolute',
+            left: '-15px',
+            bottom: '-35px',
+            width: '150px',
+            height: '80px',
+            borderRadius: '50%',
+            background: b.glow,
+            filter: 'blur(3px)',
+          }}
+        />
+      </Box>
+    ))}
+  </Box>
+);
+
 const Home = () => {
   const revealRefs = useRef([]);
   const countRefs = useRef([]);
@@ -269,7 +356,6 @@ const Home = () => {
       </section>
 
       {/* ================= BUREAU COVERAGE ================= */}
-      {/* ================= BUREAU COVERAGE ================= */}
       <Box
         component="section"
         id="integrations"
@@ -421,7 +507,7 @@ const Home = () => {
                 <Box sx={{ width: '1px', height: '30px', background: 'var(--line)' }} />
 
                 <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>2</Box>
+                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>4</Box>
                   <Box sx={{ fontSize: { xs: '11px', md: '12px' }, color: 'var(--slate-lt)', mt: 0.5 }}>Live connections</Box>
                 </Box>
 
@@ -711,262 +797,7 @@ const Home = () => {
           </Box>
 
           {/* ================= BUREAU CARDS ================= */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(4, 1fr)',
-              },
-              gap: { xs: '14px', md: '18px' },
-            }}
-          >
-
-            {/* CIBIL */}
-            <Box
-              className="pcard reveal"
-              ref={addToRevealRefs}
-              sx={{
-                position: 'relative',
-                overflow: 'hidden',
-                background: '#fff',
-                p: { xs: '20px', md: '26px' },
-                minHeight: { xs: 'auto', md: '210px' },
-                border: '1px solid #e2e9f3',
-                borderRadius: '18px',
-                boxShadow: '0 10px 30px rgba(31,50,90,.06)',
-              }}
-            >
-              <span
-                className="badge-new"
-                style={{ background: '#f4f6f9', color: '#64748b', border: '1px solid #dce3ec' }}
-              >
-                Coming Soon
-              </span>
-              <div style={{ marginTop: '18px', fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
-                CIBIL
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--slate)' }}>
-                Credit Information Bureau
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--slate-lt)' }}>
-                Score & full report analysis
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '20px',
-                  bottom: '18px',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '1px solid #d9e3f1',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--blue)',
-                  fontSize: '15px',
-                }}
-              >
-                →
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '-15px',
-                  bottom: '-35px',
-                  width: '150px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: 'rgba(59,130,246,.08)',
-                  filter: 'blur(3px)',
-                }}
-              />
-            </Box>
-
-            {/* EXPERIAN */}
-            <Box
-              className="pcard reveal"
-              ref={addToRevealRefs}
-              sx={{
-                position: 'relative',
-                overflow: 'hidden',
-                background: '#fff',
-                p: { xs: '20px', md: '26px' },
-                minHeight: { xs: 'auto', md: '210px' },
-                border: '1px solid #e2e9f3',
-                borderRadius: '18px',
-                boxShadow: '0 10px 30px rgba(31,50,90,.06)',
-              }}
-            >
-              <span
-                className="badge-new"
-                style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid rgba(16,185,129,.4)' }}
-              >
-                ● Live
-              </span>
-              <div style={{ marginTop: '18px', fontSize: '20px', fontWeight: 800, color: '#9b2bc7' }}>
-                ✦ Experian
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--slate)' }}>
-                Experian
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--slate-lt)' }}>
-                Score & full report analysis
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '20px',
-                  bottom: '18px',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '1px solid var(--green)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--green)',
-                  fontSize: '15px',
-                }}
-              >
-                →
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '-15px',
-                  bottom: '-35px',
-                  width: '150px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: 'rgba(155,43,199,.07)',
-                  filter: 'blur(3px)',
-                }}
-              />
-            </Box>
-
-            {/* EQUIFAX */}
-            <Box
-              className="pcard reveal"
-              ref={addToRevealRefs}
-              sx={{
-                position: 'relative',
-                overflow: 'hidden',
-                background: '#fff',
-                p: { xs: '20px', md: '26px' },
-                minHeight: { xs: 'auto', md: '210px' },
-                border: '1px solid #e2e9f3',
-                borderRadius: '18px',
-                boxShadow: '0 10px 30px rgba(31,50,90,.06)',
-              }}
-            >
-              <span
-                className="badge-new"
-                style={{ background: '#f4f6f9', color: '#64748b', border: '1px solid #dce3ec' }}
-              >
-                Coming Soon
-              </span>
-              <div style={{ marginTop: '18px', fontSize: '20px', fontWeight: 800, color: '#e31837' }}>
-                EQUIFAX
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--slate)' }}>
-                Equifax
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--slate-lt)' }}>
-                Score & full report analysis
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '20px',
-                  bottom: '18px',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '1px solid #d9e3f1',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--slate)',
-                  fontSize: '15px',
-                }}
-              >
-                →
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '-15px',
-                  bottom: '-35px',
-                  width: '150px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: 'rgba(227,24,55,.06)',
-                  filter: 'blur(3px)',
-                }}
-              />
-            </Box>
-
-            {/* CRIF */}
-            <Box
-              className="pcard reveal"
-              ref={addToRevealRefs}
-              sx={{
-                position: 'relative',
-                overflow: 'hidden',
-                background: '#fff',
-                p: { xs: '20px', md: '26px' },
-                minHeight: { xs: 'auto', md: '210px' },
-                border: '1px solid #e2e9f3',
-                borderRadius: '18px',
-                boxShadow: '0 10px 30px rgba(31,50,90,.06)',
-              }}
-            >
-              <span
-                className="badge-new"
-                style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid rgba(16,185,129,.4)' }}
-              >
-                ● Live
-              </span>
-              <div style={{ marginTop: '18px', fontSize: '20px', fontWeight: 800, color: '#26364d' }}>
-                ≋ CRIF
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--slate)' }}>
-                CRIF
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--slate-lt)' }}>
-                Score & full report analysis
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '20px',
-                  bottom: '18px',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '1px solid var(--green)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--green)',
-                  fontSize: '15px',
-                }}
-              >
-                →
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '-15px',
-                  bottom: '-35px',
-                  width: '150px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: 'rgba(16,185,129,.07)',
-                  filter: 'blur(3px)',
-                }}
-              />
-            </Box>
-          </Box>
+          <BureauGrid addToRevealRefs={addToRevealRefs} />
 
         </div>
       </Box>

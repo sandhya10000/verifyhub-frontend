@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Skeleton,
+  Box, Typography, Grid, Paper, Skeleton, Button, Chip,
+  List, ListItem, ListItemText, Divider,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { format } from "date-fns";
+import {
+  RefreshCw, Download, FileText, Wallet,
+    Percent, AlertTriangle, Ticket, Bot, Building2, Plus, CircleDot,
+} from "lucide-react";
 import useAuth from "../../context/useAuth";
-import StatCard from "../../Components/shared/StatCard";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
-import { CircleDot, Wallet } from "lucide-react";
+import { KpiCard, ChartCard, TrendChart, timeAgo } from "../../Components/partner/PartnerWidgets";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const API = (path) => {
+  const base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+};
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+const inrShort = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+
+const LOW_BALANCE_AT = 500;
 
 const formatName = (name = "") => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return name.trim().toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 const getGreeting = () => {
@@ -35,509 +36,397 @@ const getGreeting = () => {
   return "Good evening";
 };
 
-/**
- * Converts a 7-element trend array [{ date, count }] into an SVG <path> d string
- * that fits a 120×32 viewBox. Missing / all-zero data falls back to a flat line.
- */
-const buildSparklinePath = (trend) => {
-  if (!trend || trend.length === 0) {
-    return "M 0,26 L 112,26"; // flat line fallback
-  }
-  const counts = trend.map((t) => t.count);
-  const max = Math.max(...counts, 1); // avoid div/0
-  const W = 112,
-    H = 28,
-    PAD = 4; // drawable area
-  const points = counts.map((c, i) => {
-    const x = (i / (counts.length - 1)) * W;
-    const y = PAD + (1 - c / max) * H;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  return `M ${points.join(" L ")}`;
+const arrowDelta = (pct) => {
+  if (pct == null) return "";
+  return `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}%`;
 };
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+const QUICK_PULLS = [
+  { label: "Experian", sub: "Credit report", path: "/partner/credit-reports/experian", icon: <Building2 size={18} />, bg: "#EFF6FF", fg: "#3B82F6" },
+  { label: "CRIF", sub: "Credit report", path: "/partner/credit-reports/crif", icon: <Building2 size={18} />, bg: "#F5F3FF", fg: "#8B5CF6" },
+  { label: "CIBIL", sub: "Credit report", path: "/partner/credit-reports/cibil", icon: <Building2 size={18} />, bg: "#ECFDF5", fg: "#10B981" },
+  { label: "Equifax", sub: "Credit report", path: "/partner/credit-reports/equifax", icon: <Building2 size={18} />, bg: "#ECFEFF", fg: "#06B6D4" },
+  { label: "AI Analysis", sub: "Smart insights", path: "/partner/ai-analyzer", icon: <Bot size={18} />, bg: "#EEF2FF", fg: "#4F46E5" },
+  { label: "Add Funds", sub: "Top up wallet", path: "/partner/add-funds", icon: <Plus size={18} />, bg: "#FFF7ED", fg: "#F59E0B" },
+];
 
-const Dashboard = () => {
+const PartnerDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token, login, logout } = useAuth();
 
-  // ── Report stats fetched from  /ai-analyzer/stats ────────────────────
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [todayCount, setTodayCount] = useState(null);
-  const [monthCount, setMonthCount] = useState(null);
-  const [aiToday, setAiToday] = useState(null);
-  const [aiMonth, setAiMonth] = useState(null);
-  const [todayTrend, setTodayTrend] = useState([]);
-  const [monthTrend, setMonthTrend] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
+  const [range, setRange] = useState(14);
+  const [metric, setMetric] = useState("reports"); // reports | spend
+  const [trend, setTrend] = useState([]);
+  const [recent, setRecent] = useState({ pulls: [], recentTxns: [], recentTickets: [] });
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-        const res = await axios.get(`${API_BASE_URL}/ai-analyzer/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data.success) {
-          // Prefer the new combined keys; fall back to legacy todayCount/monthCount
-          setTodayCount(res.data.totalToday ?? res.data.todayCount);
-          setMonthCount(res.data.totalMonth ?? res.data.monthCount);
-          setAiToday(res.data.aiToday ?? null);
-          setAiMonth(res.data.aiMonth ?? null);
-          setTodayTrend(res.data.todayTrend || []);
-          setMonthTrend(res.data.monthTrend || []);
+  const fetchAll = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      setErr(false);
+      const h = authHeaders();
+      const [sm, t, rc] = await Promise.all([
+        axios.get(API("/partner/overview/summary"), { headers: h }).then((r) => r.data),
+        axios.get(API(`/partner/overview/timeseries?days=${range}`), { headers: h }).then((r) => r.data),
+        axios.get(API("/partner/overview/recent"), { headers: h }).then((r) => r.data),
+      ]);
+      if (sm.success) {
+        setSummary(sm.data);
+        // Fix stale wallet balance from login-time context
+        if (user && token && sm.data.walletBalance !== user.walletBalance) {
+          login({ ...user, walletBalance: sm.data.walletBalance }, token);
         }
-      } catch (err) {
-        console.error("Failed to fetch report stats:", err);
-        // Leave counts as null — empty states will render
-      } finally {
-        setStatsLoading(false);
+      } else setErr(true);
+      if (t.success) setTrend(t.data);
+      if (rc.success) setRecent(rc.data);
+      setUpdatedAt(new Date());
+    } catch (e) {
+      console.error("Partner dashboard fetch failed:", e);
+      // Stale/dead token (account deleted, wrong DB, expired session):
+      // drop the session and send the partner back to login instead of
+      // rendering a broken dashboard.
+      if (e?.response?.status === 401) {
+        logout();
+        navigate("/login", { replace: true });
+        return;
       }
-    };
-    fetchStats();
-  }, []);
+      setErr(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
-  // These will be replaced with real API responses when the backend is ready.
-  // Pass empty arrays / null so the UI renders its empty states immediately.
-  const recentPulls = []; // TODO: fetch from /api/partner/pulls?limit=5
-  const activityFeed = []; // TODO: fetch from /api/partner/activity?limit=10
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const walletBalance =
-    user?.walletBalance != null
-      ? `₹${Number(user.walletBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-      : "₹0.00";
+  const exportCsv = () => {
+    const rows = [
+      ["Date", "Reports", "Spend"],
+      ...trend.map((d) => [d.date, d.reports, d.spend]),
+    ].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "my-activity.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
-  const columns = [
+  const s = summary || {};
+  const openTotal = (s.openTickets ?? 0) + (s.inProgressTickets ?? 0);
+  const lowWallet = (s.walletBalance ?? 0) < LOW_BALANCE_AT;
+
+  // Single KPI strip: Reports · Wallet · Success · Failed · Tickets (5 across)
+  const kpiRow = [
     {
-      header: "Customer",
-      field: "customerName",
-      render: (row) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {row.customerName}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", letterSpacing: 1 }}
-          >
-            {row.pan}
-          </Typography>
-        </Box>
-      ),
+      icon: <FileText size={18} />, iconBg: "#EFF6FF", iconColor: "#3B82F6",
+      title: "Reports", value: err ? "—" : `${s.reportsToday ?? 0} / ${s.reportsThisMonth ?? 0}`,
+      delta: arrowDelta(s.todayDeltaPct), deltaTone: (s.todayDeltaPct ?? 0) >= 0 ? "up" : "down",
+      subtitle: `Today / This month · ${s.failedThisMonth ?? 0} failed`,
+      to: "/partner/account/reports",
     },
-    { header: "Bureau", field: "bureau" },
     {
-      header: "Score",
-      field: "score",
-      render: (row) => (
-        <Typography
-          sx={{
-            fontWeight: 700,
-            color: row.score ? "text.primary" : "text.disabled",
-          }}
-        >
-          {row.score || "—"}
+      icon: <Wallet size={18} />, iconBg: "#F5F3FF", iconColor: "#8B5CF6",
+      title: "Wallet Balance", value: err ? "—" : inr(s.walletBalance), valueColor: "#2563EB",
+      subtitle: lowWallet ? `Below ₹${LOW_BALANCE_AT} — top up soon` : "Available for pulls",
+      to: "/partner/add-funds",
+
+    },
+    {
+      icon: <Percent size={18} />, iconBg: "#ECFDF5", iconColor: "#10B981",
+      title: "Success Rate", value: err ? "—" : `${s.successRate ?? 100}%`,
+      subtitle: `${s.failedThisMonth ?? 0} failures · billed same as success`,
+      to: "/partner/account/reports",
+    },
+    {
+      icon: <AlertTriangle size={18} />, iconBg: "#FEF2F2", iconColor: "#EF4444",
+      title: "Failed Pulls", value: err ? "—" : String(s.failedThisMonth ?? 0),
+      subtitle: "Failed pulls billed same as success",
+      to: "/partner/account/reports",
+    },
+    {
+      icon: <Ticket size={18} />, iconBg: "#FFF7ED", iconColor: "#F59E0B",
+      title: "My Tickets", value: err ? "—" : String(openTotal),
+      subtitle: `${s.openTickets ?? 0} open · ${s.inProgressTickets ?? 0} in progress`,
+      to: "/partner/account/support",
+    },
+  ];
+
+  const pullColumns = [
+    {
+      header: "Customer", field: "customer", minWidth: 130,
+      render: (r) => (
+        <Typography title={r.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {r.customer}
         </Typography>
       ),
     },
     {
-      header: "Status",
-      field: "status",
-      render: (row) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <StatusBadge status={row.status} />
-          {row.status === "Failed" && (
-            <Typography
-              variant="caption"
-              sx={{ color: "error.main", fontWeight: 600 }}
-            >
-              -₹{row.fee}
-            </Typography>
-          )}
-        </Box>
+      header: "Bureau", field: "bureau", nowrap: true, minWidth: 90,
+      render: (r) => <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, whiteSpace: "nowrap" }}>{r.bureau}</Typography>,
+    },
+    {
+      header: "Score", field: "score", nowrap: true, minWidth: 70,
+      render: (r) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{r.score}</Typography>,
+    },
+    { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={r.status} /> },
+    {
+      header: "Pulled At", field: "createdAt", nowrap: true, minWidth: 170,
+      render: (r) => (
+        <Typography sx={{ fontSize: "0.75rem", color: "#8A94A6", whiteSpace: "nowrap" }}>
+          {r.createdAt ? format(new Date(r.createdAt), "dd MMM yyyy, hh:mm a") : "—"}
+        </Typography>
       ),
     },
   ];
 
+  // Unified activity feed: pulls + wallet movements, newest first
+  const feed = [
+    ...(recent.pulls || []).map((p) => ({
+      id: `p-${p.id}`, type: p.status === "Success" ? "pull" : "fail",
+      message: p.status === "Success" ? `Report pulled · ${p.customer}` : `Report failed · ${p.customer}`,
+      sub: p.bureau, timestamp: p.createdAt, amount: 0,
+    })),
+    ...(recent.recentTxns || []).map((t) => {
+      const failed = String(t.status || "").toUpperCase() === "FAILED";
+      const isCredit = t.type === "CREDIT";
+      return {
+        id: `t-${t._id}`, type: failed ? "fail" : isCredit ? "recharge" : "spend",
+        message: failed
+          ? isCredit ? "Wallet recharge failed" : "Report charge failed"
+          : isCredit ? "Wallet recharged" : "Report charge",
+        sub: t.purpose?.replace(/_/g, " ") || "", timestamp: t.createdAt,
+        amount: isCredit ? t.amount : -Math.abs(t.amount),
+        failed,
+      };
+    }),
+  ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+
+  const dotColor = (type) => type === "pull" || type === "recharge" ? "#10B981" : type === "fail" ? "#EF4444" : type === "spend" ? "#F59E0B" : "#3B82F6";
+
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
-      {/* ── Greeting ── */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          {/* {getGreeting()}, {user?.name || 'Partner'} */}
-          {getGreeting()}, {formatName(user?.name || "Partner")}
-        </Typography>
-        <Typography variant="body1" sx={{ color: "text.secondary" }}>
-          Credit report pulls, wallet and activity — updated in real time.
-        </Typography>
+    <Box sx={{ maxWidth: 1280, mx: "auto" }}>
+      {/* Header */}
+      <Box sx={{ mb: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: "-0.01em" }}>
+            {getGreeting()}, {formatName(user?.name || "Partner")}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "text.disabled" }}>
+            Pulls, wallet and activity{updatedAt ? ` · updated ${updatedAt.toLocaleTimeString()}` : ""}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
+          {[7, 14, 30].map((d) => (
+            <Chip key={d} label={`${d}D`} clickable size="small"
+              color={range === d ? "primary" : "default"} variant={range === d ? "filled" : "outlined"}
+              onClick={() => setRange(d)} sx={{ fontWeight: 600, fontSize: "0.7rem", height: 30, borderRadius: 2 }} />
+          ))}
+          <Button size="small" variant="text" startIcon={<RefreshCw size={13} />} onClick={fetchAll} disabled={refreshing} sx={{ fontSize: "0.75rem" }}>
+            {refreshing ? "Refreshing" : "Refresh"}
+          </Button>
+          <Button size="small" variant="text" startIcon={<Download size={13} />} onClick={exportCsv} disabled={!trend.length} sx={{ fontSize: "0.75rem" }}>
+            Export
+          </Button>
+        </Box>
       </Box>
 
-      {/* ── Stat Cards ── */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Reports Today */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          {statsLoading ? (
-            // ── Loading skeleton ──
-            <Box
+      {/* KPI strip — all widgets in one row (5 across on desktop) */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {loading ? Array.from({ length: 5 }).map((_, i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
+            <Skeleton variant="rounded" height={108} sx={{ borderRadius: 2.5 }} />
+          </Grid>
+        )) : kpiRow.map((k) => (
+          <Grid key={k.title} size={{ xs: 12, sm: 6, md: 12 / 5 }}>
+            <KpiCard {...k} subtitle={err ? "Could not load" : k.subtitle} onClick={k.to ? () => navigate(k.to) : undefined} />
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Quick pulls */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {QUICK_PULLS.map((q) => (
+          <Grid key={q.label} size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper
+              onClick={() => navigate(q.path)}
               sx={{
-                p: 3,
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                height: "100%",
+                borderRadius: 2.5, border: "1px solid", borderColor: "divider", boxShadow: "none",
+                p: 1.75, display: "flex", alignItems: "center", gap: 1.25, cursor: "pointer",
+                transition: "transform 0.12s ease, box-shadow 0.12s ease",
+                "&:hover": { transform: "translateY(-2px)", boxShadow: "0 6px 16px rgba(0,0,0,0.07)" },
               }}
             >
-              <Skeleton
-                variant="text"
-                width="60%"
-                height={16}
-                sx={{ mb: 1.5 }}
-              />
-              <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
-              <Skeleton variant="text" width="50%" height={14} />
-            </Box>
-          ) : todayCount > 0 ? (
-            // ── Data state ──
-            <StatCard
-              title="REPORTS PULLED · TODAY"
-              value={String(todayCount)}
-              subtitle={
-                aiToday !== null && aiToday < todayCount
-                  ? `${aiToday} AI ${aiToday === 1 ? "analysis" : "analyses"} · ${todayCount - aiToday} bureau ${todayCount - aiToday === 1 ? "pull" : "pulls"}`
-                  : aiToday !== null && aiToday > 0
-                    ? `${aiToday} AI ${aiToday === 1 ? "analysis" : "analyses"} completed`
-                    : "Bureau reports generated today"
-              }
-              decoration={
-                <Box sx={{ color: "#8B5CF6", opacity: 0.8 }}>
-                  <svg
-                    width="120"
-                    height="32"
-                    viewBox="0 0 120 32"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      width: "100%",
-                      maxWidth: 120,
-                      height: "auto",
-                      filter:
-                        "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
-                    }}
-                  >
-                    <path d={buildSparklinePath(todayTrend)} />
-                  </svg>
-                </Box>
-              }
-            />
-          ) : (
-            // ── Empty state ──
-            <StatCard
-              title="REPORTS DOWNLOADED · TODAY"
-              value="—"
-              subtitle="No reports pulled yet"
-              decoration={
-                <Box sx={{ color: "#8B5CF6", opacity: 0.8 }}>
-                  <svg
-                    width="120"
-                    height="32"
-                    viewBox="0 0 120 32"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      width: "100%",
-                      maxWidth: 120,
-                      height: "auto",
-                      filter:
-                        "drop-shadow(0px 2px 4px rgba(139, 92, 246, 0.4))",
-                    }}
-                  >
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
-          )}
-        </Grid>
+              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: q.bg, color: q.fg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {q.icon}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.78rem", lineHeight: 1.2 }}>{q.label}</Typography>
+                <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.68rem" }}>{q.sub}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
 
-        {/* Reports This Month */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          {statsLoading ? (
-            // ── Loading skeleton ──
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                height: "100%",
-              }}
-            >
-              <Skeleton
-                variant="text"
-                width="65%"
-                height={16}
-                sx={{ mb: 1.5 }}
-              />
-              <Skeleton variant="text" width="35%" height={56} sx={{ mb: 1 }} />
-              <Skeleton variant="text" width="55%" height={14} />
-            </Box>
-          ) : monthCount > 0 ? (
-            // ── Data state ──
-            <StatCard
-              title="REPORTS PULLED · THIS MONTH"
-              value={String(monthCount)}
-              subtitle={
-                aiMonth !== null && aiMonth < monthCount
-                  ? `${aiMonth} AI ${aiMonth === 1 ? "analysis" : "analyses"} · ${monthCount - aiMonth} bureau ${monthCount - aiMonth === 1 ? "pull" : "pulls"}`
-                  : aiMonth !== null && aiMonth > 0
-                    ? `${aiMonth} AI ${aiMonth === 1 ? "analysis" : "analyses"} this month`
-                    : "Bureau reports this calendar month"
-              }
-              decoration={
-                <Box sx={{ color: "#10B981", opacity: 0.8 }}>
-                  <svg
-                    width="120"
-                    height="32"
-                    viewBox="0 0 120 32"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      width: "100%",
-                      maxWidth: 120,
-                      height: "auto",
-                      filter:
-                        "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
-                    }}
-                  >
-                    <path d={buildSparklinePath(monthTrend)} />
-                  </svg>
-                </Box>
-              }
-            />
-          ) : (
-            // ── Empty state ──
-            <StatCard
-              title="REPORTS DOWNLOADED · THIS MONTH"
-              value="—"
-              subtitle="No reports this month yet"
-              decoration={
-                <Box sx={{ color: "#10B981", opacity: 0.8 }}>
-                  <svg
-                    width="120"
-                    height="32"
-                    viewBox="0 0 120 32"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      width: "100%",
-                      maxWidth: 120,
-                      height: "auto",
-                      filter:
-                        "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.4))",
-                    }}
-                  >
-                    <path d="M 0,26 L 10,25 L 15,22 L 20,22 L 30,17 L 40,21 L 50,20 L 55,20 L 65,26 L 75,19 L 85,19 L 90,15 L 95,24 L 100,14 L 105,12 L 112,3" />
-                  </svg>
-                </Box>
-              }
-            />
-          )}
-        </Grid>
-
-        {/* Wallet Balance */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <StatCard
-            variant="dark"
-            title="WALLET BALANCE AVAILABLE"
-            value={walletBalance}
-            subtitle="No recharge history yet"
-            chipLabel=""
-            decoration={
-              <Box sx={{ transform: "translate(5px, 5px)", opacity: 0.35 }}>
-                <svg
-                  width="90"
-                  height="90"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  stroke="#6366F1"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{
-                    filter: "drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.4))",
-                  }}
-                >
-                  <path
-                    d="M 45 15 L 85 28 L 78 40 L 38 27 Z"
-                    strokeOpacity="0.5"
-                    fill="rgba(99, 102, 241, 0.1)"
-                  />
-                  <path
-                    d="M 35 25 L 75 38 L 70 50 L 30 37 Z"
-                    strokeOpacity="0.8"
-                    fill="rgba(99, 102, 241, 0.1)"
-                  />
-                  <path
-                    d="M 10 45 L 70 65 L 65 95 L 5 75 Z"
-                    fill="rgba(30, 41, 59, 0.8)"
-                  />
-                  <path d="M 12 50 L 68 68" strokeOpacity="0.6" />
-                  <path d="M 10 45 L 70 65" strokeWidth="3" />
-                  <path
-                    d="M 55 60 L 65 63 L 63 78 L 53 75 Z"
-                    fill="rgba(99, 102, 241, 0.2)"
-                  />
-                  <path d="M 60 72 L 60.01 72" strokeWidth="4" />
-                </svg>
+      {/* Trend (full width) */}
+      <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
+        <Grid size={{ xs: 12 }}>
+          <ChartCard
+            title={metric === "reports" ? "My report volume" : "My spend"}
+            subtitle={metric === "reports" ? `Last ${range} days · daily pulls` : `Last ${range} days · report charges`}
+            height={210}
+            action={
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                {[["reports", "Reports"], ["spend", "Spend"]].map(([key, label]) => (
+                  <Chip key={key} label={label} clickable size="small"
+                    color={metric === key ? "primary" : "default"} variant={metric === key ? "filled" : "outlined"}
+                    onClick={() => setMetric(key)} sx={{ fontWeight: 600, fontSize: "0.68rem", height: 26 }} />
+                ))}
               </Box>
             }
-          />
+          >
+            {loading ? <Skeleton variant="rounded" height={210} sx={{ borderRadius: 2 }} /> : (
+              <TrendChart
+                data={trend} dataKey={metric} label={metric === "reports" ? "Reports" : "Spend (₹)"}
+                color={metric === "reports" ? "#4F46E5" : "#F59E0B"} money={metric === "spend"}
+              />
+            )}
+          </ChartCard>
         </Grid>
       </Grid>
 
-      {/* ── Main Content: Table + Activity ── */}
-      <Grid container spacing={3}>
-        {/* Recent Report Pulls */}
-        {/* <Grid size={{ xs: 12, md: 8 }}>
+      {/* Pulls + wallet stack */}
+      <Grid container spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
+        <Grid size={{ xs: 12, md: 8 }}>
           <DataTable
-            title="Recent Report Pulls"
+            title="Recent report pulls"
             actionLabel="All reports"
-            onAction={() => navigate('/partner/account/reports')}
-            columns={columns}
-            data={recentPulls}
-            emptyMessage="No reports are available yet"
+            onAction={() => navigate("/partner/account/reports")}
+            columns={pullColumns}
+            data={loading ? [] : (recent.pulls || [])}
+            emptyMessage={loading ? "Loading…" : "No reports yet — pull your first one above"}
           />
-        </Grid> */}
-
-        {/* Activity Feed */}
-        {/* <Grid size={{ xs: 12, md: 4 }}>
-          <Paper
-            sx={{
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 'none',
-              height: '100%',
-            }}
-          >
-            
-            <Box
-              sx={{
-                p: 2.5,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Activity</Typography>
-              <Typography
-                component="span"
-                onClick={() => navigate('/partner/account/activity')}
-                sx={{
-                  color: 'primary.main',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
-                View all &rarr;
-              </Typography>
-            </Box>
-
-           
-            {activityFeed.length === 0 ? (
-              <Box
-                sx={{
-                  py: 6,
-                  px: 3,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <CircleDot size={28} color="#CBD5E1" />
-                <Typography variant="body2" sx={{ color: 'text.disabled', textAlign: 'center' }}>
-                  No activity found
-                </Typography>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Paper sx={{ borderRadius: 2.5, border: "1px solid", borderColor: lowWallet ? "#FECACA" : "divider", boxShadow: "none", p: 2, bgcolor: lowWallet ? "#FFFBFB" : "background.paper" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                <Wallet size={16} color={lowWallet ? "#DC2626" : "#8B5CF6"} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>My Wallet</Typography>
+                <Button size="small" variant="text" sx={{ ml: "auto", fontSize: "0.72rem", minWidth: 0 }} onClick={() => navigate("/partner/add-funds")}>
+                  Top up →
+                </Button>
               </Box>
-            ) : (
-              <List sx={{ p: 0 }}>
-                {activityFeed.map((activity, idx) => (
-                  <React.Fragment key={activity.id}>
-                    <ListItem sx={{ py: 2, alignItems: 'flex-start' }}>
-                      <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                        <CircleDot
-                          size={12}
-                          color={
-                            activity.type === 'pull'    ? '#12B886' :
-                            activity.type === 'fail'    ? '#EF4444' :
-                            activity.type === 'ai'      ? '#3B82F6' : '#F59E0B'
-                          }
-                          fill="currentColor"
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        disableTypography
-                        primary={
-                          <Typography variant="body2" fontWeight={600} mb={0.5}>
-                            {activity.message}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {new Date(activity.timestamp).toLocaleDateString() === new Date().toLocaleDateString()
-                                ? 'Today'
-                                : new Date(activity.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              {' · '}
-                              {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Typography>
-                            {activity.amount !== 0 && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: activity.amount > 0 ? 'success.main' : 'text.disabled',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {activity.amount > 0 ? '+' : ''}
-                                {activity.amount === 0 ? '—' : `₹${Math.abs(activity.amount).toLocaleString('en-IN')}`}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    {idx < activityFeed.length - 1 && <Divider component="li" />}
-                  </React.Fragment>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: "#2563EB" }}>
+                {loading ? "—" : inr(s.walletBalance)}
+              </Typography>
+              <Typography variant="caption" sx={{ color: lowWallet ? "error.main" : "text.disabled", fontWeight: lowWallet ? 700 : 400 }}>
+                {lowWallet ? `Low balance — top up to keep pulling uninterrupted` : `Spent ${inrShort(s.spentThisMonth)} this month`}
+              </Typography>
+              <Divider sx={{ my: 1 }} />
+              {(recent.recentTxns || []).length === 0
+                ? <Typography variant="caption" sx={{ color: "text.disabled" }}>No transactions yet</Typography>
+                : (recent.recentTxns || []).slice(0, 3).map((t) => {
+                  const tFailed = String(t.status || "").toUpperCase() === "FAILED";
+                  const tCredit = t.type === "CREDIT";
+                  return (
+                  <Box key={t._id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.4 }}>
+                    <CircleDot size={10} color={tFailed ? "#EF4444" : tCredit ? "#10B981" : "#F59E0B"} fill="currentColor" />
+                    <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem", fontWeight: 600 }} noWrap>
+                      {tFailed ? (tCredit ? "Top-up failed" : "Charge failed") : tCredit ? "Top-up" : "Report charge"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: tFailed ? "error.main" : tCredit ? "success.main" : "text.primary" }}>
+                      {tCredit ? "+" : "−"}{inrShort(t.amount)}
+                    </Typography>
+                  </Box>
+                  );
+                })}
+              <Button size="small" variant="text" sx={{ mt: 0.5, fontSize: "0.72rem", minWidth: 0, p: 0 }} onClick={() => navigate("/partner/account/transactions")}>
+                Full history →
+              </Button>
+            </Paper>
+            <Paper sx={{ borderRadius: 2.5, border: "1px solid", borderColor: "divider", boxShadow: "none", p: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "baseline", mb: 0.25 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>My Support</Typography>
+                <Button size="small" variant="text" sx={{ ml: "auto", fontSize: "0.72rem", minWidth: 0 }} onClick={() => navigate("/partner/account/support")}>
+                  Open →
+                </Button>
+              </Box>
+              <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.7rem" }}>
+                {openTotal > 0 ? `${openTotal} ticket${openTotal !== 1 ? "s" : ""} need attention` : "No open tickets ✓"}
+              </Typography>
+              <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                {(recent.recentTickets || []).map((t) => (
+                  <Box key={t._id} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CircleDot size={10} color={t.status === "resolved" ? "#10B981" : t.status === "open" ? "#EF4444" : "#F59E0B"} fill="currentColor" />
+                    <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem", fontWeight: 600 }} noWrap>
+                      {t.category}
+                    </Typography>
+                    <StatusBadge status={t.status === "resolved" ? "Success" : t.status} />
+                    <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.7rem", flexShrink: 0 }}>
+                      {timeAgo(t.createdAt)}
+                    </Typography>
+                  </Box>
                 ))}
-              </List>
-            )}
-          </Paper>
-        </Grid> */}
+              </Box>
+            </Paper>
+          </Box>
+        </Grid>
       </Grid>
+
+      {/* Activity feed */}
+      <Paper sx={{ borderRadius: 2.5, border: "1px solid", borderColor: "divider", boxShadow: "none" }}>
+        <Box sx={{ px: 2.5, py: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid", borderColor: "divider" }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1rem" }}>Activity</Typography>
+          <Button size="small" variant="text" sx={{ fontSize: "0.75rem", color: "#12B886", fontWeight: 600 }} onClick={() => navigate("/partner/account/activity")}>
+            View all →
+          </Button>
+        </Box>
+        {loading ? (
+          <Box sx={{ p: 2.5 }}><Skeleton variant="rounded" height={120} /></Box>
+        ) : feed.length === 0 ? (
+          <Box sx={{ py: 5, display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+            <CircleDot size={28} color="#CBD5E1" />
+            <Typography variant="body2" sx={{ color: "text.disabled" }}>No activity yet — your pulls and top-ups will appear here</Typography>
+          </Box>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {feed.map((a, idx) => (
+              <React.Fragment key={a.id}>
+                <ListItem sx={{ py: 1.5, px: 2.5, alignItems: "flex-start" }}>
+                  <Box sx={{ minWidth: 28, mt: 0.5 }}>
+                    <CircleDot size={12} color={dotColor(a.type)} fill="currentColor" />
+                  </Box>
+                  <ListItemText
+                    disableTypography
+                    primary={<Typography variant="body2" fontWeight={600} sx={{ fontSize: "0.82rem" }}>{a.message}</Typography>}
+                    secondary={
+                      <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          {a.sub ? `${a.sub} · ` : ""}{timeAgo(a.timestamp)}
+                        </Typography>
+                        {a.amount !== 0 && (
+                          <Typography variant="caption" sx={{ color: a.failed ? "error.main" : a.amount > 0 ? "success.main" : "text.disabled", fontWeight: 700 }}>
+                            {a.amount > 0 ? `+${inrShort(a.amount)}` : `−${inrShort(Math.abs(a.amount))}`}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItem>
+                {idx < feed.length - 1 && <Divider component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
+        )}
+      </Paper>
     </Box>
   );
 };
 
-export default Dashboard;
+export default PartnerDashboard;

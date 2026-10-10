@@ -65,11 +65,11 @@ const DataTable = ({
     // overflow container so pointer events always work correctly.
     <Paper
       sx={{
-        borderRadius: 4,
-        border: '1px solid',
-        borderColor: 'divider',
+        borderRadius: 0.5,
+        border: '1px solid #E8EEF5',
         boxShadow: 'none',
-        overflow: 'hidden', // clips the inner TableContainer's border-radius
+        overflow: 'hidden',
+        bgcolor: '#fff',
       }}
     >
       {/* ── Card header (title + action link) ─────────────────────────── */}
@@ -90,7 +90,7 @@ const DataTable = ({
           ) : (
             <>
               {title && (
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F1E33' }}>
                   {title}
                 </Typography>
               )}
@@ -135,7 +135,7 @@ const DataTable = ({
             </Typography>
           ) : (
             visibleRows.map((row, rowIdx) => (
-              <Box key={rowIdx} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, bgcolor: 'background.paper', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <Box key={rowIdx} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0.5, p: 2, bgcolor: 'background.paper', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 {columns.map((col, colIdx) => (
                   <Box key={colIdx} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: colIdx === columns.length - 1 ? 0 : 1, pb: colIdx === columns.length - 1 ? 0 : 1, borderBottom: colIdx === columns.length - 1 ? 'none' : '1px solid', borderBottomColor: 'divider' }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', flexShrink: 0, mr: 2 }}>
@@ -154,16 +154,24 @@ const DataTable = ({
         <TableContainer>
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'background.default' }}>
+              <TableRow>
                 {columns.map((col, idx) => (
                   <TableCell
                     key={idx}
+                    align={col.align || 'left'}
                     sx={{
-                      color: 'text.secondary',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
+                      color: '#8A94A6',
+                      fontWeight: 700,
+                      fontSize: '0.68rem',
                       textTransform: 'uppercase',
-                      py: 1.5,
+                      letterSpacing: '0.06em',
+                      py: 1.25,
+                      px: 2,
+                      whiteSpace: 'nowrap',
+                      borderBottom: '1px solid #EEF1F6',
+                      bgcolor: '#fff',
+                      ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                      ...(col.width ? { width: col.width } : {}),
                     }}
                   >
                     {col.header}
@@ -178,11 +186,27 @@ const DataTable = ({
                   key={rowIdx}
                   sx={{
                     '&:last-child td, &:last-child th': { border: 0 },
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.01)' },
+                    '& td': { borderBottom: '1px solid #F1F5F9' },
+                    '&:hover': { bgcolor: '#F8FAFF' },
                   }}
                 >
                   {columns.map((col, colIdx) => (
-                    <TableCell key={colIdx} sx={{ py: 2, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    <TableCell
+                      key={colIdx}
+                      align={col.align || 'left'}
+                      sx={{
+                        py: 1.5,
+                        px: 2,
+                        verticalAlign: 'middle',
+                        fontSize: '0.82rem',
+                        color: '#1E2A3B',
+                        ...(col.nowrap
+                          ? { whiteSpace: 'nowrap' }
+                          : { wordBreak: 'break-word', overflowWrap: 'break-word' }),
+                        ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                        ...(col.width ? { width: col.width } : {}),
+                      }}
+                    >
                       {col.render ? col.render(row) : row[col.field]}
                     </TableCell>
                   ))}
@@ -234,7 +258,7 @@ const DataTable = ({
               justifyContent: 'center',
               width: 32,
               height: 32,
-              borderRadius: 1.5,
+              borderRadius: 1,
               border: '1px solid',
               borderColor: page === 1 ? 'divider' : 'divider',
               color: page === 1 ? 'text.disabled' : 'text.secondary',
@@ -278,7 +302,7 @@ const DataTable = ({
               justifyContent: 'center',
               width: 32,
               height: 32,
-              borderRadius: 1.5,
+              borderRadius: 1,
               border: '1px solid',
               borderColor: 'divider',
               color: page === totalPages ? 'text.disabled' : 'text.secondary',

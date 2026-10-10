@@ -28,6 +28,7 @@ const ForgotPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [otpOnWhatsApp, setOtpOnWhatsApp] = useState(false);
 
   const {
     register,
@@ -49,7 +50,8 @@ const ForgotPassword = () => {
   const onSubmitEmail = async (data) => {
     try {
       setError(null);
-      await authService.forgotPassword(data.email);
+      const res = await authService.forgotPassword(data.email);
+      setOtpOnWhatsApp(res?.whatsapp === 'sent');
       setStep(2);
       setCooldown(60);
     } catch (err) {
@@ -61,7 +63,8 @@ const ForgotPassword = () => {
     if (cooldown > 0) return;
     try {
       setError(null);
-      await authService.forgotPassword(getValues('email'));
+      const res = await authService.forgotPassword(getValues('email'));
+      setOtpOnWhatsApp(res?.whatsapp === 'sent');
       setCooldown(60);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to resend OTP');
@@ -72,7 +75,11 @@ const ForgotPassword = () => {
     try {
       setError(null);
       if (!/^\d{6}$/.test(otp)) {
-        setError('Enter the 6-digit OTP sent to your email');
+        setError(
+          otpOnWhatsApp
+            ? 'Enter the 6-digit OTP sent to your email and WhatsApp'
+            : 'Enter the 6-digit OTP sent to your email'
+        );
         return;
       }
       if (!newPassword || newPassword.length < 8) {
@@ -140,7 +147,7 @@ const ForgotPassword = () => {
           <>
             <Typography variant="h5" sx={{ mb: 1, textAlign: 'center' }}>Enter OTP</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-              OTP sent to <strong>{getValues('email')}</strong>. It expires in 10 minutes.
+              OTP sent to <strong>{getValues('email')}</strong>{otpOnWhatsApp ? ' and WhatsApp' : ''}. It expires in 10 minutes.
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
             <Box sx={{ mb: 3 }}>
