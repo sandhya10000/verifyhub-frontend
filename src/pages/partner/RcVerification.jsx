@@ -50,7 +50,11 @@ const fmtArr = (v) => {
 };
 
 const RcVerification = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  // Fresh partners who never topped up don't see per-verification pricing —
+  // same rule as the Pricing nav item (Add Funds shown instead until the
+  // first top-up). null (still loading) shows prices to avoid a flash.
+  const showPrice = hasToppedUp !== false;
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -273,10 +277,14 @@ const RcVerification = () => {
               Vehicle RC Verification
             </Typography>
             <Typography sx={{ mt: 0.5, color: "#c7d2e8", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
-              Verify registration, owner, insurance &amp; permits instantly —{' '}
-              <Box component="span" sx={{ color: "#4ADE80", fontWeight: 800 }}>
-                ₹10 per verification
-              </Box>
+              {showPrice ? (
+                <>Verify registration, owner, insurance &amp; permits instantly —{' '}
+                <Box component="span" sx={{ color: "#4ADE80", fontWeight: 800 }}>
+                  ₹10 per verification
+                </Box></>
+              ) : (
+                <>Verify registration, owner, insurance &amp; permits instantly.</>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -360,7 +368,7 @@ const RcVerification = () => {
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
               sx={{ py: 1.6, px: 4, borderRadius: 2, backgroundColor: "#2563eb", fontWeight: 700, textTransform: "none", boxShadow: "none", "&:hover": { backgroundColor: "#1d4ed8", boxShadow: "none" } }}
             >
-              {loading ? "Verifying..." : "Verify RC · ₹10"}
+              {loading ? "Verifying..." : showPrice ? "Verify RC · ₹10" : "Verify RC"}
             </Button>
             <Button variant="outlined" onClick={openRecent} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
               Recent Verifications

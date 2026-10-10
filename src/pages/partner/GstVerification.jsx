@@ -47,7 +47,11 @@ const GSTIN_RE = /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/;
 const fmtVal = (v) => (v === null || v === undefined || v === "" ? "—" : String(v));
 
 const GstVerification = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  // Fresh partners who never topped up don't see per-verification pricing —
+  // same rule as the Pricing nav item (Add Funds shown instead until the
+  // first top-up). null (still loading) shows prices to avoid a flash.
+  const showPrice = hasToppedUp !== false;
   const [gstin, setGstin] = useState("");
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -270,10 +274,14 @@ const GstVerification = () => {
               GST Verification
             </Typography>
             <Typography sx={{ mt: 0.5, color: "#c7d2e8", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
-              Authenticate GSTIN, taxpayer status &amp; filing compliance instantly —{' '}
-              <Box component="span" sx={{ color: "#4ADE80", fontWeight: 800 }}>
-                ₹10 per verification
-              </Box>
+              {showPrice ? (
+                <>Authenticate GSTIN, taxpayer status &amp; filing compliance instantly —{' '}
+                <Box component="span" sx={{ color: "#4ADE80", fontWeight: 800 }}>
+                  ₹10 per verification
+                </Box></>
+              ) : (
+                <>Authenticate GSTIN, taxpayer status &amp; filing compliance instantly.</>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -357,7 +365,7 @@ const GstVerification = () => {
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
               sx={{ py: 1.6, px: 4, borderRadius: 2, backgroundColor: "#2563eb", fontWeight: 700, textTransform: "none", boxShadow: "none", "&:hover": { backgroundColor: "#1d4ed8", boxShadow: "none" } }}
             >
-              {loading ? "Verifying..." : "Verify GST · ₹10"}
+              {loading ? "Verifying..." : showPrice ? "Verify GST · ₹10" : "Verify GST"}
             </Button>
             <Button variant="outlined" onClick={openRecent} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
               Recent Verifications
