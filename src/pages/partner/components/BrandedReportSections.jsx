@@ -398,22 +398,19 @@ export const ThemesGallery = () => {
       name: 'Northstar Finserv', bgH: tk.slate900, initBg: tk.blue600, init: 'NS', dot: tk.blue400,
       tName: 'Navy & Royal Blue', colors: [tk.slate900, tk.blue600, tk.blue400],
       desc: 'Tailored for corporate loan syndicates, wealth advisors, and prime retail DSA offices.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/northstar-finserv.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/northstar-finserv.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-northstar-finserv.html`
     },
     {
       name: 'GreenLeaf Loans', bgH: tk.emerald900, initBg: tk.emerald500, init: 'GL', dot: tk.emerald300, initColor: tk.emerald900,
       tName: 'Teal & Green Theme', colors: [tk.emerald900, tk.emerald500, tk.emerald200],
       desc: 'Ideal for agri-fintech, green energy lending, MSME lenders, and mutual fund distributors.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/greenleaf-loans.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/greenleaf-loans.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-greenleaf-loans.html`
     },
     {
       name: 'Apex Capital', bgH: tk.slate800, initBg: tk.amber500, init: 'AC', dot: tk.amber400, initColor: tk.slate900,
       tName: 'Charcoal & Bronze', colors: [tk.slate800, tk.amber600, tk.amber400],
       desc: 'Polished executive design for high-ticket mortgage consultants and Chartered Accountants.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/apex-capital.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/apex-capital.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-apex-capital.html`
     }
   ];
 
@@ -516,7 +513,7 @@ export const ThemesGallery = () => {
                 }}
                 sx={{ width: '100%', py: 1.5, borderRadius: 3, border: `1px solid ${tk.slate200}`, bgcolor: '#fff', color: tk.slate700, fontWeight: 600, fontSize: '0.875rem', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, '&:hover': { bgcolor: tk.slate50 } }}
               >
-                <span>⬇️</span> Download sample PDF
+                <span>⬇️</span> Download sample report
               </Button>
             </Box>
           </Box>
