@@ -380,6 +380,14 @@ const AdminPartners = () => {
       )
     },
     {
+      header: 'Last Login', field: 'lastLoginAt', nowrap: true, minWidth: 130,
+      render: (row) => (
+        <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+          {row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+        </Typography>
+      )
+    },
+    {
       header: 'Joined Date', field: 'createdAt', nowrap: true, minWidth: 110,
       render: (row) => (
         <Typography sx={{ fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
