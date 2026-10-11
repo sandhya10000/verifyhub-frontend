@@ -227,7 +227,7 @@ const PartnerDetail = () => {
   const rangePrefix = RANGE_LABEL[range] || 'Lifetime';
   const q = reportQuery.trim().toLowerCase();
   const visibleReports = q
-    ? reports.filter((r) => `${r.customer || ''} ${r.bureau || ''} ${r.kind || ''} ${r.status || ''}`.toLowerCase().includes(q))
+    ? reports.filter((r) => `${r.customer || ''} ${r.bureau || ''} ${r.kind || ''} ${r.ref || ''} ${r.status || ''}`.toLowerCase().includes(q))
     : reports;
   const reportStatusLabel = (s) => {
     const v = String(s || '');
@@ -249,13 +249,21 @@ const PartnerDetail = () => {
     },
     {
       header: 'Type', field: 'kind', nowrap: true, minWidth: 140,
-      render: (r) => <TypePill type={r.kind === 'ai' ? 'AI Credit Analysis' : 'Credit Report'} bureau={r.kind === 'ai' ? 'AI' : r.bureau} />,
+      render: (r) => {
+        if (r.kind === 'ai') return <TypePill type="AI Credit Analysis" bureau="AI" />;
+        if (r.kind === 'rc') return <TypePill type="Vehicle RC" bureau={null} />;
+        if (r.kind === 'gst') return <TypePill type="GST Verification" bureau={null} />;
+        return <TypePill type="Credit Report" bureau={r.bureau} />;
+      },
     },
     {
       header: 'Customer', field: 'customer', minWidth: 130,
-      render: (r) => (
-        <Typography title={r.customer} sx={{ fontSize: '0.82rem', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customer}</Typography>
-      ),
+      render: (r) => {
+        const label = r.ref && r.ref !== r.customer ? `${r.customer} · ${r.ref}` : (r.customer || '—');
+        return (
+          <Typography title={label} sx={{ fontSize: '0.82rem', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</Typography>
+        );
+      },
     },
     {
       header: 'Score', field: 'score', nowrap: true, minWidth: 70,
