@@ -100,18 +100,22 @@ function TransactionHistory() {
     },
     {
       header: "Type", field: "type", nowrap: true, minWidth: 80,
-      render: (r) => (
-        <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: r.type === "CREDIT" ? "#16A34A" : "#4F46E5", whiteSpace: "nowrap" }}>
-          {r.type === "CREDIT" ? "Credit" : "Debit"}
-        </Typography>
-      ),
+      render: (r) => {
+        const failed = String(r.status || "").toUpperCase() === "FAILED";
+        return (
+          <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: failed ? "#E02424" : r.type === "CREDIT" ? "#16A34A" : "#4F46E5", whiteSpace: "nowrap" }}>
+            {r.type === "CREDIT" ? "Credit" : "Debit"}
+          </Typography>
+        );
+      },
     },
     {
       header: "Amount", field: "amount", nowrap: true, minWidth: 100, align: "right",
       render: (r) => {
+        const failed = String(r.status || "").toUpperCase() === "FAILED";
         const val = r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount);
         return (
-          <Typography sx={{ fontWeight: 800, fontSize: "0.82rem", color: r.type === "CREDIT" ? "#16A34A" : "text.primary", whiteSpace: "nowrap" }}>
+          <Typography sx={{ fontWeight: 800, fontSize: "0.82rem", color: failed ? "#E02424" : r.type === "CREDIT" ? "#16A34A" : "text.primary", whiteSpace: "nowrap" }}>
             {r.type === "CREDIT" ? "+" : "−"}{inr(val)}
           </Typography>
         );

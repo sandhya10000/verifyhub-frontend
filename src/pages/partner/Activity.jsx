@@ -48,14 +48,25 @@ const Activity = () => {
               timestamp: p.createdAt,
               amount: 0,
             })),
-            ...recentTxns.map((t) => ({
-              id: `t-${t._id}`,
-              type: t.type === 'CREDIT' ? 'recharge' : 'spend',
-              message: t.type === 'CREDIT' ? 'Wallet recharged' : `Report charge · ${(t.purpose || '').replace(/_/g, ' ')}`,
-              sub: '',
-              timestamp: t.createdAt,
-              amount: t.type === 'CREDIT' ? t.amount : -Math.abs(t.totalAmount ?? t.amount ?? 0),
-            })),
+            ...recentTxns.map((t) => {
+              const failed = String(t.status || '').toUpperCase() === 'FAILED';
+              const isCredit = t.type === 'CREDIT';
+              return {
+                id: `t-${t._id}`,
+                type: failed ? 'fail' : isCredit ? 'recharge' : 'spend',
+                message: failed
+                  ? isCredit
+                    ? 'Wallet recharge failed'
+                    : `Report charge failed · ${(t.purpose || '').replace(/_/g, ' ')}`
+                  : isCredit
+                    ? 'Wallet recharged'
+                    : `Report charge · ${(t.purpose || '').replace(/_/g, ' ')}`,
+                sub: '',
+                timestamp: t.createdAt,
+                amount: isCredit ? t.amount : -Math.abs(t.totalAmount ?? t.amount ?? 0),
+                failed,
+              };
+            }),
             ...recentTickets.map((t) => ({
               id: `k-${t._id}`,
               type: 'ticket',
@@ -138,7 +149,7 @@ const Activity = () => {
                     </Typography>
                   </Box>
                   {activity.amount !== 0 ? (
-                    <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: activity.amount > 0 ? '#0E9F6E' : '#0F1E33', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: activity.failed ? '#E02424' : activity.amount > 0 ? '#0E9F6E' : '#0F1E33', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {activity.amount > 0 ? '+' : '−'}₹{Math.abs(activity.amount).toLocaleString('en-IN')}
                     </Typography>
                   ) : (

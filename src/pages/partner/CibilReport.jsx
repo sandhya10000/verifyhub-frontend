@@ -89,9 +89,6 @@ const CibilReport = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // API se later ye data aayega
-  const [totalGenerated] = useState(0);
-  const [todayGenerated] = useState(0);
   const [cibilResult, setCibilResult] = useState(null);
   const [reportError, setReportError] = useState("");
   // True when the browser blocked the automatic new-tab open after success.
@@ -416,197 +413,328 @@ const CibilReport = () => {
   return (
     <Box
       sx={{
-        maxWidth: 1000,
-        mx: "auto",
-        backgroundColor: "#fff",
-        borderRadius: 3,
-        overflow: "hidden",
-        border: "1px solid #e5e7eb",
+        minHeight: "100vh",
+        backgroundColor: "#eef2f7",
+        pb: 5,
+        pt: 3,
+        px: 2,
       }}
     >
-      {/* ==========================================
-    HEADER
-========================================== */}
-      <Box
-        sx={{
-          background: "#121212",
-          color: "#fff",
-          px: {
-            xs: 2.5,
-            sm: 4,
-            md: 5,
-          },
-          py: {
-            xs: 2.5,
-            md: 3,
-          },
-        }}
-      >
-        <Typography
+      <Box sx={{ maxWidth: 1100, mx: "auto" }}>
+        {/* ==========================================
+            HERO
+        ========================================== */}
+        <Box
           sx={{
-            fontSize: {
-              xs: "1.6rem",
-              sm: "2rem",
-            },
-            fontWeight: 700,
-            lineHeight: 1.2,
-            letterSpacing: "-0.5px",
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: "24px",
+            background:
+              "linear-gradient(100deg, #0a1633 0%, #10255c 48%, #1d4ed8 100%)",
             color: "#fff",
-            m: 0,
+            px: { xs: 2.5, sm: 4, md: 5 },
+            py: { xs: 3, md: 3.5 },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            mb: 3,
           }}
         >
-          CIBIL Report
-        </Typography>
-
-        <Typography
-          sx={{
-            mt: 0,
-            pt: 0,
-            color: "#d1d5db",
-            fontSize: {
-              xs: "0.85rem",
-              sm: "0.95rem",
-            },
-            lineHeight: 1.2,
-          }}
-        >
-          Get your credit summary instantly – secure & hassle-free
-        </Typography>
-      </Box>
-
-      {/* ==========================================
-          CONTENT
-      ========================================== */}
-      <Box
-        sx={{
-          maxWidth: 1000,
-          mx: "auto",
-          px: {
-            xs: 2,
-            sm: 3,
-          },
-          mt: 3,
-        }}
-      >
-        {/* ==========================================
-            STAT CARDS
-        ========================================== */}
-        <Grid container spacing={2.5} mb={3}>
-          {/* TOTAL */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Card
-              elevation={0}
-              sx={{
-                borderRadius: 3,
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#fff",
-              }}
-            >
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography
-                  sx={{
-                    color: "#64748b",
-                    fontSize: "0.9rem",
-                    fontWeight: 500,
-                  }}
-                >
-                  Total CIBIL Generated
-                </Typography>
-
-                <Typography
-                  sx={{
-                    mt: 0.5,
-                    color: "#2563eb",
-                    fontSize: "2rem",
-                    lineHeight: 1.2,
-                    fontWeight: 700,
-                  }}
-                >
-                  {totalGenerated}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* TODAY */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Card
-              elevation={0}
-              sx={{
-                borderRadius: 3,
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#fff",
-              }}
-            >
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography
-                  sx={{
-                    color: "#64748b",
-                    fontSize: "0.9rem",
-                    fontWeight: 500,
-                  }}
-                >
-                  Today Generated
-                </Typography>
-
-                <Typography
-                  sx={{
-                    mt: 0.5,
-                    color: "#16a34a",
-                    fontSize: "2rem",
-                    lineHeight: 1.2,
-                    fontWeight: 700,
-                  }}
-                >
-                  {todayGenerated}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* ==========================================
-            MAIN FORM
-        ========================================== */}
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#fff",
-          }}
-        >
-          <CardContent
+          {/* decorative glows */}
+          <Box
             sx={{
-              p: {
-                xs: 2,
-                sm: 3,
-                md: 4,
-              },
+              position: "absolute",
+              right: -60,
+              top: -90,
+              width: 270,
+              height: 270,
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.08)",
+            }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              right: 130,
+              bottom: -120,
+              width: 210,
+              height: 210,
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.06)",
+            }}
+          />
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2.25,
+              position: "relative",
+              zIndex: 1,
+              minWidth: 0,
             }}
           >
-            {/* FORM TITLE */}
-            <Box mb={3}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                flexShrink: 0,
+                borderRadius: "18px",
+                bgcolor: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 10px 24px rgba(37,99,235,0.5)",
+              }}
+            >
+              <DescriptionIcon sx={{ fontSize: 34, color: "#fff" }} />
+            </Box>
+
+            <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
-                  fontSize: "1.1rem",
-                  fontWeight: 700,
-                  color: "#172033",
+                  fontSize: { xs: "1.6rem", sm: "2rem" },
+                  fontWeight: 800,
+                  lineHeight: 1.15,
+                  color: "#fff",
+                  m: 0,
                 }}
               >
-                Customer Details
+                CIBIL Report
               </Typography>
 
               <Typography
                 sx={{
                   mt: 0.5,
-                  fontSize: "0.85rem",
-                  color: "#64748b",
+                  color: "#c7d2e8",
+                  fontSize: { xs: "0.85rem", sm: "0.95rem" },
                 }}
               >
-                Enter customer details to generate the CIBIL credit report.
+                Get your CIBIL credit summary securely and hassle-free.
               </Typography>
             </Box>
+          </Box>
+
+          {/* score-card illustration */}
+          <Box
+            sx={{
+              display: { xs: "none", sm: "block" },
+              position: "relative",
+              width: 200,
+              height: 152,
+              flexShrink: 0,
+              zIndex: 1,
+            }}
+          >
+            {/* back card */}
+            <Box
+              sx={{
+                position: "absolute",
+                right: 66,
+                top: 2,
+                width: 118,
+                height: 146,
+                bgcolor: "rgba(219,234,254,0.8)",
+                borderRadius: 2,
+                transform: "rotate(-7deg)",
+                p: 1.25,
+              }}
+            >
+              <Box
+                sx={{
+                  height: 7,
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.7)",
+                }}
+              />
+              <Box
+                sx={{
+                  mt: 1,
+                  height: 7,
+                  width: "70%",
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.55)",
+                }}
+              />
+              <Box
+                sx={{
+                  mt: 1,
+                  height: 7,
+                  borderRadius: 1,
+                  bgcolor: "rgba(255,255,255,0.4)",
+                }}
+              />
+            </Box>
+
+            {/* front card */}
+            <Box
+              sx={{
+                position: "absolute",
+                right: 6,
+                top: 8,
+                width: 134,
+                bgcolor: "#fff",
+                borderRadius: 2,
+                p: 1.25,
+                boxShadow: "0 18px 36px rgba(2,6,23,0.4)",
+                transform: "rotate(4deg)",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "inline-block",
+                  bgcolor: "#0ea5e9",
+                  color: "#fff",
+                  fontSize: "0.6rem",
+                  fontWeight: 800,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                CIBIL
+              </Box>
+              <Box
+                sx={{ mt: 1, height: 6, borderRadius: 1, bgcolor: "#dbe4f0" }}
+              />
+              <Box
+                sx={{
+                  mt: 0.75,
+                  height: 6,
+                  width: "70%",
+                  borderRadius: 1,
+                  bgcolor: "#e7edf5",
+                }}
+              />
+              <Box
+                component="svg"
+                viewBox="0 0 120 74"
+                sx={{ width: "100%", display: "block", mt: 0.25 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="cibilGaugeHero"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
+                    <stop offset="0" stopColor="#ef4444" />
+                    <stop offset="0.5" stopColor="#f59e0b" />
+                    <stop offset="1" stopColor="#22c55e" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M12 60 A48 48 0 0 1 108 60"
+                  fill="none"
+                  stroke="url(#cibilGaugeHero)"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="60"
+                  y1="60"
+                  x2="92.6"
+                  y2="44.7"
+                  stroke="#0f172a"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <circle cx="60" cy="60" r="4" fill="#0f172a" />
+                <text
+                  x="60"
+                  y="48"
+                  textAnchor="middle"
+                  fontSize="15"
+                  fontWeight="800"
+                  fill="#0f172a"
+                >
+                  750
+                </text>
+                <text
+                  x="60"
+                  y="71"
+                  textAnchor="middle"
+                  fontSize="7"
+                  fill="#64748b"
+                >
+                  Good Score
+                </text>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ==========================================
+            FORM CARD
+        ========================================== */}
+        <Box
+          sx={{
+            backgroundColor: "#fff",
+            borderRadius: 2,
+            border: "1px solid #e5e7eb",
+            boxShadow: "none",
+            px: { xs: 2, sm: 3, md: 4 },
+            py: { xs: 2.5, sm: 3.5 },
+          }}
+        >
+          {/* ==================================================
+              MAIN FORM
+          ================================================== */}
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border: "none",
+              backgroundColor: "transparent",
+              boxShadow: "none",
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              {/* FORM TITLE */}
+              <Box
+                mb={3}
+                sx={{ display: "flex", alignItems: "center", gap: 2 }}
+              >
+                <Box
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    flexShrink: 0,
+                    borderRadius: "14px",
+                    bgcolor: "#e8f1fe",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PersonIcon sx={{ fontSize: 28, color: "#2563eb" }} />
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "1.35rem",
+                      fontWeight: 800,
+                      color: "#0f1e3d",
+                    }}
+                  >
+                    Customer Details
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.25,
+                      fontSize: "0.9rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Enter the customer details required for CIBIL
+                    verification.
+                  </Typography>
+                </Box>
+              </Box>
 
               {/* ERROR */}
 
@@ -1012,16 +1140,16 @@ const CibilReport = () => {
               }
               sx={{
                 mt: 3,
-                py: 1.5,
-                borderRadius: 2,
-                backgroundColor: "#2563eb",
-                fontSize: "0.95rem",
+                py: 1.9,
+                borderRadius: "16px",
+                backgroundColor: "#1f66e5",
+                fontSize: "1.05rem",
                 fontWeight: 700,
                 textTransform: "none",
                 boxShadow: "none",
 
                 "&:hover": {
-                  backgroundColor: "#1d4ed8",
+                  backgroundColor: "#1857c4",
                   boxShadow: "none",
                 },
 
@@ -1097,7 +1225,7 @@ const CibilReport = () => {
           id="cibil-report-result"
           elevation={0}
           sx={{
-            mt: 4,
+            mt: 3,
             borderRadius: 3,
             border: "1px solid #e5e7eb",
             backgroundColor: "#fff",
@@ -1420,6 +1548,7 @@ const CibilReport = () => {
           </CardContent>
         </Card>
       )}
+      </Box>
     </Box>
   );
 };

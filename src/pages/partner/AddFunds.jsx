@@ -50,18 +50,20 @@ const AddFunds = () => {
     document.getElementById('topup-amount')?.focus({ preventScroll: false });
     document.getElementById('topup-amount')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
-  // Single-plan launch mode: floor is ₹1,000 (server-enforced via Pricing.minRecharge).
-  // No forced plan pick — single plan auto-applies on every recharge.
+  // Floor comes from the server (Pricing.minRecharge, admin-editable) — the
+  // 1000 here is only the pre-fetch placeholder. No forced plan pick —
+  // single plan auto-applies on every recharge.
   // TODO(multi-plan-restore): restore default floor 200 + plan-pick redirect.
   const [minRecharge, setMinRecharge] = useState(1000);
-  const [amount, setAmount] = useState(() => {
-    // Pre-fill when arriving from Plans ("Top up ₹X+ for Y").
-    try {
-      const q = new URLSearchParams(window.location.search).get('amount');
-      if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) return q;
-    } catch { /* ignore */ }
-    return '1000';
-  });
+  // ?amount= prefill counts as user-chosen: the live floor must never
+  // overwrite it (or anything the partner typed) once pricing loads.
+  let queryAmount = null;
+  try {
+    const q = new URLSearchParams(window.location.search).get('amount');
+    if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) queryAmount = q;
+  } catch { /* ignore */ }
+  const [amount, setAmount] = useState(queryAmount || '1000');
+  const amountTouchedRef = useRef(!!queryAmount);
   const [amountError, setAmountError] = useState('');
   // First funding ever -> plan auto-assigned by slab on the backend.
   const [firstTimer, setFirstTimer] = useState(true);
@@ -85,7 +87,12 @@ const AddFunds = () => {
   useEffect(() => {
     axios.get(`${API_BASE_URL}/partner/pricing/plans`)
       .then(({ data }) => {
-        if (data?.success && data.data?.minRecharge != null) setMinRecharge(data.data.minRecharge);
+        if (data?.success && data.data?.minRecharge != null) {
+          setMinRecharge(data.data.minRecharge);
+          // Sync the amount box to the live floor — but never clobber a
+          // ?amount= prefill or anything the partner already typed.
+          if (!amountTouchedRef.current) setAmount(String(data.data.minRecharge));
+        }
       })
       .catch(() => { /* default floor stays */ });
     const t = localStorage.getItem('token');
@@ -103,6 +110,7 @@ const AddFunds = () => {
   const handleAmountChange = (e) => {
     const val = e.target.value;
     if (/^\d*\.?\d{0,2}$/.test(val)) {
+      amountTouchedRef.current = true;
       setAmount(val);
       setAmountError('');
     }
@@ -140,11 +148,20 @@ const AddFunds = () => {
         setPaying(false);
         return;
       }
+      const createdOrderId = data.orderId;
+      // Best-effort: resolve our PENDING row so a dismissed/failed checkout
+      // shows Failed instead of sitting in history as Pending forever.
+      // Silent on failure; server only flips PENDING rows (SUCCESS untouched,
+      // and a same-order retry can still verify to SUCCESS afterwards).
+      const markOrderCancelled = () => {
+        axios.post(`${API_BASE_URL}/wallet-recharge/cancel`, { orderId: createdOrderId }, { headers })
+          .catch(() => { /* non-fatal — row stays Pending until retried */ });
+      };
       const rzp = new window.Razorpay({
         key: data.keyId,
         amount: data.amount,
         currency: data.currency || 'INR',
-        order_id: data.orderId,
+        order_id: createdOrderId,
         name: 'Verify Hub',
         description: `Wallet recharge ₹${Number(amt).toLocaleString('en-IN')}`,
         // Absolute platform logo for the checkout header (public/Logo.jpeg —
@@ -187,9 +204,9 @@ const AddFunds = () => {
             setPaying(false);
           }
         },
-        modal: { ondismiss: () => setPaying(false) },
+        modal: { ondismiss: () => { markOrderCancelled(); setPaying(false); } },
       });
-      rzp.on('payment.failed', () => setPaying(false));
+      rzp.on('payment.failed', () => { markOrderCancelled(); setPaying(false); });
       rzp.open();
     } catch (err) {
       console.error('Gateway payment error:', err);
