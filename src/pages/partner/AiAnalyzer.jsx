@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import {
   Box,
   Typography,
@@ -115,6 +117,7 @@ const secondaryBtnSx = {
 
 const AiAnalyzer = () => {
   const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   // Fresh partners who never topped up don't see per-analysis pricing —
   // same rule as the Pricing nav item (Add Funds shown instead until the
   // first top-up). null (still loading) shows prices to avoid a flash.
@@ -222,7 +225,9 @@ const AiAnalyzer = () => {
       }
     } catch (err) {
       console.error("[AiAnalyzer] Upload error:", err);
-      setError(err.response?.data?.message || "Upload failed");
+      // First-timers who never topped up see an add-funds prompt instead
+      // of the raw insufficient-balance text.
+      setError(resolveReportError(err, hasToppedUp, "Upload failed"));
       setIsUploading(false);
     }
   };
@@ -637,6 +642,18 @@ const AiAnalyzer = () => {
                 severity="error"
                 sx={{ borderRadius: 2 }}
                 onClose={() => setError(null)}
+                action={
+                  isFirstTopupPrompt(error, hasToppedUp) ? (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => navigate("/partner/add-funds")}
+                      sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                    >
+                      Add Funds
+                    </Button>
+                  ) : undefined
+                }
               >
                 {error}
               </Alert>

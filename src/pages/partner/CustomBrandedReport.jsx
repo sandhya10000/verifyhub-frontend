@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress, Alert, Radio, Grid } from '@mui/material';
 import { Wallet, CreditCard } from 'lucide-react';
 import useAuth from '../../context/useAuth';
+import { FIRST_TOPUP_MESSAGE, isFirstTopupPrompt } from '../../utils/walletErrors';
 import {
   StickyQuickBar, HeroSection, CustomisationGrid, ThemesGallery, WorkflowTimeline,
   PricingCard} from './components/BrandedReportSections';
@@ -82,7 +84,9 @@ const FadeInSection = ({ children, delay = 0 }) => {
 };
 
 const CustomBrandedReportPage = () => {
-  const { user, login, token } = useAuth();
+  const { user, login, token, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
+  const isFirstTimer = hasToppedUp === false;
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [activeRequest, setActiveRequest] = useState(null);
   const [fetchError, setFetchError] = useState(null);
@@ -170,7 +174,9 @@ const CustomBrandedReportPage = () => {
         const bal = err.response.data.balance ?? quote.walletBalance;
         setQuote((q) => ({ ...q, walletBalance: bal, canAffordWallet: false }));
         setNeedsRecharge(true);
-        setPayError(err.response.data.message || 'Insufficient wallet balance. Please recharge.');
+        // First-timers who never topped up see an add-funds prompt instead
+        // of the raw insufficient-balance text.
+        setPayError(isFirstTimer ? FIRST_TOPUP_MESSAGE : (err.response.data.message || 'Insufficient wallet balance. Please recharge.'));
       } else {
         setPayError(err.response?.data?.message || 'Wallet payment failed. Please try again.');
       }
@@ -333,7 +339,7 @@ const CustomBrandedReportPage = () => {
                           <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Wallet credits</Typography>
                         </Box>
                         <Typography sx={{ fontSize: '0.75rem', color: '#475569', mt: 0.5 }}>
-                          Balance {inr0(quote.walletBalance)} {shortfall > 0 && <Box component="span">— <Box component="span" sx={{ color: '#e11d48', fontWeight: 600 }}>short by {inr0(shortfall)}</Box></Box>}
+                          Balance {inr0(quote.walletBalance)} {shortfall > 0 && !isFirstTimer && <Box component="span">— <Box component="span" sx={{ color: '#e11d48', fontWeight: 600 }}>short by {inr0(shortfall)}</Box></Box>}
                         </Typography>
                         {shortfall > 0 && (
                           <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -371,7 +377,7 @@ const CustomBrandedReportPage = () => {
             <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5, textAlign: 'center' }}>
               <Button onClick={handlePay} disabled={paying} sx={{ width: '100%', py: 2, borderRadius: 4, bgcolor: '#2563eb', color: '#fff', fontSize: '1rem', fontWeight: 700, textTransform: 'none', boxShadow: '0 20px 25px -5px rgba(37,99,235,0.1), 0 10px 10px -5px rgba(37,99,235,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, transition: 'all 0.2s', '&:hover': { bgcolor: '#1d4ed8' }, '&.Mui-disabled': { bgcolor: '#94a3b8', color: '#f8fafc' } }}>
                 {paying ? <CircularProgress size={20} sx={{ color: 'inherit' }} /> : (payMethod === 'wallet' ? <Wallet size={20} /> : <CreditCard size={20} />)}
-                {paying ? 'Processing payment...' : `Pay ${inr0(price)} ${payMethod === 'wallet' ? `with wallet${shortfall > 0 ? ' (Requires Recharge)' : ''}` : 'with Razorpay / Instant UPI'}`}
+                {paying ? 'Processing payment...' : `Pay ${inr0(price)} ${payMethod === 'wallet' ? `with wallet${shortfall > 0 && !isFirstTimer ? ' (Requires Recharge)' : ''}` : 'with Razorpay / Instant UPI'}`}
               </Button>
               <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                 🔒 {BRANDED_REPORT_COPY.checkoutSecurity}. Debited securely. Tax Invoice with GST input credit available immediately upon receipt.
@@ -379,7 +385,7 @@ const CustomBrandedReportPage = () => {
             </Box>
 
             {payError && (
-              <Alert severity="error" sx={{ borderRadius: 3 }} onClose={() => { setPayError(null); setNeedsRecharge(false); }}>
+              <Alert severity="error" sx={{ borderRadius: 3 }} onClose={() => { setPayError(null); setNeedsRecharge(false); }} action={isFirstTopupPrompt(payError, hasToppedUp) ? (<Button size="small" variant="contained" onClick={() => navigate("/partner/add-funds")} sx={{ textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>Add Funds</Button>) : undefined}>
                 {payError}
               </Alert>
             )}

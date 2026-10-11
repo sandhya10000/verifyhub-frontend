@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import {
@@ -68,7 +70,8 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").repla
 );
 
 const CibilReport = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -356,10 +359,14 @@ const CibilReport = () => {
       // A failure response may still carry a fail fee
       if (err?.response?.data?.failureCharge) refreshWallet();
 
+      // First-timers who never topped up see an add-funds prompt instead
+      // of the raw insufficient-balance text.
       setError(
-        err?.response?.data?.message ||
-          err?.response?.data?.error?.message ||
+        resolveReportError(
+          err,
+          hasToppedUp,
           "Unable to generate CIBIL report. Please try again.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -745,6 +752,18 @@ const CibilReport = () => {
                     mb: 3,
                     borderRadius: 2,
                   }}
+                  action={
+                    isFirstTopupPrompt(error, hasToppedUp) ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => navigate("/partner/add-funds")}
+                        sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                      >
+                        Add Funds
+                      </Button>
+                    ) : undefined
+                  }
                 >
                   {error}
                 </Alert>
