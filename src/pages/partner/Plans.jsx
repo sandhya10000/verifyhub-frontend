@@ -101,7 +101,7 @@ const Plans = () => {
           <Typography sx={{ fontWeight: 800 }}>{inr0(minRecharge)}</Typography>
         </Box>
         <Box sx={{ flex: 1, minWidth: 200, textAlign: { xs: 'left', md: 'right' } }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Bureau + RC/GST fails bill the same as success · AI fail ₹100 flat.</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Bureau + RC/GST fails bill the same as success · AI fail {inr0(aiFail)} flat.</Typography>
         </Box>
       </Paper>
 

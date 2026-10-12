@@ -123,6 +123,17 @@ const AiAnalyzer = () => {
   // first top-up). null (still loading) shows prices to avoid a flash.
   const showPrice = hasToppedUp !== false;
 
+  // Live AI price from admin pricing (falls back to 100 until loaded).
+  const [aiPrice, setAiPrice] = useState(100);
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    axios.get(`${base}/partner/pricing/plans`)
+      .then(({ data }) => {
+        if (data?.success && data.data?.ai?.total != null) setAiPrice(data.data.ai.total);
+      })
+      .catch(() => { /* fallback price stays */ });
+  }, []);
+
   const popupAnalysisIdRef = useRef(null);
 
   const resetAnalyzer = () => {
@@ -523,7 +534,7 @@ const AiAnalyzer = () => {
           <Typography variant="body2" sx={{ color: "#64748B", mt: 0.25 }}>
             {showPrice ? (
               <>Turn any bureau report into a plain-language risk summary,
-              obligation map, and download-ready lending recommendation — <strong>₹100</strong> per analysis.</>
+              obligation map, and download-ready lending recommendation — <strong>₹{Number(aiPrice).toLocaleString("en-IN")}</strong> per analysis.</>
             ) : (
               <>Turn any bureau report into a plain-language risk summary,
               obligation map, and download-ready lending recommendation.</>
