@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import { creditAPI } from "../../services/authService";
@@ -113,7 +115,8 @@ const FieldLabel = ({ children, required }) => (
 );
 
 const ExperianReport = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   // ============================================================
   // FORM DATA
   // ============================================================
@@ -387,11 +390,11 @@ const ExperianReport = () => {
       // OTHER ERRORS
       // ========================================================
 
-      let message = "Unable to generate Experian report. Please try again.";
-
-      if (backendError?.message) {
-        message = backendError.message;
-      }
+      let message = resolveReportError(
+        err,
+        hasToppedUp,
+        "Unable to generate Experian report. Please try again.",
+      );
 
       // Failed pulls can carry a nominal fail fee
       if (backendError?.failureCharge) {
@@ -949,6 +952,18 @@ const ExperianReport = () => {
                     mb: 3,
                     borderRadius: 2,
                   }}
+                  action={
+                    isFirstTopupPrompt(error, hasToppedUp) ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => navigate("/partner/add-funds")}
+                        sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                      >
+                        Add Funds
+                      </Button>
+                    ) : undefined
+                  }
                 >
                   {error}
                 </Alert>

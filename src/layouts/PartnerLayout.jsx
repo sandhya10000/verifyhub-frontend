@@ -60,12 +60,43 @@ const PartnerLayout = () => {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [creditReportsOpen, setCreditReportsOpen] = useState(false);
   const [unreadReplies, setUnreadReplies] = useState(0);
+  const [brandingStatus, setBrandingStatus] = useState(null);
   const currentDrawerWidth = DRAWER_WIDTH;
 
   useEffect(() => {
     const isOnCreditRoute = location.pathname.startsWith('/partner/credit-reports');
     setCreditReportsOpen(isOnCreditRoute);
   }, [location.pathname]);
+
+  // Fetch branding status to display sidebar badge (Paid / In setup / Active)
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_BASE_URL}/partner/custom-branded-report/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success && data.data?.status) {
+          setBrandingStatus(data.data.status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch branding status:', error);
+      }
+    };
+
+    fetchBranding();
+    const handleBrandingUpdated = (e) => {
+      if (e?.detail) setBrandingStatus(e.detail);
+      else fetchBranding();
+    };
+    window.addEventListener('brandingUpdated', handleBrandingUpdated);
+    return () => {
+      window.removeEventListener('brandingUpdated', handleBrandingUpdated);
+    };
+  }, []);
 
   // Unseen admin replies → badge on the Support nav item (same pattern as
   // the admin sidebar: poll + refresh on 'ticketUpdated' events).
@@ -184,6 +215,14 @@ const PartnerLayout = () => {
       text: "AI Custom Branded Report",
       icon: <Sparkles size={20} />,
       path: "/partner/custom-branded-report",
+      badge:
+        brandingStatus === 'paid'
+          ? 'Paid'
+          : brandingStatus === 'onboarding'
+          ? 'In setup'
+          : brandingStatus === 'active'
+          ? 'Active'
+          : null,
     },
     {
       text: "Vehicle RC",

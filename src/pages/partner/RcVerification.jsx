@@ -10,6 +10,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { useNavigate } from "react-router-dom";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -51,6 +53,7 @@ const fmtArr = (v) => {
 
 const RcVerification = () => {
   const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   // Fresh partners who never topped up don't see per-verification pricing —
   // same rule as the Pricing nav item (Add Funds shown instead until the
   // first top-up). null (still loading) shows prices to avoid a flash.
@@ -105,9 +108,7 @@ const RcVerification = () => {
     } catch (err) {
       if (err?.response?.data?.failureCharge) refreshWallet();
       setError(
-        err?.response?.data?.message ||
-        err?.response?.data?.error?.message ||
-        "Unable to verify RC. Please try again.",
+        resolveReportError(err, hasToppedUp, "Unable to verify RC. Please try again."),
       );
     } finally {
       setLoading(false);
@@ -312,7 +313,7 @@ const RcVerification = () => {
       </Box>
 
       <Box sx={{ p: { xs: 2.5, sm: 4, md: 5 } }}>
-        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} action={isFirstTopupPrompt(error, hasToppedUp) ? (<Button size="small" variant="contained" onClick={() => navigate("/partner/add-funds")} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>Add Funds</Button>) : undefined}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{success}</Alert>}
 
         {/* FORM */}

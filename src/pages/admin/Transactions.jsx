@@ -16,7 +16,7 @@ const DATE_MAX = "2100-12-31";
 
 const TYPE_OPTIONS = ["All", "CREDIT", "DEBIT"];
 const STATUS_OPTIONS = ["All", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
-const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS", "CUSTOM_BRAND_FEE"];
+const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS", { value: "CUSTOM_BRAND_FEE", label: "AI_BRANDED_REPORT_FEE" }];
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api");
 
@@ -36,6 +36,13 @@ const statusLabel = (s) => {
   if (t === 'FAILED') return 'Failed';
   if (t === 'PENDING') return 'Pending';
   return s || '—';
+};
+
+// Display label for ledger purpose — DB enum stays CUSTOM_BRAND_FEE so
+// existing rows/filters keep working; partners/admins see the friendly name.
+const purposeLabel = (p) => {
+  if (String(p || '').toUpperCase() === 'CUSTOM_BRAND_FEE') return 'AI BRANDED REPORT FEE';
+  return (p || '').replace(/_/g, ' ');
 };
 
 const AdminTransactions = () => {
@@ -99,7 +106,7 @@ const AdminTransactions = () => {
         r.createdAt ? new Date(r.createdAt).toISOString() : "",
         fmtName(r.userId).replace(/,/g, ""),
         (r.userId?.email || "").replace(/,/g, ""),
-        r.type, r.purpose,
+        r.type, purposeLabel(r.purpose),
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
         r.status, r.orderId || "", r.paymentId || "",
       ]),
@@ -140,7 +147,7 @@ const AdminTransactions = () => {
       header: "Purpose", field: "purpose", minWidth: 150,
       render: (r) => (
         <Typography sx={{ fontSize: "0.78rem", fontWeight: 600 }}>
-          {(r.purpose || "").replace(/_/g, " ")}
+          {purposeLabel(r.purpose)}
           {r.purpose === "REPORT_FAIL_CHARGE" ? " · fail fee" : ""}
         </Typography>
       ),

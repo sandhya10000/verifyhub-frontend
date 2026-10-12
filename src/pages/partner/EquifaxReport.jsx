@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 import {
   Box,
@@ -65,7 +67,8 @@ const FieldLabel = ({ children, required }) => (
 );
 
 const EquifaxReport = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -318,16 +321,14 @@ const EquifaxReport = () => {
       setEquifaxResult(null);
 
       const status = err?.response?.status;
-      const apiError = err?.response?.data?.error;
 
-      const message =
+      const message = resolveReportError(
+        err,
+        hasToppedUp,
         status === 422
-          ? err?.response?.data?.message ||
-            apiError?.message ||
-            "Unable to generate Equifax report. Please verify the customer details and try again."
-          : err?.response?.data?.message ||
-            apiError?.message ||
-            "Unable to generate Equifax report. Please try again.";
+          ? "Unable to generate Equifax report. Please verify the customer details and try again."
+          : "Unable to generate Equifax report. Please try again.",
+      );
 
       if (err?.response?.data?.failureCharge) {
         refreshWallet();
@@ -808,6 +809,18 @@ const EquifaxReport = () => {
                     mb: 3,
                     borderRadius: 2,
                   }}
+                  action={
+                    isFirstTopupPrompt(error, hasToppedUp) ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => navigate("/partner/add-funds")}
+                        sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                      >
+                        Add Funds
+                      </Button>
+                    ) : undefined
+                  }
                 >
                   {error}
                 </Alert>

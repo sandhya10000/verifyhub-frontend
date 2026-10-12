@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 import {
   Box,
   Typography,
@@ -115,10 +117,22 @@ const secondaryBtnSx = {
 
 const AiAnalyzer = () => {
   const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   // Fresh partners who never topped up don't see per-analysis pricing —
   // same rule as the Pricing nav item (Add Funds shown instead until the
   // first top-up). null (still loading) shows prices to avoid a flash.
   const showPrice = hasToppedUp !== false;
+
+  // Live AI price from admin pricing (falls back to 100 until loaded).
+  const [aiPrice, setAiPrice] = useState(100);
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    axios.get(`${base}/partner/pricing/plans`)
+      .then(({ data }) => {
+        if (data?.success && data.data?.ai?.total != null) setAiPrice(data.data.ai.total);
+      })
+      .catch(() => { /* fallback price stays */ });
+  }, []);
 
   const popupAnalysisIdRef = useRef(null);
 
@@ -222,7 +236,9 @@ const AiAnalyzer = () => {
       }
     } catch (err) {
       console.error("[AiAnalyzer] Upload error:", err);
-      setError(err.response?.data?.message || "Upload failed");
+      // First-timers who never topped up see an add-funds prompt instead
+      // of the raw insufficient-balance text.
+      setError(resolveReportError(err, hasToppedUp, "Upload failed"));
       setIsUploading(false);
     }
   };
@@ -518,7 +534,7 @@ const AiAnalyzer = () => {
           <Typography variant="body2" sx={{ color: "#64748B", mt: 0.25 }}>
             {showPrice ? (
               <>Turn any bureau report into a plain-language risk summary,
-              obligation map, and download-ready lending recommendation — <strong>₹118</strong> per analysis.</>
+              obligation map, and download-ready lending recommendation — <strong>₹{Number(aiPrice).toLocaleString("en-IN")}</strong> per analysis.</>
             ) : (
               <>Turn any bureau report into a plain-language risk summary,
               obligation map, and download-ready lending recommendation.</>
@@ -637,6 +653,18 @@ const AiAnalyzer = () => {
                 severity="error"
                 sx={{ borderRadius: 2 }}
                 onClose={() => setError(null)}
+                action={
+                  isFirstTopupPrompt(error, hasToppedUp) ? (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => navigate("/partner/add-funds")}
+                      sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                    >
+                      Add Funds
+                    </Button>
+                  ) : undefined
+                }
               >
                 {error}
               </Alert>

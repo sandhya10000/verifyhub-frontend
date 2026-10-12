@@ -122,6 +122,8 @@ const AdminReports = () => {
             partnerName: formatName(
               r.userId?.name || r.userId?.email || "Unknown",
             ),
+            partnerDbId: r.userId?._id || null,
+            partnerPid: r.userId?.partner_id || null,
             customer: formatName(
               r.fullName ||
                 r.name ||
@@ -337,14 +339,13 @@ const AdminReports = () => {
     const isFailed = activeTab === 1;
     const rows = isFailed ? failedData : reportsData;
     const header = isFailed
-      ? ["Date & Time", "Partner ID", "Partner", "Customer", "Type", "Bureau", "Reason"]
-      : ["Date", "Partner", "Customer", "Type", "Bureau", "Score"];
+      ? ["Date & Time", "Partner ID", "Partner", "Type", "Bureau", "Reason"]
+      : ["Date", "Partner", "Type", "Bureau", "Score"];
     const body = isFailed
       ? rows.map((r) => [
           r.dateTime,
           r.partnerId,
           String(r.partnerName || "").replace(/,/g, ""),
-          String(r.customer || "").replace(/,/g, ""),
           r.type,
           r.bureau,
           `"${String(r.reason || "").replace(/"/g, '""')}"`,
@@ -352,7 +353,6 @@ const AdminReports = () => {
       : rows.map((r) => [
           r.date,
           String(r.partnerName || "").replace(/,/g, ""),
-          String(r.customer || "").replace(/,/g, ""),
           r.type,
           r.bureau,
           r.score,
@@ -416,20 +416,37 @@ const AdminReports = () => {
       render: (row) => <TypePill type={row.type} bureau={row.bureau} />,
     },
     {
-      header: "Customer", field: "customer", minWidth: 130,
-      render: (row) => (
-        <Typography title={row.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.customer}
-        </Typography>
-      ),
-    },
-    {
       header: "Partner", field: "partnerName", minWidth: 120,
-      render: (row) => (
-        <Typography title={row.partnerName} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.partnerName}
-        </Typography>
-      ),
+      render: (row) => {
+        const dbId = row.partnerDbId || row.rawReport?.userId?._id || null;
+        const pid = row.partnerPid || row.rawReport?.userId?.partner_id || null;
+        const pname = row.partnerName || "Unknown";
+        return dbId ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                whiteSpace: "nowrap",
+                color: "#3730A3",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {pid || pname}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography title={pname} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {pname}
+          </Typography>
+        );
+      },
     },
     {
       header: "Score", field: "score", nowrap: true, minWidth: 70,
@@ -485,9 +502,7 @@ const AdminReports = () => {
           </Tooltip>
         ),
     },
-    { header: "Customer", field: "customer" },
-    {
-      header: "Type", field: "type", nowrap: true,
+    { header: "Type", field: "type", nowrap: true,
       render: (row) => <TypePill type={row.type} bureau={row.bureau} />,
     },
     {

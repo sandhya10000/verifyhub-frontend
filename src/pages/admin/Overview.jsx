@@ -39,7 +39,7 @@ const AdminOverview = () => {
   const [money, setMoney] = useState([]);
   const [bureau, setBureau] = useState([]);
   const [top, setTop] = useState([]);
-  const [activity, setActivity] = useState({ pulls: [], recentTickets: [], lowWallets: [] });
+  const [activity, setActivity] = useState({ pulls: [], recentTickets: [], recentRecharges: [] });
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
 
@@ -99,8 +99,15 @@ const AdminOverview = () => {
     },
     {
       icon: <TrendingUp size={18} />, iconBg: '#ECFDF5', iconColor: '#10B981',
-      title: 'Collected This Month', value: err ? '—' : inrShort(s.collectedMonth), valueColor: '#059669',
-      delta: arrowDelta(s.collectedDeltaPct), deltaTone: (s.collectedDeltaPct ?? 0) >= 0 ? 'up' : 'down',
+      title: 'Collected', value: err ? '—' : (
+        <>
+          {inrShort(s.collectedToday)}
+          <Box component="span" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'text.secondary', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            today · {inrShort(s.collectedMonth)} this month
+          </Box>
+        </>
+      ), valueColor: '#059669',
+      delta: arrowDelta(s.collectedTodayDeltaPct), deltaTone: (s.collectedTodayDeltaPct ?? 0) >= 0 ? 'up' : 'down',
       subtitle: 'Successful recharges',
       to: '/admin/transactions',
     },
@@ -166,7 +173,7 @@ const AdminOverview = () => {
     },
   ];
 
-  const lowWallets = activity.lowWallets || [];
+  const recentRecharges = activity.recentRecharges || [];
   const recentTickets = activity.recentTickets || [];
   const failedPulls = activity.failedPulls || [];
 
@@ -260,23 +267,23 @@ const AdminOverview = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.25 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Low wallets</Typography>
-                <Button size="small" variant="text" sx={{ ml: 'auto', fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/partners')}>View all →</Button>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Recent recharges</Typography>
+                <Button size="small" variant="text" sx={{ ml: 'auto', fontSize: '0.72rem', minWidth: 0 }} onClick={() => navigate('/admin/transactions')}>View all →</Button>
               </Box>
               <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                {lowWallets.length > 0 ? `${lowWallets.length} accounts need attention` : 'All partners funded ✓'}
+                {recentRecharges.length > 0 ? 'Latest wallet top-ups' : 'No recharges yet'}
               </Typography>
               <List dense sx={{ mt: 0.5, py: 0 }}>
-                {lowWallets.map((w, i) => (
-                  <Box key={w._id || i}>
+                {recentRecharges.map((r, i) => (
+                  <Box key={r.id || i}>
                     <ListItem sx={{ px: 0, py: 0.6 }}>
                       <ListItemText
-                        primary={<Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }} noWrap>{w.name || w.email}</Typography>}
-                        secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{w.email || ''}</Typography>}
+                        primary={<Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }} noWrap>{r.partner}</Typography>}
+                        secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{r.createdAt ? timeAgo(r.createdAt) : ''}</Typography>}
                       />
-                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{inr(w.walletBalance)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem', flexShrink: 0, color: '#059669' }}>+{inr(r.amount)}</Typography>
                     </ListItem>
-                    {i < lowWallets.length - 1 && <Divider />}
+                    {i < recentRecharges.length - 1 && <Divider />}
                   </Box>
                 ))}
               </List>

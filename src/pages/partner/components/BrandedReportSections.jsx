@@ -56,7 +56,9 @@ const tk = {
   rose700: '#be123c',
 };
 
-export const StickyQuickBar = () => {
+export const StickyQuickBar = ({ status }) => {
+  if (status && status !== 'not_purchased') return null;
+
   const handleScroll = (e) => {
     e.preventDefault();
     document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -106,10 +108,16 @@ export const StickyQuickBar = () => {
   );
 };
 
-export const HeroSection = () => {
+export const HeroSection = ({ status }) => {
+  const isPaid = Boolean(status && status !== 'not_purchased');
+
   const handleScrollPay = (e) => {
     e.preventDefault();
-    document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (isPaid) {
+      document.getElementById('branding-status-section')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
   const handleScrollSamples = (e) => {
     e.preventDefault();
@@ -156,7 +164,7 @@ export const HeroSection = () => {
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {[
-            { icon: '🛡️', text: 'One-time fee ₹2,500' },
+            { icon: '🛡️', text: isPaid ? 'One-time setup paid' : 'One-time fee ₹2,500' },
             { icon: '✨', text: '2 free revisions included' },
             { icon: '⏱️', text: 'Setup in 1–2 working days' },
             { icon: '♾️', text: 'Applied to all future reports' },
@@ -168,10 +176,16 @@ export const HeroSection = () => {
         </Box>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, pt: 0.5, width: '100%' }}>
-          <Button onClick={handleScrollPay} sx={{ px: 3, py: 1.5, borderRadius: 3, bgcolor: tk.blue600, color: '#fff', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 10px 15px -3px rgba(37,99,235,0.25)', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, transition: 'transform 0.2s', '&:hover': { bgcolor: tk.blue700, transform: 'translateY(-2px)' }, width: { xs: '100%', sm: 'auto' } }}>
-            <span>Get my branded report</span>
-            <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 1.5, bgcolor: tk.blue700, color: tk.blue100, fontSize: '0.75rem', fontWeight: 700 }}>₹2,500</Box>
-          </Button>
+          {!isPaid ? (
+            <Button onClick={handleScrollPay} sx={{ px: 3, py: 1.5, borderRadius: 3, bgcolor: tk.blue600, color: '#fff', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 10px 15px -3px rgba(37,99,235,0.25)', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, transition: 'transform 0.2s', '&:hover': { bgcolor: tk.blue700, transform: 'translateY(-2px)' }, width: { xs: '100%', sm: 'auto' } }}>
+              <span>Get my branded AI report</span>
+              <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 1.5, bgcolor: tk.blue700, color: tk.blue100, fontSize: '0.75rem', fontWeight: 700 }}>₹2,500</Box>
+            </Button>
+          ) : (
+            <Button onClick={handleScrollPay} sx={{ px: 3, py: 1.5, borderRadius: 3, bgcolor: '#10b981', color: '#fff', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 10px 15px -3px rgba(16,185,129,0.25)', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, '&:hover': { bgcolor: '#059669' }, width: { xs: '100%', sm: 'auto' } }}>
+              <span>✓ Branding Active · View Status</span>
+            </Button>
+          )}
           <Button onClick={handleScrollSamples} sx={{ px: 3, py: 1.5, borderRadius: 3, border: `1px solid ${tk.slate300}`, bgcolor: '#fff', color: tk.slate700, fontWeight: 600, fontSize: '0.875rem', textTransform: 'none', transition: 'background-color 0.2s', '&:hover': { bgcolor: tk.slate50 }, width: { xs: '100%', sm: 'auto' } }}>
             See live samples ↓
           </Button>
@@ -348,44 +362,7 @@ export const CustomisationGrid = () => {
         ))}
       </Box>
 
-      {/* Full-width banner below the grid */}
-      <Box
-        sx={{
-          mt: 3,
-          background: 'linear-gradient(to bottom right, #1e3a8a, #020617)',
-          p: 3,
-          borderRadius: 4,
-          border: `1px solid ${tk.blue800}`,
-          color: '#fff',
-          boxShadow: 2,
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 3,
-          textAlign: { xs: 'center', md: 'left' },
-        }}
-      >
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2, minWidth: 0 }}>
-          <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
-            ⚡
-          </Box>
-          <Box>
-            <Typography variant="h4" sx={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
-              + More customisations available on request during onboarding
-            </Typography>
-            <Typography sx={{ fontSize: '0.875rem', color: tk.slate300, mt: 0.5 }}>
-              Need custom loan eligibility tables or partner co-branding? Our team customizes it directly on your request.
-            </Typography>
-          </Box>
-        </Box>
-        <Button
-          onClick={handleScrollPay}
-          sx={{ px: 3, py: 1.5, borderRadius: 3, bgcolor: tk.blue500, color: '#fff', fontSize: '0.875rem', fontWeight: 700, flexShrink: 0, textTransform: 'none', transition: 'background-color 0.2s', '&:hover': { bgcolor: tk.blue400 }, width: { xs: '100%', md: 'auto' } }}
-        >
-          Get Started Now
-        </Button>
-      </Box>
+     
     </Box>
   );
 };
@@ -398,22 +375,19 @@ export const ThemesGallery = () => {
       name: 'Northstar Finserv', bgH: tk.slate900, initBg: tk.blue600, init: 'NS', dot: tk.blue400,
       tName: 'Navy & Royal Blue', colors: [tk.slate900, tk.blue600, tk.blue400],
       desc: 'Tailored for corporate loan syndicates, wealth advisors, and prime retail DSA offices.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/northstar-finserv.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/northstar-finserv.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-northstar-finserv.html`
     },
     {
       name: 'GreenLeaf Loans', bgH: tk.emerald900, initBg: tk.emerald500, init: 'GL', dot: tk.emerald300, initColor: tk.emerald900,
       tName: 'Teal & Green Theme', colors: [tk.emerald900, tk.emerald500, tk.emerald200],
       desc: 'Ideal for agri-fintech, green energy lending, MSME lenders, and mutual fund distributors.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/greenleaf-loans.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/greenleaf-loans.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-greenleaf-loans.html`
     },
     {
       name: 'Apex Capital', bgH: tk.slate800, initBg: tk.amber500, init: 'AC', dot: tk.amber400, initColor: tk.slate900,
       tName: 'Charcoal & Bronze', colors: [tk.slate800, tk.amber600, tk.amber400],
       desc: 'Polished executive design for high-ticket mortgage consultants and Chartered Accountants.',
-      viewUrl: `${import.meta.env.BASE_URL}samples/branded/apex-capital.jpg`,
-      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/apex-capital.pdf`
+      pdfUrl: `${import.meta.env.BASE_URL}samples/branded/credit-report-apex-capital.html`
     }
   ];
 
@@ -516,7 +490,7 @@ export const ThemesGallery = () => {
                 }}
                 sx={{ width: '100%', py: 1.5, borderRadius: 3, border: `1px solid ${tk.slate200}`, bgcolor: '#fff', color: tk.slate700, fontWeight: 600, fontSize: '0.875rem', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, '&:hover': { bgcolor: tk.slate50 } }}
               >
-                <span>⬇️</span> Download sample PDF
+                <span>⬇️</span> Download sample report
               </Button>
             </Box>
           </Box>

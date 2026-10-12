@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
+import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
 
 import {
   Alert,
@@ -91,7 +93,8 @@ const initialQuestionData = {
 };
 
 const CrifReport = () => {
-  const { refreshWallet } = useAuth();
+  const { refreshWallet, hasToppedUp } = useAuth();
+  const navigate = useNavigate();
   const toLocalISO = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -618,10 +621,8 @@ const CrifReport = () => {
     } catch (error) {
       console.error("[CRIF GET ERROR]:", error);
 
-      const errorData = error?.response?.data;
-
       setError(
-        errorData?.message || error?.message || "Unable to get CRIF report.",
+        resolveReportError(error, hasToppedUp, "Unable to get CRIF report."),
       );
 
       return false;
@@ -929,9 +930,11 @@ const CrifReport = () => {
       }
 
       setError(
-        error?.response?.data?.message ||
-          error?.message ||
+        resolveReportError(
+          error,
+          hasToppedUp,
           "Something went wrong while fetching CRIF report",
+        ),
       );
 
       setCrifResponse(null);
@@ -1035,9 +1038,7 @@ const CrifReport = () => {
       console.error("[CRIF FRONTEND] Answer Error:", error);
 
       setError(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Unable to submit answer",
+        resolveReportError(error, hasToppedUp, "Unable to submit answer"),
       );
     } finally {
       setLoading(false);
@@ -1391,6 +1392,18 @@ const CrifReport = () => {
                   width: "fit-content",
                   mx: "auto",
                 }}
+                action={
+                  isFirstTopupPrompt(error, hasToppedUp) ? (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => navigate("/partner/add-funds")}
+                      sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap", ml: 1 }}
+                    >
+                      Add Funds
+                    </Button>
+                  ) : undefined
+                }
               >
                 {error}
               </Alert>

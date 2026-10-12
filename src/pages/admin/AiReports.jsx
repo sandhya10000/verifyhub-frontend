@@ -13,6 +13,7 @@ import {
   IconButton,
 } from "@mui/material";
 import axios from "axios";
+import { Link as RouterLink } from "react-router-dom";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import FilterBar from "../../Components/shared/FilterBar";
@@ -107,6 +108,8 @@ const AdminAiReports = () => {
           partnerName: formatName(
             r.userId?.name || r.userId?.email || "Unknown",
           ),
+          partnerDbId: r.userId?._id || null,
+          partnerPid: r.userId?.partner_id || null,
           customer: formatName(
             r.mergedData?.client_name ||
               r.result?.customerName ||
@@ -251,21 +254,19 @@ const AdminAiReports = () => {
     const rows = activeTab === 1 ? failedRows : aiData;
     const header =
       activeTab === 1
-        ? ["Date & Time", "Partner", "Customer", "File", "Reason"]
-        : ["Date", "Partner", "Customer", "File", "Score", "Status"];
+        ? ["Date & Time", "Partner", "File", "Reason"]
+        : ["Date", "Partner", "File", "Score", "Status"];
     const body =
       activeTab === 1
         ? rows.map((r) => [
             r.dateTime,
             String(r.partnerName || "").replace(/,/g, ""),
-            String(r.customer || "").replace(/,/g, ""),
             String(r.fileName || "").replace(/,/g, ""),
             `"${String(r.reason || "").replace(/"/g, '""')}"`,
           ])
         : rows.map((r) => [
             r.date,
             String(r.partnerName || "").replace(/,/g, ""),
-            String(r.customer || "").replace(/,/g, ""),
             String(r.fileName || "").replace(/,/g, ""),
             r.score,
             r.status,
@@ -360,20 +361,37 @@ const AdminAiReports = () => {
       ),
     },
     {
-      header: "Customer", field: "customer", minWidth: 130,
-      render: (row) => (
-        <Typography title={row.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.customer}
-        </Typography>
-      ),
-    },
-    {
       header: "Partner", field: "partnerName", minWidth: 120,
-      render: (row) => (
-        <Typography title={row.partnerName} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.partnerName}
-        </Typography>
-      ),
+      render: (row) => {
+        const dbId = row.partnerDbId || row.rawReport?.userId?._id || null;
+        const pid = row.partnerPid || row.rawReport?.userId?.partner_id || null;
+        const pname = row.partnerName || "Unknown";
+        return dbId ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                whiteSpace: "nowrap",
+                color: "#3730A3",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {pid || pname}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography title={pname} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {pname}
+          </Typography>
+        );
+      },
     },
     {
       header: "Score", field: "score", nowrap: true, minWidth: 70,
@@ -404,19 +422,36 @@ const AdminAiReports = () => {
     },
     {
       header: "Partner", field: "partnerName", minWidth: 120,
-      render: (row) => (
-        <Typography title={row.partnerName} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.partnerName}
-        </Typography>
-      ),
-    },
-    {
-      header: "Customer", field: "customer", minWidth: 130,
-      render: (row) => (
-        <Typography title={row.customer} sx={{ fontWeight: 600, fontSize: "0.82rem", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {row.customer}
-        </Typography>
-      ),
+      render: (row) => {
+        const dbId = row.partnerDbId || row.rawReport?.userId?._id || null;
+        const pid = row.partnerPid || row.rawReport?.userId?.partner_id || null;
+        const pname = row.partnerName || "Unknown";
+        return dbId ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                whiteSpace: "nowrap",
+                color: "#3730A3",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {pid || pname}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography title={pname} sx={{ fontSize: "0.82rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {pname}
+          </Typography>
+        );
+      },
     },
     {
       header: "File", field: "fileName", minWidth: 140,

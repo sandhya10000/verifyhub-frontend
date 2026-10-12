@@ -92,10 +92,51 @@ const AppSidebar = ({
               }}
             />
           )}
-          {!collapsed && item.badge != null && Number(item.badge) > 0 && (
-            <Box sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.12)', color: '#B9C3D4', fontSize: '0.7rem', fontWeight: 700 }}>
-              {Number(item.badge) > 99 ? '99+' : item.badge}
-            </Box>
+          {!collapsed && item.badge != null && (
+            typeof item.badge === 'string' ? (
+              <Box
+                sx={{
+                  ml: 1,
+                  px: 0.9,
+                  py: 0.2,
+                  borderRadius: 1,
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  bgcolor:
+                    item.badge === 'Paid'
+                      ? 'rgba(16, 185, 129, 0.2)'
+                      : item.badge === 'In setup'
+                      ? 'rgba(245, 158, 11, 0.2)'
+                      : item.badge === 'Active'
+                      ? 'rgba(59, 130, 246, 0.2)'
+                      : 'rgba(255, 255, 255, 0.12)',
+                  color:
+                    item.badge === 'Paid'
+                      ? '#34d399'
+                      : item.badge === 'In setup'
+                      ? '#fbbf24'
+                      : item.badge === 'Active'
+                      ? '#60a5fa'
+                      : '#B9C3D4',
+                  border:
+                    item.badge === 'Paid'
+                      ? '1px solid rgba(16, 185, 129, 0.3)'
+                      : item.badge === 'In setup'
+                      ? '1px solid rgba(245, 158, 11, 0.3)'
+                      : item.badge === 'Active'
+                      ? '1px solid rgba(59, 130, 246, 0.3)'
+                      : 'none',
+                }}
+              >
+                {item.badge}
+              </Box>
+            ) : Number(item.badge) > 0 ? (
+              <Box sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.12)', color: '#B9C3D4', fontSize: '0.7rem', fontWeight: 700 }}>
+                {Number(item.badge) > 99 ? '99+' : item.badge}
+              </Box>
+            ) : null
           )}
           {!collapsed && hasChildren && (open ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />)}
         </ListItemButton>
