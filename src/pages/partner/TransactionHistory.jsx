@@ -15,7 +15,7 @@ const DATE_MAX = "2100-12-31";
 
 const TYPE_OPTIONS = ["All", "CREDIT", "DEBIT"];
 const STATUS_OPTIONS = ["All", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
-const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS", "PLAN_PURCHASE", "CUSTOM_BRAND_FEE"];
+const PURPOSE_OPTIONS = ["All", "WALLET_RECHARGE", "REPORT_CHARGE", "REPORT_FAIL_CHARGE", "PACKAGE_PURCHASE", "REFUND", "ADD_FUNDS", "DEDUCT_FUNDS", "PLAN_PURCHASE", { value: "CUSTOM_BRAND_FEE", label: "AI_BRANDED_REPORT_FEE" }];
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -30,6 +30,13 @@ const statusLabel = (s) => {
   if (t === "FAILED") return "Failed";
   if (t === "PENDING") return "Pending";
   return s || "—";
+};
+
+// Display label for ledger purpose — DB enum stays CUSTOM_BRAND_FEE so
+// existing rows/filters keep working; partners see the friendly name.
+const purposeLabel = (p) => {
+  if (String(p || "").toUpperCase() === "CUSTOM_BRAND_FEE") return "AI BRANDED REPORT FEE";
+  return (p || "").replace(/_/g, " ");
 };
 
 function TransactionHistory() {
@@ -96,7 +103,7 @@ function TransactionHistory() {
     },
     {
       header: "Purpose", field: "purpose", minWidth: 150,
-      render: (r) => <Typography sx={{ fontSize: "0.78rem", fontWeight: 600 }}>{(r.purpose || "").replace(/_/g, " ")}</Typography>,
+      render: (r) => <Typography sx={{ fontSize: "0.78rem", fontWeight: 600 }}>{purposeLabel(r.purpose)}</Typography>,
     },
     {
       header: "Type", field: "type", nowrap: true, minWidth: 80,

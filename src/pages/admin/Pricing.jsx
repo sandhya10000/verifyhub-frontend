@@ -166,7 +166,7 @@ const diffPricing = (cur, saved) => {
   for (const [k, label] of Object.entries(labels)) {
     if (Number(row[k]) !== Number(srow[k])) out.push({ label: `${SINGLE_PLAN_LABEL} · ${label}`, from: srow[k], to: row[k] });
   }
-  // No GST fields are editable on this page — totals stay GST-inclusive.
+  // No GST fields are editable on this page — RC/GST totals stay GST-inclusive; AI is flat with no GST.
   const pairs = [
     ['ai', 'base', 'AI base ₹'],
     ['aiFail', 'base', 'AI fail ₹'],
@@ -254,7 +254,8 @@ const AdminPricing = () => {
   };
 
   const row = pricing?.plans?.[SINGLE_PLAN_KEY] || {};
-  const aiTotal = eff(pricing?.ai?.base, pricing?.ai?.gstRate);
+  // AI is flat with no GST (base 100 = charge 100).
+  const aiTotal = Number(pricing?.ai?.base) || 0;
   const aiFail = Number(pricing?.aiFail?.base ?? pricing?.ai?.base) || 0;
   const rcTotal = eff(pricing?.rc?.base, pricing?.rc?.gstRate);
   const gstTotal = eff(pricing?.gst?.base, pricing?.gst?.gstRate);
@@ -428,7 +429,7 @@ const AdminPricing = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>AI analysis</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · totals include GST</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>Flat across all tiers · no GST</Typography>
                 <Grid container spacing={1.5}>
                   <Grid size={{ xs: 12 }}>
                     <NumField label="Base ₹" value={pricing.ai?.base} onChange={(v) => setTop('ai', 'base', v)} />

@@ -257,7 +257,7 @@ const CustomBrandedReportPage = () => {
         currency: data.currency || 'INR',
         order_id: data.orderId,
         name: 'Verify Hub',
-        description: `Custom Branded Report one-time fee ${inr0(price)}`,
+        description: `AI Branded Report one-time fee ${inr0(price)}`,
         image: `${window.location.origin}/Logo.jpeg`,
         prefill: { name: user?.name || '', email: email.trim(), contact: phone.replace(/\D/g, '') },
         theme: { color: '#2563EB' },
