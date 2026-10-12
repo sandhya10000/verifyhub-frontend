@@ -21,7 +21,7 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const FALLBACK_AI = { base: 100, gstRate: 18, total: 118 };
+const FALLBACK_AI = { base: 100, gstRate: 0, total: 100 };
 const FALLBACK_RC = { base: 10, gstRate: 0, total: 10 };
 const FALLBACK_GST = { base: 10, gstRate: 0, total: 10 };
 

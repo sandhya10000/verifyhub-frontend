@@ -523,7 +523,7 @@ const AiAnalyzer = () => {
           <Typography variant="body2" sx={{ color: "#64748B", mt: 0.25 }}>
             {showPrice ? (
               <>Turn any bureau report into a plain-language risk summary,
-              obligation map, and download-ready lending recommendation — <strong>₹118</strong> per analysis.</>
+              obligation map, and download-ready lending recommendation — <strong>₹100</strong> per analysis.</>
             ) : (
               <>Turn any bureau report into a plain-language risk summary,
               obligation map, and download-ready lending recommendation.</>
