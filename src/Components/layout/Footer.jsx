@@ -157,51 +157,7 @@ const Footer = () => {
             </Typography>
           </Box>
 
-          {/* Website + email pill buttons */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1.5,
-              flexWrap: 'wrap',
-              order: { xs: 2, md: 2 },
-            }}
-          >
-            {[
-              { href: `https://${CONTACT_INFO.website}`, label: CONTACT_INFO.website, external: true },
-              { href: `mailto:${CONTACT_INFO.email}`, label: CONTACT_INFO.email, external: false },
-            ].map(({ href, label, external }) => (
-              <Box
-                key={label}
-                component="a"
-                href={href}
-                {...(external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  fontSize: '12.5px',
-                  fontWeight: 500,
-                  color: theme.palette.text.secondary,
-                  backgroundColor: '#fff',
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: '100px',
-                  px: 2,
-                  py: 1,
-                  textDecoration: 'none',
-                  boxShadow: theme.shadows[1] || '0 1px 2px rgba(15,27,45,.05)',
-                  transition: 'all .18s ease',
-                  '&:hover': {
-                    borderColor: '#BFD2F5',
-                    color: theme.palette.primary.main,
-                    transform: 'translateY(-1px)',
-                  },
-                }}
-              >
-                {label}
-              </Box>
-            ))}
-          </Box>
+          
 
           {/* Social icon buttons */}
           <Box

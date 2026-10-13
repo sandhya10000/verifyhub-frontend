@@ -113,7 +113,8 @@ const Signup = () => {
       if (res.success && res.token && res.user) {
         login(res.user, res.token);
       }
-      navigate("/partner/dashboard");
+      sessionStorage.setItem("vh_from_register", "1");
+      navigate("/welcome", { replace: true, state: { fromRegister: true } });
     } catch (err) {
       applyBackendError(err, "Verification failed");
     } finally {
