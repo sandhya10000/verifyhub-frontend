@@ -1,6 +1,6 @@
 export const NAV_LINKS = [
-  { label: 'AI Credit Report', url: '/#ai-credit-report' },
-  { label: 'Integrations', url: '/#integrations' },
+  { label: 'Our Services', url: '/#services' },
+  { label: 'Why Choose VerifyHub', url: '/#why-verifyhub' },
 ];
 
 export const FOOTER_LINKS = [
@@ -33,7 +33,7 @@ export const CONTACT_INFO = {
   email: 'info@verifyhub.in',
   phone: '+91 99107 37470',
   website: 'www.verifyhub.in',
-  address: 'VerifyHub is a brand of Optimystic Auxiliary Services Private Limited.',
+  address: 'Verify Hub is a brand of Optimystic Auxiliary Services Private Limited.',
   copyright: '© 2026 Optimystic Auxiliary Services Private Limited. All rights reserved.',
 };
 

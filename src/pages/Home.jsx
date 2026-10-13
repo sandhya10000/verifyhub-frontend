@@ -5,6 +5,12 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BalanceIcon from '@mui/icons-material/Balance';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import BoltIcon from '@mui/icons-material/Bolt';
+import HubIcon from '@mui/icons-material/Hub';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import LockIcon from '@mui/icons-material/Lock';
 import './Home.css';
 import shieldImg from '../assets/verifyhub_shield_high_quality.png';
 
@@ -198,6 +204,27 @@ const Home = () => {
         </div>
       </header>
 
+      {/* ================= OUR SERVICES WRAPPER ================= */}
+      <section
+        id="services"
+        aria-labelledby="services-heading"
+        className="services-wrapper"
+      >
+        {/* Services section header */}
+        <div className="wrap">
+          <div className="services-header reveal" ref={addToRevealRefs}>
+            <span className="eyebrow services-eyebrow">WHAT WE OFFER</span>
+            <h2 id="services-heading" className="services-title">
+              Smarter credit decisions{' '}
+              <span className="grad-blue">powered by one platform</span>
+            </h2>
+            <p className="services-sub">
+              AI-powered credit analysis and direct access to India’s leading
+              credit bureaus, in one platform.
+            </p>
+          </div>
+        </div>
+
       {/* ================= AI CREDIT ANALYSIS ================= */}
       <section id="ai-credit-report" className="ai-credit" style={{ background: 'var(--bg-soft)', borderTop: '1px solid var(--line)' }}>
         <div className="wrap">
@@ -358,7 +385,7 @@ const Home = () => {
       {/* ================= BUREAU COVERAGE ================= */}
       <Box
         component="section"
-        id="integrations"
+        id="bureau-coverage"
         className="bureau-coverage"
         sx={{
           position: 'relative',
@@ -801,6 +828,97 @@ const Home = () => {
 
         </div>
       </Box>
+
+      {/* ── Close the services wrapper ── */}
+      </section>
+
+      {/* ================= WHY CHOOSE VERIFYHUB ================= */}
+      <section
+        id="why-verifyhub"
+        aria-labelledby="why-heading"
+        className="why-choose"
+      >
+        <div className="wrap">
+
+          {/* Section header */}
+          <div className="why-choose-header reveal" ref={addToRevealRefs}>
+            <span className="eyebrow why-eyebrow">WHY VERIFY HUB</span>
+            <h2 id="why-heading" className="why-choose-title">
+              Why choose{' '}
+              <span
+                style={{
+                  background: 'linear-gradient(90deg,#6d3df5 0%,#3b82f6 55%,#16c79a 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                VerifyHub
+              </span>
+            </h2>
+            <p className="why-choose-sub">
+              Built for lenders and partners who need fast, reliable and compliant verification.
+            </p>
+          </div>
+
+          {/* 6-card grid */}
+          <div className="why-choose-grid">
+            {[
+              {
+                Icon: BoltIcon,
+                gradient: 'linear-gradient(135deg,#3B82F6,#0EA5E9)',
+                title: 'Instant reports',
+                desc: 'Pull credit reports in under a second with an average response time of 640 ms.',
+              },
+              {
+                Icon: HubIcon,
+                gradient: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+                title: 'All major bureaus, one place',
+                desc: 'CIBIL, Experian, Equifax and CRIF through a single unified platform.',
+              },
+              {
+                Icon: AutoAwesomeIcon,
+                gradient: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                title: 'AI-powered insights',
+                desc: 'Risk assessment, key factors and recommendations on every report.',
+              },
+              {
+                Icon: VerifiedIcon,
+                gradient: 'linear-gradient(135deg,#10B981,#14B8A6)',
+                title: 'Reliable at scale',
+                desc: '99.98% uptime, trusted by 50+ enterprise clients and 1 M+ verifications.',
+              },
+              {
+                Icon: AccountBalanceWalletIcon,
+                gradient: 'linear-gradient(135deg,#F59E0B,#EF4444)',
+                title: 'Transparent wallet billing',
+                desc: 'Track pulls, spend and wallet balance in real time from your dashboard.',
+              },
+              {
+                Icon: LockIcon,
+                gradient: 'linear-gradient(135deg,#06B6D4,#3B82F6)',
+                title: 'Secure and privacy-first',
+                desc: 'Built with data protection in mind, with clear policies and a grievance officer.',
+              },
+            ].map(({ Icon, gradient, title, desc }) => (
+              <div
+                key={title}
+                className="wc-card reveal"
+                ref={addToRevealRefs}
+              >
+                <div className="wc-icon-wrap" style={{ background: gradient }}>
+                  <Icon sx={{ fontSize: 26, color: '#fff' }} />
+                </div>
+                <h3 className="wc-title">{title}</h3>
+                <p className="wc-desc">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          
+        </div>
+      </section>
+
     </div>
   );
 };

@@ -159,7 +159,7 @@ const Login = () => {
               )}
             </Button>
 
-            <Typography variant="body2" align="center" color="text.secondary">
+            {/* <Typography variant="body2" align="center" color="text.secondary">
               New partner?{" "}
               <Link
                 component={RouterLink}
@@ -172,7 +172,7 @@ const Login = () => {
               >
                 Register
               </Link>
-            </Typography>
+            </Typography> */}
           </Box>
         </AuthCard>
       </AuthLayout>

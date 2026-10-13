@@ -7,6 +7,7 @@ const Home = lazy(() => import("../pages/Home"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
+const Welcome = lazy(() => import("../pages/auth/Welcome"));
 
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
 const CibilReport = lazy(() => import("../pages/partner/CibilReport"));
@@ -104,6 +105,7 @@ const AppRoutes = () => {
         {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Partner */}
