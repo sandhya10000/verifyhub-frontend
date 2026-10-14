@@ -57,12 +57,6 @@ const formatDateTime = (value) =>
     hour12: true,
   });
 
-const maskPan = (pan = "") => {
-  const p = String(pan || "").toUpperCase();
-  if (p.length < 5) return "—";
-  return `${p.slice(0, 3)}••••${p.slice(-2)}`;
-};
-
 const AdminReports = () => {
   const [reportsData, setReportsData] = useState([]);
   const [failedData, setFailedData] = useState([]);
@@ -130,6 +124,8 @@ const AdminReports = () => {
                 `${r.firstName || ""} ${r.lastName || ""}`.trim() ||
                 "-",
             ),
+            customerPhone: r.mobile || r.phone || "—",
+            customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
             type: "Credit Report",
             bureau: (r.bureau || "—").toUpperCase(),
             score: r.score !== null && r.score !== undefined ? r.score : "—",
@@ -185,7 +181,8 @@ const AdminReports = () => {
             typeof r.userId === "object" ? r.userId?._id || null : r.userId || null,
           partnerName: formatName(r.userId?.name || r.userId?.email || "Unknown"),
           customer: formatName(r.name || "-"),
-          maskedPan: maskPan(r.pan),
+          customerPhone: r.mobile || "—",
+          customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
           type: (r.reportType || r.bureau || "Credit").toUpperCase(),
           bureau: (r.bureau || "—").toUpperCase(),
           reason: r.failureReason || "Bureau request failed",
@@ -339,8 +336,8 @@ const AdminReports = () => {
     const isFailed = activeTab === 1;
     const rows = isFailed ? failedData : reportsData;
     const header = isFailed
-      ? ["Date & Time", "Partner ID", "Partner", "Type", "Bureau", "Reason"]
-      : ["Date", "Partner", "Type", "Bureau", "Score"];
+      ? ["Date & Time", "Partner ID", "Partner", "Type", "Bureau", "Name", "Phone", "PAN", "Reason"]
+      : ["Date", "Partner", "Type", "Bureau", "Score", "Name", "Phone", "PAN"];
     const body = isFailed
       ? rows.map((r) => [
           r.dateTime,
@@ -348,6 +345,9 @@ const AdminReports = () => {
           String(r.partnerName || "").replace(/,/g, ""),
           r.type,
           r.bureau,
+          String(r.rawReport?.name || r.customer || "").replace(/,/g, ""),
+          r.rawReport?.mobile || r.customerPhone || "",
+          r.rawReport?.pan || r.customerPan || "",
           `"${String(r.reason || "").replace(/"/g, '""')}"`,
         ])
       : rows.map((r) => [
@@ -356,6 +356,9 @@ const AdminReports = () => {
           r.type,
           r.bureau,
           r.score,
+          String(r.rawReport?.fullName || r.rawReport?.name || r.customer || "").replace(/,/g, ""),
+          r.rawReport?.mobile || r.rawReport?.phone || r.customerPhone || "",
+          r.rawReport?.pan || r.customerPan || "",
         ]);
     const csvContent = [header, ...body].map((e) => e.join(",")).join("\n");
 
@@ -453,6 +456,30 @@ const AdminReports = () => {
       render: (row) => <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>{row.score}</Typography>,
     },
     {
+      header: "Name", field: "customer", minWidth: 130,
+      render: (row) => (
+        <Typography title={row.rawReport?.fullName || row.rawReport?.name || row.customer} sx={{ fontSize: "0.8rem", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {row.customer}
+        </Typography>
+      ),
+    },
+    {
+      header: "Phone", field: "customerPhone", nowrap: true,
+      render: (row) => (
+        <Typography sx={{ fontSize: "0.8rem", fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {row.customerPhone}
+        </Typography>
+      ),
+    },
+    {
+      header: "PAN", field: "customerPan", nowrap: true,
+      render: (row) => (
+        <Typography sx={{ fontSize: "0.8rem", fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {row.customerPan}
+        </Typography>
+      ),
+    },
+    {
       header: "Status", field: "status", nowrap: true, minWidth: 110,
       render: (row) => <StatusBadge status={row.status || "Success"} />,
     },
@@ -504,6 +531,30 @@ const AdminReports = () => {
     },
     { header: "Type", field: "type", nowrap: true,
       render: (row) => <TypePill type={row.type} bureau={row.bureau} />,
+    },
+    {
+      header: "Name", field: "customer", minWidth: 130,
+      render: (row) => (
+        <Typography title={row.rawReport?.name || row.customer} sx={{ fontSize: "0.8rem", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {row.customer}
+        </Typography>
+      ),
+    },
+    {
+      header: "Phone", field: "customerPhone", nowrap: true,
+      render: (row) => (
+        <Typography sx={{ fontSize: "0.8rem", fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {row.customerPhone}
+        </Typography>
+      ),
+    },
+    {
+      header: "PAN", field: "customerPan", nowrap: true,
+      render: (row) => (
+        <Typography sx={{ fontSize: "0.8rem", fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {row.customerPan}
+        </Typography>
+      ),
     },
     {
       header: "Reason",
