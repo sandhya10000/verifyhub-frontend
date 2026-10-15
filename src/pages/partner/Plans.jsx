@@ -68,21 +68,19 @@ const Plans = () => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
-            Pricing
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Single plan for everyone — no selection needed. Only generated reports are charged.
-          </Typography>
-        </Box>
+      <Box sx={{ mb: 2.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
+          Pricing
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
+          Single plan for everyone — no selection needed. Only generated reports are charged.
+        </Typography>
         <Button
           variant="contained" disableElevation
           onClick={goTopUp}
-          sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2.5, py: 1 }}
+          sx={{ mt: 1.5, borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2.5, py: 1 }}
         >
-          Top up wallet
+          Recharge Plan
         </Button>
       </Box>
 
