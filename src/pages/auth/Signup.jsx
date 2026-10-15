@@ -13,6 +13,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
 import PasswordField from "../../Components/auth/PasswordField";
@@ -125,6 +126,46 @@ const Signup = () => {
   return (
     <AuthLayout variant="split">
       <AuthCard sx={{ maxWidth: 600 }}>
+        <Link
+          component={RouterLink}
+          to="/"
+          aria-label="Back to home"
+          underline="none"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            fontSize: "13.5px",
+            fontWeight: 500,
+            color: "text.secondary",
+            minHeight: "40px",
+            mb: 1.5,
+            width: "fit-content",
+            borderRadius: "6px",
+            textDecoration: "none",
+            outline: "none",
+            "& .back-arrow-icon": {
+              fontSize: "16px",
+              transition: "transform 180ms ease, color 180ms ease",
+            },
+            "&:hover": {
+              color: "#2563EB",
+              textDecoration: "underline",
+              "& .back-arrow-icon": {
+                transform: "translateX(-3px)",
+                color: "#2563EB",
+              },
+            },
+            "&:focus-visible": {
+              color: "#2563EB",
+              boxShadow: "0 0 0 2px rgba(37, 99, 235, 0.4)",
+              outline: "none",
+            },
+          }}
+        >
+          <ArrowBackIcon className="back-arrow-icon" />
+          Back to home
+        </Link>
         <Typography variant="h4" sx={{ mb: 1 }}>
           Register
         </Typography>
