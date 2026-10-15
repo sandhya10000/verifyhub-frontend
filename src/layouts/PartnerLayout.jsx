@@ -125,7 +125,7 @@ const PartnerLayout = () => {
     };
   }, []);
 
-  const { user, logout, refreshWallet, hasToppedUp } = useAuth();
+  const { user, logout, refreshWallet } = useAuth();
 
   // Single-plan mode: no forced plan pick — single plan auto-applies to all.
   // TODO(multi-plan-restore): restore pendingPlanChoice lock redirect here.
@@ -150,35 +150,20 @@ const PartnerLayout = () => {
 
   if (!user) return null;
 
-  // First-time sidebar: partners who never topped up see Add Funds right
-  // below Dashboard (Pricing hidden); funded partners see Pricing in the same
-  // slot. hasToppedUp null (still loading) renders the funded nav to avoid a
-  // flash of the wrong tabs. TODO(multi-plan-restore): no action needed here.
-  const showAddFunds = hasToppedUp === false;
-
+  // Pricing always sits directly below Dashboard — including for newly
+  // joined partners (Add Funds stays reachable via the Pricing page's top-up
+  // button and the report error prompts).
   const navItems = [
     {
       text: "Dashboard",
       icon: <LayoutDashboard size={20} />,
       path: "/partner/dashboard",
     },
-    // Pricing sits directly below Dashboard (funded); first-timers get
-    // Add Funds in this exact slot instead.
-    ...(showAddFunds
-      ? [
-          {
-            text: "Add Funds",
-            icon: <Wallet size={20} />,
-            path: "/partner/add-funds",
-          },
-        ]
-      : [
-          {
-            text: "Pricing",
-            icon: <IndianRupee size={20} />,
-            path: "/partner/pricing",
-          },
-        ]),
+    {
+      text: "Pricing",
+      icon: <IndianRupee size={20} />,
+      path: "/partner/pricing",
+    },
     {
       text: "Credit Reports",
       icon: <FileText size={20} />,

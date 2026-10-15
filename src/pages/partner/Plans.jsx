@@ -27,12 +27,8 @@ const FALLBACK_GST = { base: 10, gstRate: 0, total: 10 };
 
 const Plans = () => {
   const navigate = useNavigate();
-  // Pricing is hidden from first-time partners until their first top-up —
-  // direct visits bounce to Add Funds (funded partners always pass).
-  const { user, refreshWallet, hasToppedUp, isLoading } = useAuth();
-  useEffect(() => {
-    if (!isLoading && hasToppedUp === false) navigate('/partner/add-funds', { replace: true });
-  }, [isLoading, hasToppedUp, navigate]);
+  // Pricing is visible to everyone, including newly joined partners.
+  const { user, refreshWallet } = useAuth();
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [ai, setAi] = useState(FALLBACK_AI);
   const [rc, setRc] = useState(FALLBACK_RC);
