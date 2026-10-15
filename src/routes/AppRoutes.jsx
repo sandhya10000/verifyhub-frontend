@@ -106,6 +106,7 @@ const AppRoutes = () => {
         {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/register" element={<Navigate to="/signup" replace />} />
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
