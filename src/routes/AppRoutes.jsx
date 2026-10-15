@@ -7,6 +7,7 @@ const Home = lazy(() => import("../pages/Home"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
+const Welcome = lazy(() => import("../pages/auth/Welcome"));
 
 const PartnerLayout = lazy(() => import("../layouts/PartnerLayout"));
 const CibilReport = lazy(() => import("../pages/partner/CibilReport"));
@@ -33,6 +34,7 @@ const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
 const AdminPricing = lazy(() => import("../pages/admin/Pricing"));
+const AdminBanners = lazy(() => import("../pages/admin/Banners"));
 const AdminTransactions = lazy(() => import("../pages/admin/Transactions"));
 const AdminSettings = lazy(() => import("../pages/admin/Settings"));
 
@@ -104,6 +106,7 @@ const AppRoutes = () => {
         {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Partner */}
@@ -218,6 +221,10 @@ const AppRoutes = () => {
           <Route
             path="pricing"
             element={<AdminPricing />}
+          />
+          <Route
+            path="banners"
+            element={<AdminBanners />}
           />
           <Route path="api" element={<PlaceholderPage title="API Control" />} />
           <Route

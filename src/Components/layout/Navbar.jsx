@@ -86,6 +86,28 @@ const Navbar = () => {
             >
               <Box
                 component={RouterLink}
+                to="/signup"
+                onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
+                sx={{
+                  fontSize: '14.5px',
+                  fontWeight: 500,
+                  color: '#fff',
+                  textDecoration: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  px: 2.5,
+                  py: 1,
+                  transition: '0.2s',
+                  '&:hover': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                  },
+                }}
+              >
+                Register for a Verify Hub
+              </Box>
+              <Box
+                component={RouterLink}
                 to="/login"
                 onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
                 sx={{

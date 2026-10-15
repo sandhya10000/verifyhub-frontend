@@ -19,6 +19,7 @@ const TAB_META = [
   { key: 'ai', label: 'AI Analysis', desc: 'AI Credit Report Analyzer results' },
   { key: 'rc', label: 'Vehicle RC', desc: 'RC verifications' },
   { key: 'gst', label: 'GST', desc: 'GSTIN verifications' },
+  { key: 'partners', label: 'Partners', desc: 'Partner directory · wallet · status (upserted by Partner ID)', sheetOverride: true },
 ];
 
 const fmtTime = (iso) => {
@@ -65,6 +66,7 @@ const AdminSettings = () => {
   const setField = (field, v) => setConfig((c) => ({ ...c, [field]: v }));
   const setTab = (k, v) => setConfig((c) => ({ ...c, tabs: { ...c.tabs, [k]: v } }));
   const setEnabled = (k, v) => setConfig((c) => ({ ...c, enabled: { ...c.enabled, [k]: v } }));
+  const setSheetId = (k, v) => setConfig((c) => ({ ...c, spreadsheetIds: { ...(c.spreadsheetIds || {}), [k]: v } }));
 
   const handleSave = async () => {
     try {
@@ -75,6 +77,7 @@ const AdminSettings = () => {
         headers: authHeaders(),
         body: JSON.stringify({
           spreadsheetId: config.spreadsheetId,
+          spreadsheetIds: config.spreadsheetIds,
           tabs: config.tabs,
           enabled: config.enabled,
           scheduleMinutes: Number(config.scheduleMinutes),
@@ -108,7 +111,11 @@ const AdminSettings = () => {
       if (data.success) {
         const parts = Object.entries(data.data)
           .filter(([, r]) => !r.skipped)
-          .map(([k, r]) => `${k}: ${r.pushed ?? 0} rows${r.error ? ` (error: ${r.error})` : ''}`);
+          .map(([k, r]) => {
+            const total = (r.pushed ?? 0) + (r.updated ?? 0);
+            const detail = r.updated ? ` (${r.pushed ?? 0} new, ${r.updated} updated)` : '';
+            return `${k}: ${total} rows${detail}${r.error ? ` (error: ${r.error})` : ''}`;
+          });
         setBanner({ tone: 'success', text: backfill ? `Backfill done — ${parts.join(' · ')}` : `Sync done — ${parts.join(' · ')}` });
         fetchSettings();
       } else {
@@ -229,6 +236,18 @@ const AdminSettings = () => {
                   fullWidth
                   sx={{ mb: 1.5, '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.82rem' } }}
                 />
+                {t.sheetOverride && (
+                  <TextField
+                    label="Spreadsheet ID override (optional)"
+                    value={config.spreadsheetIds?.[t.key] || ''}
+                    onChange={(e) => setSheetId(t.key, e.target.value)}
+                    size="small"
+                    fullWidth
+                    placeholder="Leave empty to use the main sheet above"
+                    helperText="Use this when Partners lives in its own spreadsheet file"
+                    sx={{ mb: 1.5, '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.82rem' } }}
+                  />
+                )}
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                   <Chip size="small" label={`${pending?.[t.key] ?? '?'} pending`} variant="outlined" />
                   <Chip
