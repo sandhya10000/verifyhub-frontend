@@ -99,6 +99,63 @@ const TierMoneyField = ({ label, value, onChange, hint }) => (
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const eff = (base, gstRate) => (Number(base) || 0) * (1 + (Number(gstRate) || 0) / 100);
 
+// Recharge plans editor (pay -> wallet credit). Module-level so inputs keep
+// focus while typing. Bonus = credit - pay; credit must be >= pay.
+const RechargePlansCard = ({ plans, onChange }) => {
+  const list = Array.isArray(plans) ? plans : [];
+  const setRow = (idx, field, v) => {
+    const next = list.map((p, i) => (i === idx ? { ...p, [field]: v } : p));
+    onChange(next);
+  };
+  const removeRow = (idx) => onChange(list.filter((_, i) => i !== idx));
+  const addRow = () => {
+    if (list.length >= 12) return;
+    const maxPay = list.reduce((m, p) => Math.max(m, Number(p.pay) || 0), 0);
+    onChange([...list, { pay: maxPay || 1000, credit: maxPay || 1000 }]);
+  };
+  return (
+    <Paper sx={{ borderRadius: 4, border: '1px solid #E8EEF5', boxShadow: 'none', p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+        <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 3, bgcolor: '#e9f9f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Wallet size={22} color="#16a34a" />
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>Recharge plans &amp; bonus</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4, mt: 0.25 }}>
+            Pay → wallet credit. Checkout only allows these exact amounts. Bonus shows only when credit exceeds pay (above ₹1,000).
+          </Typography>
+        </Box>
+        <Button size="small" variant="outlined" onClick={addRow} disabled={list.length >= 12}
+          sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          + Add plan
+        </Button>
+      </Box>
+      <Grid container spacing={1.5} sx={{ mt: 1 }}>
+        {list.map((p, idx) => {
+          const bonus = Math.max(0, Number(p.credit || 0) - Number(p.pay || 0));
+          return (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
+              <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <NumField label="Pay ₹" value={p.pay} onChange={(v) => setRow(idx, 'pay', v)} />
+                  <NumField label="Credit ₹" value={p.credit} onChange={(v) => setRow(idx, 'credit', v)} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                  <Chip size="small" label={bonus > 0 ? `+${inr(bonus)} bonus` : 'no bonus'} color={bonus > 0 ? 'success' : 'default'} variant={bonus > 0 ? 'filled' : 'outlined'} />
+                  <Button size="small" color="error" onClick={() => removeRow(idx)} disabled={list.length <= 1}
+                    sx={{ ml: 'auto', minWidth: 0, textTransform: 'none', fontWeight: 700 }}>
+                    Remove
+                  </Button>
+                </Box>
+              </Paper>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Paper>
+  );
+};
+
 // Module-level on purpose: defining this inside AdminPricing remounts all
 // inputs on every keystroke (new component identity per render) and steals
 // input focus. Receives everything via props so it never remounts.
@@ -179,6 +236,9 @@ const diffPricing = (cur, saved) => {
   }
   for (const [field, label] of [['minRecharge', 'Min recharge ₹'], ['lowBalanceThreshold', 'Low-wallet ₹']]) {
     if (Number(cur[field]) !== Number(saved[field])) out.push({ label, from: saved[field], to: cur[field] });
+  }
+  if (JSON.stringify(cur.rechargePlans || []) !== JSON.stringify(saved.rechargePlans || [])) {
+    out.push({ label: 'Recharge plans (pay → credit)', from: JSON.stringify(saved.rechargePlans || []), to: JSON.stringify(cur.rechargePlans || []) });
   }
   return out;
 };
@@ -409,6 +469,11 @@ const AdminPricing = () => {
               );
             })
           )}
+
+          <RechargePlansCard
+            plans={pricing.rechargePlans}
+            onChange={(v) => setFlat('rechargePlans', v)}
+          />
 
           {/* What partners pay — live fail-policy summary */}
           <Paper sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2.5, mb: 2 }}>

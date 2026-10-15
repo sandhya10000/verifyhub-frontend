@@ -30,6 +30,26 @@ export const planLabel = (key) => (PLAN_META.find((p) => p.key === key)?.label |
 export const inr0 = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 export const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
+// Recharge plans: pay -> wallet credit (bonus = credit - pay).
+// Live list comes from GET /partner/pricing/plans (rechargePlans);
+// this is the instant fallback + offline default.
+export const FALLBACK_RECHARGE_PLANS = [
+  { pay: 1000, credit: 1000 },
+  { pay: 2000, credit: 2100 },
+  { pay: 5000, credit: 5500 },
+  { pay: 10000, credit: 12000 },
+  { pay: 25000, credit: 28000 },
+  { pay: 50000, credit: 60000 },
+];
+
+export const bonusForPlan = (plan) => Math.max(0, Number(plan?.credit || 0) - Number(plan?.pay || 0));
+
+export const creditForPay = (plans, pay) => {
+  const list = Array.isArray(plans) && plans.length ? plans : FALLBACK_RECHARGE_PLANS;
+  const hit = list.find((p) => Number(p.pay) === Number(pay));
+  return hit ? Number(hit.credit) : null;
+};
+
 // Tier ladder (matches backend tierForAmount slabs in Pricing.js).
 // Single-plan mode: one rung only.
 // TODO(multi-plan-restore): restore 5-rung ladder (200/1000/5000/10000/25000+).
