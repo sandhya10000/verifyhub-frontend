@@ -5,16 +5,15 @@ import {
   Card,
   CardContent,
   Button,
-  TextField,
   Alert,
   Grid,
-  InputAdornment,
   Divider,
 } from '@mui/material';
 import { Sparkles, Wallet } from 'lucide-react';
 import useAuth from '../../context/useAuth';
 import axios from 'axios';
-import { planLabel } from './planConfig';
+import AutoCropBanner from '../../Components/shared/AutoCropBanner';
+import { planLabel, FALLBACK_RECHARGE_PLANS, bonusForPlan, inr0 } from './planConfig';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -28,6 +27,18 @@ const loadRazorpayScript = () => new Promise((resolve) => {
 });
 
 const inr2 = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+// Backend origin for uploaded assets: API base is "<origin>/api", banner
+// paths from the server are relative ("/uploads/banners/..."). Bundled
+// frontend assets ("/Add_Funds_banner.png") resolve as-is.
+const resolveBannerSrc = (imageUrl) => {
+  if (!imageUrl) return '/Add_Funds_banner.png';
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  if (imageUrl.startsWith('/uploads/')) {
+    return `${API_BASE_URL.replace(/\/api\/?$/, '')}${imageUrl}`;
+  }
+  return imageUrl;
+};
 
 const AddFunds = () => {
   // First top-up flips the sidebar from Add Funds to Pricing instantly.
@@ -47,23 +58,23 @@ const AddFunds = () => {
   }, [hasToppedUp]);
 
   const scrollToTopUp = () => {
-    document.getElementById('topup-amount')?.focus({ preventScroll: false });
-    document.getElementById('topup-amount')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('recharge-plans')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
-  // Floor comes from the server (Pricing.minRecharge, admin-editable) — the
-  // 1000 here is only the pre-fetch placeholder. No forced plan pick —
-  // single plan auto-applies on every recharge.
-  // TODO(multi-plan-restore): restore default floor 200 + plan-pick redirect.
-  const [minRecharge, setMinRecharge] = useState(1000);
-  // ?amount= prefill counts as user-chosen: the live floor must never
-  // overwrite it (or anything the partner typed) once pricing loads.
+  // Plans-only checkout: partner picks one of the recharge plans
+  // (server list, fallback to founder table). No free-form amounts —
+  // the server rejects anything that isn't an exact plan pay value.
+  const [rechargePlans, setRechargePlans] = useState(FALLBACK_RECHARGE_PLANS);
+  // ?amount= prefill only applies when it matches a plan pay value.
   let queryAmount = null;
   try {
     const q = new URLSearchParams(window.location.search).get('amount');
-    if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) queryAmount = q;
+    if (q && /^\d+(\.\d{1,2})?$/.test(q) && Number(q) > 0) queryAmount = Number(q);
   } catch { /* ignore */ }
-  const [amount, setAmount] = useState(queryAmount || '1000');
-  const amountTouchedRef = useRef(!!queryAmount);
+  const defaultPay = (() => {
+    if (queryAmount && FALLBACK_RECHARGE_PLANS.some((p) => Number(p.pay) === queryAmount)) return queryAmount;
+    return 1000;
+  })();
+  const [selectedPay, setSelectedPay] = useState(defaultPay);
   const [amountError, setAmountError] = useState('');
   // First funding ever -> plan auto-assigned by slab on the backend.
   const [firstTimer, setFirstTimer] = useState(true);
@@ -82,19 +93,41 @@ const AddFunds = () => {
     } catch { /* ignore */ }
   }, []);
 
-  const parsedAmount = parseFloat(amount) || 0;
+  const selectedPlan = rechargePlans.find((p) => Number(p.pay) === Number(selectedPay)) || null;
+  const parsedAmount = Number(selectedPlan?.pay || selectedPay) || 0;
+  const walletCredit = Number(selectedPlan?.credit || parsedAmount) || 0;
+  const bonusCredit = Math.max(0, walletCredit - parsedAmount);
+  // Admin-editable banner (Admin → Banners); falls back to the bundled PNG.
+  const [bannerSrc, setBannerSrc] = useState('/Add_Funds_banner.png');
+  const [bannerEnabled, setBannerEnabled] = useState(true);
+  const [bannerCrop, setBannerCrop] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/partner/pricing/plans`)
       .then(({ data }) => {
-        if (data?.success && data.data?.minRecharge != null) {
-          setMinRecharge(data.data.minRecharge);
-          // Sync the amount box to the live floor — but never clobber a
-          // ?amount= prefill or anything the partner already typed.
-          if (!amountTouchedRef.current) setAmount(String(data.data.minRecharge));
+        if (data?.success) {
+          const live = Array.isArray(data.data?.rechargePlans) && data.data.rechargePlans.length
+            ? data.data.rechargePlans
+            : FALLBACK_RECHARGE_PLANS;
+          setRechargePlans(live);
+          // Keep the selection valid once live plans load (?amount= wins when it matches).
+          if (queryAmount && live.some((p) => Number(p.pay) === queryAmount)) {
+            setSelectedPay(queryAmount);
+          } else if (!live.some((p) => Number(p.pay) === defaultPay)) {
+            setSelectedPay(Number(live[0]?.pay || 1000));
+          }
+          const b = data.data?.addFundsBanner;
+          if (b?.imageUrl) setBannerSrc(resolveBannerSrc(b.imageUrl));
+          if (typeof b?.enabled === 'boolean') setBannerEnabled(b.enabled);
+          setBannerCrop({
+            top: Number(b?.cropTop) || 0,
+            bottom: Number(b?.cropBottom) || 0,
+            left: Number(b?.cropLeft) || 0,
+            right: Number(b?.cropRight) || 0,
+          });
         }
       })
-      .catch(() => { /* default floor stays */ });
+      .catch(() => { /* fallback plans stay */ });
     const t = localStorage.getItem('token');
     if (t) {
       axios.get(`${API_BASE_URL}/partner/overview/summary`, { headers: { Authorization: `Bearer ${t}` } })
@@ -107,25 +140,16 @@ const AddFunds = () => {
     }
   }, []);
 
-  const handleAmountChange = (e) => {
-    const val = e.target.value;
-    if (/^\d*\.?\d{0,2}$/.test(val)) {
-      amountTouchedRef.current = true;
-      setAmount(val);
-      setAmountError('');
-    }
-  };
-
   const handleProceed = () => {
-    const amt = parseFloat(amount) || 0;
-    if (amt < minRecharge) {
-      setAmountError(`Minimum top-up is ₹${Number(minRecharge).toLocaleString('en-IN')}`);
+    if (!selectedPlan) {
+      setAmountError('Please choose a recharge plan.');
       return;
     }
     setAmountError('');
     setPayBanner(null);
-    // Gateway is the only way to add funds — pure wallet top-up, no plan attached
-    handleGatewayPay(amt);
+    // Gateway is the only way to add funds — Razorpay collects the plan pay
+    // value, the wallet is credited pay + bonus.
+    handleGatewayPay(Number(selectedPlan.pay));
   };
 
   const handleGatewayPay = async (amt) => {
@@ -187,9 +211,11 @@ const AddFunds = () => {
               }
               // First top-up gets an unlock confirmation (reinforces the highlight line).
               const unlockedNote = firstTimer ? ' All services unlocked — bureau reports, AI analysis, RC & GST verification.' : '';
+              const credited = verifyRes.data?.credited ?? amt;
+              const bonus = verifyRes.data?.bonusCredit ?? 0;
               setPayBanner({
                 tone: 'success',
-                text: `₹${Number(amt).toLocaleString('en-IN')} added to wallet${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? amt)}.${unlockedNote}`,
+                text: `${inr2(credited)} added to wallet${bonus > 0 ? ` (incl. ${inr2(bonus)} bonus)` : ''}${verifyRes.data.plan ? ` · ${planLabel(verifyRes.data.plan)} plan active` : ''}. New balance ${inr2(newBalance ?? credited)}.${unlockedNote}`,
               });
               if (verifyRes.data.autoAssigned) setFirstTimer(false);
               // First successful credit: swap the sidebar to Pricing at once.
@@ -279,26 +305,25 @@ const AddFunds = () => {
             </Box>
           </Box>
         </CardContent>
-        {/* Banner image nested inside the header (shown always). The PNG
-            carries baked-in black bars (~14.7% top/bottom, measured 108–614 of
-            725px), so the frame crops to the live banner region via matching
-            aspect ratio + cover. */}
-          <Box sx={{ px: { xs: 2, sm: 4 }, pb: { xs: 1.5, sm: 2 } }}>
-            <Box
+        {/* Admin-editable banner (Admin → Banners). Hidden when disabled.
+            Framed with breathing room inside the header card; AutoCropBanner
+            strips baked-in black letterbox bars dynamically. */}
+        {bannerEnabled && (
+          <Box sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 }, pt: 0 }}>
+            <AutoCropBanner
+              src={bannerSrc}
+              alt="Wallet recharge offers"
+              minTop={bannerCrop.top}
+              minBottom={bannerCrop.bottom}
+              minLeft={bannerCrop.left}
+              minRight={bannerCrop.right}
               sx={{
-                position: 'relative', width: '100%', aspectRatio: '2170 / 506',
-                overflow: 'hidden', borderRadius: '12px',
-                boxShadow: '0 6px 24px rgba(76,29,149,.18)', bgcolor: '#4C1D95',
+                borderRadius: '16px',
+                boxShadow: '0 8px 28px rgba(76,29,149,.22)',
               }}
-            >
-              <Box
-                component="img"
-                src="/Add_Funds_banner.png"
-                alt="One top-up unlocks everything — starting at just ₹10"
-                sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', transform: 'scale(1.04)' }}
-              />
-            </Box>
+            />
           </Box>
+        )}
       </Card>
 
       {/* Sticky reminder — shows once the header scrolls away (first-timers only). */}
@@ -343,15 +368,15 @@ const AddFunds = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
-                Top up your wallet
+                Choose a recharge plan
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                Full amount lands in your wallet. The single plan applies automatically — only generated reports are charged. See Pricing for all rates.
+                Pay the plan price via Razorpay — your wallet is credited the total shown, bonus included. Only generated reports are charged. See Pricing for all rates.
               </Typography>
 
               {firstTimer && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
-                  Your first top-up of ₹1,000+ activates the single launch plan automatically — free, full amount credited.
+                  Your first top-up activates the single launch plan automatically.
                 </Alert>
               )}
 
@@ -361,33 +386,56 @@ const AddFunds = () => {
                 </Alert>
               )}
 
-              <TextField
-                fullWidth
-                id="topup-amount"
-                label="Top-up amount (₹)"
-                value={amount}
-                onChange={handleAmountChange}
-                error={!!amountError}
-                helperText={amountError || undefined}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Typography sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '1.1rem' }}>
-                          ₹
+              <Grid container spacing={1.5} sx={{ mb: 1 }} id="recharge-plans">
+                {rechargePlans.map((plan, idx) => {
+                  const pay = Number(plan.pay);
+                  const credit = Number(plan.credit);
+                  const bonus = bonusForPlan(plan);
+                  const selected = Number(selectedPay) === pay;
+                  const popular = bonus > 0 && idx === 1;
+                  return (
+                    <Grid size={{ xs: 6, sm: 4 }} key={pay}>
+                      <Box
+                        onClick={() => { setSelectedPay(pay); setAmountError(''); }}
+                        sx={{
+                          position: 'relative', cursor: 'pointer', borderRadius: '12px', p: 1.75,
+                          border: selected ? '2px solid #6D28D9' : '1px solid #E5E7EB',
+                          bgcolor: selected ? '#F5F0FF' : '#fff',
+                          boxShadow: selected ? '0 4px 16px rgba(109,40,217,.18)' : 'none',
+                          transition: 'all .15s ease',
+                        }}
+                      >
+                        {popular && (
+                          <Box sx={{ position: 'absolute', top: -11, left: 12, bgcolor: '#6D28D9', color: '#fff', fontSize: '0.62rem', fontWeight: 800, px: 1.25, py: 0.25, borderRadius: 999 }}>
+                            Most Popular
+                          </Box>
+                        )}
+                        <Typography sx={{ fontWeight: 800, fontSize: '1.05rem' }}>{inr2(pay).replace('.00', '')}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Total Credit
                         </Typography>
-                      </InputAdornment>
-                    ),
-                    sx: { fontSize: '1.15rem', fontWeight: 600, fontFamily: '"Inter", sans-serif' },
-                  },
-                  formHelperText: {
-                    sx: { color: amountError ? 'error.main' : 'text.secondary', mt: 0.75 },
-                  },
-                }}
-                sx={{ mb: 2.5 }}
-              />
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: bonus > 0 ? '#059669' : 'text.primary' }}>
+                          {inr2(credit).replace('.00', '')}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: bonus > 0 ? '#059669' : 'text.disabled', fontWeight: 700 }}>
+                          {bonus > 0 ? `+${inr0(bonus)} bonus` : 'No bonus'}
+                        </Typography>
+                        <Box sx={{
+                          mt: 1, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, py: 0.75, borderRadius: '8px',
+                          bgcolor: selected ? '#6D28D9' : '#F1F0FF', color: selected ? '#fff' : '#6D28D9',
+                        }}>
+                          {selected ? '✓ Selected' : 'Select Plan'}
+                        </Box>
+                      </Box>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+              {amountError && (
+                <Typography variant="caption" sx={{ color: 'error.main', display: 'block', mb: 1 }}>{amountError}</Typography>
+              )}
 
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2, textAlign: 'center' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2, mt: 1.5, textAlign: 'center' }}>
                 Secured via Razorpay · Cards · Net banking · UPI · Wallets
               </Typography>
 
@@ -401,7 +449,7 @@ const AddFunds = () => {
                 fullWidth
                 size="large"
                 onClick={handleProceed}
-                disabled={paying}
+                disabled={paying || !selectedPlan}
                 sx={{
                   background: '#3730A3',
                   color: '#fff',
@@ -419,7 +467,7 @@ const AddFunds = () => {
                   },
                 }}
               >
-                {paying ? 'Processing payment…' : `Add ₹${Number(parsedAmount).toLocaleString('en-IN')}`}
+                {paying ? 'Processing payment…' : `Pay ${inr2(parsedAmount)} → Get ${inr2(walletCredit)}`}
               </Button>
             </CardContent>
           </Card>
@@ -436,13 +484,17 @@ const AddFunds = () => {
                 Order Summary
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Wallet credit</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>+{inr2(parsedAmount)}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Recharge Amount</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{inr2(parsedAmount)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Extra Credit</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: bonusCredit > 0 ? '#059669' : 'text.primary' }}>{inr2(bonusCredit)}</Typography>
               </Box>
               <Divider sx={{ my: 1.5 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Total payable</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr2(parsedAmount)}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Total Wallet Credit</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{inr2(walletCredit)}</Typography>
               </Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
                 GST-inclusive — no extra tax at checkout.
