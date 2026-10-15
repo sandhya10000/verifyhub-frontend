@@ -211,6 +211,11 @@ const Navbar = () => {
                 '&:focus-visible': {
                   boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.5)',
                 },
+                '& img': {
+                  height: { xs: '32px', md: '42px' },
+                  maxHeight: '42px',
+                  width: 'auto',
+                },
               }}
             >
               <Logo height={42} alt="VerifyHub Icon" />

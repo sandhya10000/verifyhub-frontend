@@ -58,10 +58,10 @@
 .home-container .grad-blue { background:linear-gradient(90deg,#7C3AED 0%,#3B82F6 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
 
 /* Hero */
-.home-container .hero { position:relative; overflow:visible; padding: 40px 0 60px; background: radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 40%), radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 40%); }
+.home-container .hero { position:relative; overflow:visible; padding: 104px 0 60px; background: radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 40%), radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 40%); }
 .home-container .hero-grid { display: grid; grid-template-columns: 1fr 1.02fr; gap: 40px; align-items: center; }
 .home-container .hero-content { color: #fff; max-width: 580px; }
-.home-container .hero h1 { font-size:clamp(42px, 5vw, 64px); line-height:1.1; font-weight:800; letter-spacing:-.03em; margin-bottom: 24px; }
+.home-container .hero h1 { font-size:clamp(2rem, 6.5vw, 4rem); line-height:1.15; font-weight:800; letter-spacing:-.03em; margin-bottom: 24px; }
 .home-container .hero h1 .grad { background:linear-gradient(90deg,#93B4FD 0%,#34D399 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .home-container .hero .lead { font-size:18px; color:#A9BAD6; margin-bottom: 40px; line-height:1.6; font-weight: 400; }
 .home-container .hero-actions { display:flex; gap:16px; flex-wrap:wrap; }
@@ -167,8 +167,8 @@
 }
 
 @media (max-width:768px){
-  .home-container .hero { padding: 28px 0 40px; }
-  .home-container .hero h1 { font-size: 38px; }
+  .home-container .hero { padding: 88px 0 36px; }
+  .home-container .hero h1 { font-size: clamp(2rem, 8vw, 2.75rem); line-height: 1.18; }
   .home-container .hero-stats { padding: 24px; justify-content: center; gap: 30px; }
   .home-container .prod-grid, .home-container .why-grid { grid-template-columns: 1fr; }
   .home-container .metrics-strip-inner { grid-template-columns: 1fr; gap: 24px; text-align: center; }
@@ -178,6 +178,7 @@
 }
 @media (max-width: 480px) {
   .home-container .wrap { padding: 0 20px; }
+  .home-container .hero { padding-top: 92px; }
   .home-container .hero-stats { padding: 16px; }
   .home-container .cta { padding: 32px 20px; }
 }
