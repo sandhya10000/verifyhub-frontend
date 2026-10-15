@@ -264,10 +264,11 @@ const Signup = () => {
               />
             </Box>
 
-            <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2.5, sm: 3 }, mb: 3 }}>
               <PasswordField
                 fullWidth
                 label="Password"
+                placeholder="Password"
                 {...register("password")}
                 error={!!errors.password}
                 helperText={errors.password?.message}
@@ -275,6 +276,7 @@ const Signup = () => {
               <PasswordField
                 fullWidth
                 label="Confirm Password"
+                placeholder="Confirm Password"
                 {...register("confirmPassword")}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message}
