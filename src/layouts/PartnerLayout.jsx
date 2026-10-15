@@ -165,6 +165,11 @@ const PartnerLayout = () => {
       path: "/partner/pricing",
     },
     {
+      text: "Recharge Plans",
+      icon: <Wallet size={20} />,
+      path: "/partner/add-funds",
+    },
+    {
       text: "Credit Reports",
       icon: <FileText size={20} />,
       children: [
