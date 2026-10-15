@@ -387,12 +387,12 @@ const AddFunds = () => {
               )}
 
               <Grid container spacing={1.5} sx={{ mb: 1 }} id="recharge-plans">
-                {rechargePlans.map((plan, idx) => {
+                {rechargePlans.map((plan) => {
                   const pay = Number(plan.pay);
                   const credit = Number(plan.credit);
                   const bonus = bonusForPlan(plan);
                   const selected = Number(selectedPay) === pay;
-                  const popular = bonus > 0 && idx === 1;
+                  const popular = pay === 5000;
                   return (
                     <Grid size={{ xs: 6, sm: 4 }} key={pay}>
                       <Box
