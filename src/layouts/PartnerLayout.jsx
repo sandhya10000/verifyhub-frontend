@@ -188,12 +188,11 @@ const PartnerLayout = () => {
           icon: <Scale size={16} />,
           path: "/partner/credit-reports/equifax",
         },
-        // Temporarily hidden: CRIF Credit Report
-        // {
-        //   text: "CRIF Credit Report",
-        //   icon: <Building2 size={16} />,
-        //   path: "/partner/credit-reports/crif",
-        // },
+        {
+          text: "CRIF Credit Report",
+          icon: <Building2 size={16} />,
+          path: "/partner/credit-reports/crif",
+        },
       ],
     },
 
