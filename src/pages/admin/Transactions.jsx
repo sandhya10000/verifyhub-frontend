@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box, Typography, CircularProgress, Alert, Snackbar, Grid,
-  Button, Skeleton,
+  Button, Skeleton, Tooltip,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
@@ -101,11 +102,12 @@ const AdminTransactions = () => {
 
   const handleExport = () => {
     const csv = [
-      ["Date", "Partner", "Email", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
+      ["Date", "Partner", "Email", "Partner ID", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
       ...rows.map((r) => [
         r.createdAt ? new Date(r.createdAt).toISOString() : "",
         fmtName(r.userId).replace(/,/g, ""),
         (r.userId?.email || "").replace(/,/g, ""),
+        r.userId?.partner_id || "",
         r.type, purposeLabel(r.purpose),
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
         r.status, r.orderId || "", r.paymentId || "",
@@ -134,6 +136,39 @@ const AdminTransactions = () => {
           <Typography title={r.userId?.email || ""} sx={{ fontSize: "0.7rem", color: "#8A94A6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.userId?.email || ""}</Typography>
         </Box>
       ),
+    },
+    {
+      header: "Partner ID", field: "partner_id", nowrap: true, minWidth: 110,
+      render: (r) => {
+        const dbId = r.userId?._id || null;
+        const pid = r.userId?.partner_id || "—";
+        const pname = fmtName(r.userId);
+        return dbId && pid !== "—" ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                fontSize: "0.78rem",
+                whiteSpace: "nowrap",
+                color: "#3730A3",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {pid}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography sx={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>
+            {pid}
+          </Typography>
+        );
+      },
     },
     {
       header: "Type", field: "type", nowrap: true, minWidth: 80,
