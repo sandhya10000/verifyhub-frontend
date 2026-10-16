@@ -12,8 +12,10 @@ import {
   Button,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  Tooltip
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
@@ -185,6 +187,39 @@ const AdminSupport = () => {
         </Box>
       ),
     },
+    {
+      header: 'Partner ID', field: 'partner_id', nowrap: true, minWidth: 110,
+      render: (t) => {
+        const dbId = t.partnerId?._id || null;
+        const pid = t.partnerId?.partner_id || '—';
+        const pname = t.partnerId?.name || 'Unknown';
+        return dbId && pid !== '—' ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                whiteSpace: 'nowrap',
+                color: '#3730A3',
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              {pid}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography sx={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#33415C', whiteSpace: 'nowrap' }}>
+            {pid}
+          </Typography>
+        );
+      },
+    },
     { header: 'Category', field: 'category', minWidth: 120 },
     {
       header: 'Reference', field: 'reference', nowrap: true, minWidth: 110,
@@ -216,7 +251,7 @@ const AdminSupport = () => {
         search={{
           value: search,
           onChange: (v) => setSearch(v),
-          placeholder: 'Search by partner name or email…',
+          placeholder: 'Search by partner name, email or ID…',
         }}
         selects={[{
           name: 'status', label: 'Status', value: statusFilter, minWidth: 160,
