@@ -11,6 +11,7 @@ import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
 import { TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
+import { downloadCsv, csvFilename, fileStamp } from "../../utils/csvExport";
 
 const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31";
@@ -39,6 +40,17 @@ const statusLabel = (s) => {
   return s || '—';
 };
 
+// Date shown in the CSV, in IST, as "YYYY-MM-DD HH:mm:ss" so the column still
+// sorts correctly in a spreadsheet and matches the business timezone.
+const fmtExportDate = (v) => {
+  if (!v) return "";
+  try {
+    return new Date(v).toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" });
+  } catch {
+    return new Date(v).toISOString();
+  }
+};
+
 // Display label for ledger purpose — DB enum stays CUSTOM_BRAND_FEE so
 // existing rows/filters keep working; partners/admins see the friendly name.
 const purposeLabel = (p) => {
@@ -51,7 +63,8 @@ const AdminTransactions = () => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const limit = 50;
@@ -100,27 +113,92 @@ const AdminTransactions = () => {
     setPage(1);
   };
 
-  const handleExport = () => {
-    const csv = [
-      ["Date", "Partner", "Email", "Partner ID", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
-      ...rows.map((r) => [
-        r.createdAt ? new Date(r.createdAt).toISOString() : "",
-        fmtName(r.userId).replace(/,/g, ""),
-        (r.userId?.email || "").replace(/,/g, ""),
+  // Pull EVERY transaction matching the active filters (not just the 50 rows
+  // on the current page) so the exported file matches the date range and
+  // filters the admin is looking at.
+  const fetchAllFilteredRows = async () => {
+    const token = localStorage.getItem("token");
+    const params = new URLSearchParams({ page: 1, limit: 500 });
+
+    for (const [k, v] of Object.entries(filters)) {
+      if (v && v !== "All") params.append(k, v);
+    }
+
+    const collected = [];
+    let total = 0;
+    let page = 1;
+
+    do {
+      params.set("page", String(page));
+
+      const res = await axios.get(`${API_BASE}/admin/transactions?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.data?.success) {
+        throw new Error("Could not load transactions for export.");
+      }
+
+      const pageRows = res.data.data || [];
+      collected.push(...pageRows);
+      total = res.data.total || 0;
+      page += 1;
+
+      // Stop if the server has nothing more to give.
+      if (pageRows.length === 0) break;
+    } while (collected.length < total);
+
+    return collected;
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+
+    try {
+      const exportRows = await fetchAllFilteredRows();
+
+      if (!exportRows.length) {
+        setToast({ severity: "error", text: "No transactions found for the selected filters." });
+        return;
+      }
+
+      const header = [
+        "Date (IST)", "Partner", "Email", "Partner ID", "Type", "Purpose",
+        "Amount", "Status", "Order ID", "Payment ID",
+      ];
+
+      const body = exportRows.map((r) => [
+        fmtExportDate(r.createdAt),
+        fmtName(r.userId),
+        r.userId?.email || "",
         r.userId?.partner_id || "",
-        r.type, purposeLabel(r.purpose),
+        r.type,
+        purposeLabel(r.purpose),
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
-        r.status, r.orderId || "", r.paymentId || "",
-      ]),
-    ].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "admin_transactions_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        r.status,
+        r.orderId || "",
+        r.paymentId || "",
+      ]);
+
+      // Stamp the range into the filename so successive exports don't
+      // silently overwrite each other in the Downloads folder.
+      const nameParts = ["admin_transactions"];
+      if (filters.startDate) nameParts.push(`from_${filters.startDate}`);
+      if (filters.endDate) nameParts.push(`to_${filters.endDate}`);
+      if (!filters.startDate && !filters.endDate) nameParts.push(fileStamp());
+
+      const written = downloadCsv(csvFilename(nameParts), header, body);
+
+      setToast({
+        severity: "success",
+        text: `Exported ${written} transaction${written === 1 ? "" : "s"} to CSV.`,
+      });
+    } catch (err) {
+      console.error("Failed to export admin transactions:", err);
+      setToast({ severity: "error", text: "Export failed. Please try again." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const columns = [
@@ -218,8 +296,8 @@ const AdminTransactions = () => {
             Full money ledger — recharges in, report charges out. Read-only.
           </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading || rows.length === 0}>
-          Export to Sheets
+        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading || exporting}>
+          {exporting ? "Exporting…" : "Export to Sheets"}
         </Button>
       </Box>
 
@@ -264,6 +342,10 @@ const AdminTransactions = () => {
         ]}
       />
 
+      <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+        Export to Sheets downloads every transaction matching the filters above — not just the current page.
+      </Typography>
+
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {loading ? (
@@ -281,9 +363,9 @@ const AdminTransactions = () => {
         </>
       )}
 
-      <Snackbar open={Boolean(toast)} autoHideDuration={5000} onClose={() => setToast("")}
+      <Snackbar open={Boolean(toast)} autoHideDuration={5000} onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert severity="error" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>
+        <Alert severity={toast?.severity || "error"} onClose={() => setToast(null)} sx={{ width: "100%" }}>{toast?.text || ""}</Alert>
       </Snackbar>
     </Box>
   );
