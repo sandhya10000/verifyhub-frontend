@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -72,6 +72,23 @@ const RetryPayment = () => {
     fetchRetries();
   }, [fetchRetries]);
 
+  // A single retryable failure means the WhatsApp button can skip the card
+  // list: bounce straight to the hosted Razorpay page for that exact
+  // transaction (amount, GST and wallet credit all come from the txn).
+  // Several failures keep the list so the partner pays the right one.
+  const single = !loading && !error && items.length === 1 ? items[0] : null;
+  const singleUrl =
+    single && /^https?:\/\//i.test(String(single.retryLinkUrl || ""))
+      ? String(single.retryLinkUrl)
+      : null;
+  const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (!singleUrl || redirectedRef.current) return;
+    redirectedRef.current = true;
+    window.location.replace(singleUrl);
+  }, [singleUrl]);
+
   const handlePay = (item) => {
     window.open(item.retryLinkUrl, "_blank", "noopener,noreferrer");
   };
@@ -122,7 +139,8 @@ const RetryPayment = () => {
               No pending payments
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              There are no failed recharges waiting for a retry.
+              There are no failed recharges waiting for a retry. If you just
+              attempted a payment, please contact support.
             </Typography>
             <Button variant="contained" onClick={() => navigate("/partner/add-funds")}>
               Add Funds
@@ -131,7 +149,29 @@ const RetryPayment = () => {
         </Card>
       )}
 
-      {!loading && !error && items.length > 0 && (
+      {!loading && !error && singleUrl && (
+        <Card variant="outlined">
+          <CardContent sx={{ textAlign: "center", py: 6 }}>
+            <CircularProgress size={36} />
+            <Typography variant="h6" sx={{ mt: 2, mb: 0.5 }}>
+              Redirecting you to secure payment…
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Taking you to Razorpay to complete your{" "}
+              {inr2(single.totalAmount)} recharge.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => window.location.assign(singleUrl)}
+              sx={{ textTransform: "none" }}
+            >
+              Continue to payment
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && !error && items.length > 0 && !singleUrl && (
         <Stack spacing={2}>
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
