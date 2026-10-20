@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 
 const ProtectedRoute = ({ children }) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
   
   if (isLoading) {
     return (
@@ -13,7 +14,17 @@ const ProtectedRoute = ({ children }) => {
     );
   }
   
-  return user ? children : <Navigate to="/" replace />;
+  // Remember the target (e.g. a WhatsApp retry-page deep link) so login can
+  // send the partner straight back after authenticating.
+  return user ? (
+    children
+  ) : (
+    <Navigate
+      to="/login"
+      state={{ from: `${location.pathname}${location.search}` }}
+      replace
+    />
+  );
 };
 
 export default ProtectedRoute;

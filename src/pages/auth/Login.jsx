@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -24,6 +24,7 @@ import useAuth from "../../context/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState(
@@ -52,8 +53,14 @@ const Login = () => {
         login(res.user, res.token);
       }
 
-      // Keep the overlay visible during route transition; it unmounts with this component
-      if (res.user?.role === "admin") {
+      // Keep the overlay visible during route transition; it unmounts with this component.
+      // Partners sent here from a protected deep link (e.g. the WhatsApp retry
+      // page) go straight back to it.
+      const isAdmin = res.user?.role === "admin";
+      const from = location.state?.from;
+      if (!isAdmin && typeof from === "string" && from.startsWith("/")) {
+        navigate(from, { replace: true });
+      } else if (isAdmin) {
         navigate("/admin/overview");
       } else {
         navigate("/partner/dashboard");

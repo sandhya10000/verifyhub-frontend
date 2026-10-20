@@ -25,6 +25,7 @@ const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const CustomBrandedReportPage = lazy(() => import("../pages/partner/CustomBrandedReport"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
+const RetryPayment = lazy(() => import("../pages/partner/RetryPayment"));
 const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
@@ -119,6 +120,7 @@ const AppRoutes = () => {
             path="add-funds"
             element={<AddFunds />}
           />
+          <Route path="retry-payment" element={<RetryPayment />} />
           {/* Legacy URL — redirects to the separate Pricing tab */}
           <Route
             path="plans"
