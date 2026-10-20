@@ -7,11 +7,9 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Divider,
-  Stack,
   Typography,
 } from "@mui/material";
-import { ArrowLeft, CreditCard, RefreshCw, Wallet } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import axios from "axios";
 import useAuth from "../../context/useAuth";
 
@@ -19,28 +17,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 
 const inr2 = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const fmtDateTime = (v) => {
-  if (!v) return "—";
-  const d = new Date(v);
-  return (
-    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
-    ", " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-  );
-};
-
-const expiryLabel = (v) => {
-  if (!v) return null;
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const RetryPayment = () => {
   const navigate = useNavigate();
@@ -74,9 +50,7 @@ const RetryPayment = () => {
 
   // The WhatsApp button URL is static, so it carries no transaction id. Send
   // the partner straight to the most recent failed recharge's hosted Razorpay
-  // page (amount, GST and wallet credit come from that txn). "View all" opens
-  // the list for partners who have more than one pending retry.
-  const [showList, setShowList] = useState(false);
+  // page (amount, GST and wallet credit come from that txn).
   const top = !loading && !error && items.length > 0 ? items[0] : null;
   const topUrl =
     top && /^https?:\/\//i.test(String(top.retryLinkUrl || ""))
@@ -84,14 +58,10 @@ const RetryPayment = () => {
       : null;
 
   useEffect(() => {
-    if (!topUrl || showList) return undefined;
+    if (!topUrl) return undefined;
     const t = setTimeout(() => window.location.replace(topUrl), 800);
     return () => clearTimeout(t);
-  }, [topUrl, showList]);
-
-  const handlePay = (item) => {
-    window.open(item.retryLinkUrl, "_blank", "noopener,noreferrer");
-  };
+  }, [topUrl]);
 
   return (
     <Box sx={{ maxWidth: 860, mx: "auto", px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
@@ -107,8 +77,8 @@ const RetryPayment = () => {
         Retry Payment
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        A wallet recharge did not go through. Pay again below — your wallet is credited
-        automatically once the payment succeeds.
+        A wallet recharge did not go through. We are taking you to the secure payment
+        page — your wallet is credited automatically once the payment succeeds.
       </Typography>
 
       {loading && (
@@ -149,128 +119,32 @@ const RetryPayment = () => {
         </Card>
       )}
 
-      {!loading && !error && topUrl && !showList && (
+      {!loading && !error && topUrl && (
         <Card variant="outlined">
           <CardContent sx={{ textAlign: "center", py: 6 }}>
             <CircularProgress size={36} />
             <Typography variant="h6" sx={{ mt: 2, mb: 0.5 }}>
-              Redirecting you to secure payment…
+              Redirecting you to Razorpay…
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Taking you to Razorpay to complete your{" "}
+              Taking you to the secure payment page to complete your{" "}
               {inr2(top.totalAmount)} recharge.
             </Typography>
-            <Stack direction="row" spacing={1} justifyContent="center">
-              <Button
-                variant="contained"
-                onClick={() => window.location.replace(topUrl)}
-                sx={{ textTransform: "none" }}
-              >
-                Continue to payment
-              </Button>
-              {items.length > 1 && (
-                <Button
-                  variant="text"
-                  onClick={() => setShowList(true)}
-                  sx={{ textTransform: "none" }}
-                >
-                  View all pending payments
-                </Button>
-              )}
-            </Stack>
+            <Button
+              variant="contained"
+              onClick={() => window.location.replace(topUrl)}
+              sx={{ textTransform: "none" }}
+            >
+              Continue to payment
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {!loading && !error && items.length > 0 && (!topUrl || showList) && (
-        <Stack spacing={2}>
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button
-              size="small"
-              startIcon={<RefreshCw size={14} />}
-              onClick={fetchRetries}
-              sx={{ textTransform: "none" }}
-            >
-              Refresh
-            </Button>
-          </Box>
-
-          {items.map((item) => {
-            const expiry = expiryLabel(item.expiresAt);
-            const bonus = Number(item.bonusCredit) || 0;
-            const gst = Number(item.gstAmount) || 0;
-            return (
-              <Card key={item.transactionId} variant="outlined">
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 2,
-                      alignItems: "flex-start",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Wallet recharge
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                        {inr2(item.totalAmount)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Initiated {fmtDateTime(item.createdAt)}
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      startIcon={<CreditCard size={18} />}
-                      onClick={() => handlePay(item)}
-                      sx={{ textTransform: "none", whiteSpace: "nowrap" }}
-                    >
-                      Pay Now
-                    </Button>
-                  </Box>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Stack spacing={0.75}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Recharge amount
-                      </Typography>
-                      <Typography variant="body2">{inr2(item.amount)}</Typography>
-                    </Box>
-                    {gst > 0 && (
-                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary">
-                          GST
-                        </Typography>
-                        <Typography variant="body2">{inr2(gst)}</Typography>
-                      </Box>
-                    )}
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Wallet credit
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {inr2(item.walletCredit)}
-                        {bonus > 0 ? ` (incl. ${inr2(bonus)} bonus)` : ""}
-                      </Typography>
-                    </Box>
-                  </Stack>
-
-                  {expiry && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-                      Payment link valid till {expiry}. A fresh link is created automatically if it expires.
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Stack>
+      {!loading && !error && items.length > 0 && !topUrl && (
+        <Alert severity="warning">
+          We could not open your payment link. Please contact support.
+        </Alert>
       )}
     </Box>
   );
