@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -72,22 +72,22 @@ const RetryPayment = () => {
     fetchRetries();
   }, [fetchRetries]);
 
-  // A single retryable failure means the WhatsApp button can skip the card
-  // list: bounce straight to the hosted Razorpay page for that exact
-  // transaction (amount, GST and wallet credit all come from the txn).
-  // Several failures keep the list so the partner pays the right one.
-  const single = !loading && !error && items.length === 1 ? items[0] : null;
-  const singleUrl =
-    single && /^https?:\/\//i.test(String(single.retryLinkUrl || ""))
-      ? String(single.retryLinkUrl)
+  // The WhatsApp button URL is static, so it carries no transaction id. Send
+  // the partner straight to the most recent failed recharge's hosted Razorpay
+  // page (amount, GST and wallet credit come from that txn). "View all" opens
+  // the list for partners who have more than one pending retry.
+  const [showList, setShowList] = useState(false);
+  const top = !loading && !error && items.length > 0 ? items[0] : null;
+  const topUrl =
+    top && /^https?:\/\//i.test(String(top.retryLinkUrl || ""))
+      ? String(top.retryLinkUrl)
       : null;
-  const redirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!singleUrl || redirectedRef.current) return;
-    redirectedRef.current = true;
-    window.location.replace(singleUrl);
-  }, [singleUrl]);
+    if (!topUrl || showList) return undefined;
+    const t = setTimeout(() => window.location.replace(topUrl), 800);
+    return () => clearTimeout(t);
+  }, [topUrl, showList]);
 
   const handlePay = (item) => {
     window.open(item.retryLinkUrl, "_blank", "noopener,noreferrer");
@@ -149,7 +149,7 @@ const RetryPayment = () => {
         </Card>
       )}
 
-      {!loading && !error && singleUrl && (
+      {!loading && !error && topUrl && !showList && (
         <Card variant="outlined">
           <CardContent sx={{ textAlign: "center", py: 6 }}>
             <CircularProgress size={36} />
@@ -158,20 +158,31 @@ const RetryPayment = () => {
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Taking you to Razorpay to complete your{" "}
-              {inr2(single.totalAmount)} recharge.
+              {inr2(top.totalAmount)} recharge.
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => window.location.assign(singleUrl)}
-              sx={{ textTransform: "none" }}
-            >
-              Continue to payment
-            </Button>
+            <Stack direction="row" spacing={1} justifyContent="center">
+              <Button
+                variant="contained"
+                onClick={() => window.location.replace(topUrl)}
+                sx={{ textTransform: "none" }}
+              >
+                Continue to payment
+              </Button>
+              {items.length > 1 && (
+                <Button
+                  variant="text"
+                  onClick={() => setShowList(true)}
+                  sx={{ textTransform: "none" }}
+                >
+                  View all pending payments
+                </Button>
+              )}
+            </Stack>
           </CardContent>
         </Card>
       )}
 
-      {!loading && !error && items.length > 0 && !singleUrl && (
+      {!loading && !error && items.length > 0 && (!topUrl || showList) && (
         <Stack spacing={2}>
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
