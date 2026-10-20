@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete, Snackbar } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -9,6 +9,7 @@ import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import RowActions from '../../Components/shared/RowActions';
 import FilterBar from '../../Components/shared/FilterBar';
+import Pagination from '../../Components/shared/Pagination';
 import { downloadCsv, csvFilename, fileStamp } from '../../utils/csvExport';
 
 const AdminPartners = () => {
@@ -16,6 +17,7 @@ const AdminPartners = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(null); // total from server
+  const [totalPages, setTotalPages] = useState(1); // page count from server
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -25,7 +27,7 @@ const AdminPartners = () => {
   const [exporting, setExporting] = useState(false);
   const [exportToast, setExportToast] = useState(null);
 
-  const limit = 50;
+  const [limit, setLimit] = useState(50);
 
   const [selectedPartner, setSelectedPartner] = useState(null);
 
@@ -99,6 +101,7 @@ const AdminPartners = () => {
       if (res.data.success) {
         setPartners(res.data.data);
         setTotalCount(res.data.total ?? res.data.data.length);
+        setTotalPages(res.data.pages || 1);
       } else {
         setError('Failed to load partners data.');
       }
@@ -112,7 +115,7 @@ const AdminPartners = () => {
 
   useEffect(() => {
     fetchPartners();
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, limit]);
 
   // Export every partner matching the current search — not just the 50 rows
   // on the current page. The backend serves these in one bulk call (all=1).
@@ -552,11 +555,16 @@ const AdminPartners = () => {
             data={partners}
             emptyMessage="No partners found."
           />
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, gap: 2 }}>
-            <Button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous Page</Button>
-            <Typography sx={{ display: 'flex', alignItems: 'center' }}>Page {page}</Typography>
-            <Button disabled={partners.length < limit} onClick={() => setPage(p => p + 1)}>Next Page</Button>
-          </Box>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={(n) => { setLimit(n); setPage(1); }}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 

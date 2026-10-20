@@ -12,6 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import Pagination from './Pagination';
 
 /**
  * DataTable
@@ -41,8 +42,16 @@ const DataTable = ({
   pageSize,
 }) => {
   const [page, setPage] = useState(1);
+  // Rows shown per page. Seeded from the `pageSize` prop and adjustable from
+  // the footer's "rows per page" dropdown (client-side tables only).
+  const [size, setSize] = useState(pageSize);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Follow the prop when the parent changes it (server-paginated tables).
+  useEffect(() => {
+    setSize(pageSize);
+  }, [pageSize]);
 
   // Reset to first page whenever the underlying data changes
   // (re-fetch, filter change, etc.) so we never land on an out-of-range page.
@@ -50,12 +59,12 @@ const DataTable = ({
     setPage(1);
   }, [data]);
 
-  const paginate = Number.isFinite(pageSize) && pageSize > 0;
-  const totalPages = paginate ? Math.ceil(data.length / pageSize) : 1;
-  const showPagination = paginate && data.length > pageSize;
+  const paginate = Number.isFinite(size) && size > 0;
+  const totalPages = paginate ? Math.ceil(data.length / size) : 1;
+  const showPagination = paginate && data.length > size;
 
   const visibleRows = paginate
-    ? data.slice((page - 1) * pageSize, page * pageSize)
+    ? data.slice((page - 1) * size, page * size)
     : data;
   const showHeader = title || actionLabel || headerContent;
 
@@ -233,92 +242,14 @@ const DataTable = ({
 
       {/* ── Pagination footer ──────────────────────────────────────────── */}
       {showPagination && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 1,
-            px: 2.5,
-            py: 1.5,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          {/* Prev button */}
-          <Box
-            component="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            aria-label="Previous page"
-            sx={{
-              all: 'unset',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: page === 1 ? 'divider' : 'divider',
-              color: page === 1 ? 'text.disabled' : 'text.secondary',
-              cursor: page === 1 ? 'default' : 'pointer',
-              fontSize: '1rem',
-              lineHeight: 1,
-              transition: 'background 0.15s, color 0.15s',
-              '&:not(:disabled):hover': {
-                bgcolor: 'action.hover',
-                color: 'text.primary',
-              },
-            }}
-          >
-            &#8249;
-          </Box>
-
-          {/* Page counter */}
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              minWidth: 80,
-              textAlign: 'center',
-              userSelect: 'none',
-            }}
-          >
-            Page {page} of {totalPages}
-          </Typography>
-
-          {/* Next button */}
-          <Box
-            component="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            aria-label="Next page"
-            sx={{
-              all: 'unset',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider',
-              color: page === totalPages ? 'text.disabled' : 'text.secondary',
-              cursor: page === totalPages ? 'default' : 'pointer',
-              fontSize: '1rem',
-              lineHeight: 1,
-              transition: 'background 0.15s, color 0.15s',
-              '&:not(:disabled):hover': {
-                bgcolor: 'action.hover',
-                color: 'text.primary',
-              },
-            }}
-          >
-            &#8250;
-          </Box>
-        </Box>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={data.length}
+          pageSize={size}
+          onChange={setPage}
+          onPageSizeChange={(n) => { setSize(n); setPage(1); }}
+        />
       )}
     </Paper>
   );

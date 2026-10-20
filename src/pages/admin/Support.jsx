@@ -13,7 +13,9 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Send } from 'lucide-react';
@@ -24,6 +26,9 @@ import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import RowActions from '../../Components/shared/RowActions';
 import FilterBar from '../../Components/shared/FilterBar';
+import DownloadIcon from '@mui/icons-material/Download';
+import { exportAllToCsv } from '../../utils/exportAll';
+import { csvFilename, fileStamp } from '../../utils/csvExport';
 
 const AdminSupport = () => {
   const formatName = (name = "") => {
@@ -41,6 +46,8 @@ const AdminSupport = () => {
   const [internalNotes, setInternalNotes] = useState('');
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportToast, setExportToast] = useState(null);
   const conversationRef = useRef(null);
 
   const scrollConversationToBottom = (smooth = false) => {
@@ -159,6 +166,63 @@ const AdminSupport = () => {
     }
   };
 
+  // Export EVERY ticket matching the current search + status filter — not just
+  // the rows the table happens to hold.
+  const handleExport = async () => {
+    setExporting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      const params = {
+        ...(statusFilter && statusFilter !== 'all' && { status: statusFilter }),
+        ...(search && { partnerSearch: search }),
+      };
+
+      const nameParts = ['admin_support_tickets'];
+      if (statusFilter && statusFilter !== 'all') nameParts.push(statusFilter);
+      if (search) nameParts.push(`search_${search}`);
+      nameParts.push(fileStamp());
+
+      const { written, truncated } = await exportAllToCsv({
+        url: `${API_BASE_URL}/admin/tickets`,
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+        header: [
+          'Date', 'Last Updated', 'Partner', 'Email', 'Partner ID', 'Phone',
+          'Category', 'Reference', 'Status', 'Subject', 'Messages',
+        ],
+        mapRow: (t) => [
+          t.createdAt ? format(new Date(t.createdAt), 'MMM dd, yyyy HH:mm') : '',
+          t.updatedAt ? format(new Date(t.updatedAt), 'MMM dd, yyyy HH:mm') : '',
+          formatName(t.partnerId?.name || 'Unknown'),
+          t.partnerId?.email || '',
+          t.partnerId?.partner_id || '',
+          t.partnerId?.phone || '',
+          t.category || '',
+          t.reference || '',
+          t.status || '',
+          t.subject || t.title || '',
+          (t.messages?.length || 0) + 1,
+        ],
+        filename: csvFilename(nameParts),
+      });
+
+      setExportToast({
+        severity: 'success',
+        text: truncated
+          ? `Exported the first ${written} tickets (50,000 row limit reached).`
+          : `Exported ${written} ticket${written === 1 ? '' : 's'} to CSV.`,
+      });
+    } catch (err) {
+      console.error('Failed to export tickets:', err);
+      setExportToast({ severity: 'error', text: 'Export failed. Please try again.' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const statusLabel = (s) => {
     if (s === 'in-progress') return 'In Progress';
     if (!s) return '—';
@@ -243,8 +307,17 @@ const AdminSupport = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, gap: 2, flexWrap: 'wrap' }}>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>Support Tickets</Typography>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+          disabled={exporting}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {exporting ? 'Exporting…' : 'Export to Sheets'}
+        </Button>
       </Box>
 
       <FilterBar
@@ -271,6 +344,21 @@ const AdminSupport = () => {
         data={tickets}
         emptyMessage="No tickets found."
       />
+
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+        Export to Sheets downloads every ticket matching the search and status above.
+      </Typography>
+
+      <Snackbar
+        open={Boolean(exportToast)}
+        autoHideDuration={5000}
+        onClose={() => setExportToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={exportToast?.severity || 'error'} onClose={() => setExportToast(null)} sx={{ width: '100%' }}>
+          {exportToast?.text || ''}
+        </Alert>
+      </Snackbar>
 
       {/* Ticket Detail Dialog */}
       <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth TransitionProps={{ onEntered: () => scrollConversationToBottom(false) }}>

@@ -4,6 +4,7 @@ import {
   Box, Typography, CircularProgress, Alert, Button, TextField, InputAdornment,
   Card, CardContent, Chip, IconButton, Menu, MenuItem, Avatar, Tabs, Tab, Divider,
   Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions,
+  Snackbar,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -23,6 +24,10 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
 import DataTable from '../../Components/shared/DataTable';
+import Pagination from '../../Components/shared/Pagination';
+import DownloadIcon from '@mui/icons-material/Download';
+import { fetchAllPages } from '../../utils/exportAll';
+import { downloadCsv, csvFilename, fileStamp } from '../../utils/csvExport';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import TypePill from '../../Components/shared/TypePill';
 import RowActions from '../../Components/shared/RowActions';
@@ -74,7 +79,11 @@ const PartnerDetail = () => {
   const [txnsPage, setTxnsPage] = useState(1);
   const [txnsLoading, setTxnsLoading] = useState(false);
 
-  const pageSize = 20;
+  const [reportsPageSize, setReportsPageSize] = useState(20);
+  const [txnsPageSize, setTxnsPageSize] = useState(20);
+  const [exportingReports, setExportingReports] = useState(false);
+  const [exportingTxns, setExportingTxns] = useState(false);
+  const [exportToast, setExportToast] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -126,7 +135,7 @@ const PartnerDetail = () => {
   const loadReports = useCallback(async () => {
     setReportsLoading(true);
     try {
-      const res = await axios.get(`${API()}/admin/partners/${id}/reports?page=${reportsPage}&limit=${pageSize}`, authHeaders());
+      const res = await axios.get(`${API()}/admin/partners/${id}/reports?page=${reportsPage}&limit=${reportsPageSize}`, authHeaders());
       if (res.data?.success) {
         setReports(res.data.data);
         setReportsTotal(res.data.total);
@@ -136,12 +145,12 @@ const PartnerDetail = () => {
     } finally {
       setReportsLoading(false);
     }
-  }, [id, reportsPage]);
+  }, [id, reportsPage, reportsPageSize]);
 
   const loadTxns = useCallback(async () => {
     setTxnsLoading(true);
     try {
-      const res = await axios.get(`${API()}/admin/partners/${id}/transactions?page=${txnsPage}&limit=${pageSize}`, authHeaders());
+      const res = await axios.get(`${API()}/admin/partners/${id}/transactions?page=${txnsPage}&limit=${txnsPageSize}`, authHeaders());
       if (res.data?.success) {
         setTxns(res.data.data);
         setTxnsTotal(res.data.total);
@@ -152,7 +161,7 @@ const PartnerDetail = () => {
     } finally {
       setTxnsLoading(false);
     }
-  }, [id, txnsPage]);
+  }, [id, txnsPage, txnsPageSize]);
 
   useEffect(() => { if (activeTab === 'reports') loadReports(); }, [activeTab, loadReports]);
   useEffect(() => { if (activeTab === 'payments') loadTxns(); }, [activeTab, loadTxns]);
@@ -208,6 +217,87 @@ const PartnerDetail = () => {
       console.error('Download failed:', err);
     } finally {
       setDownloading(null);
+    }
+  };
+
+  // Export EVERY report for this partner — not just the rows on the current
+  // page. The on-screen search box is applied to the full set so the file
+  // matches what the admin is looking at.
+  const handleExportReports = async () => {
+    setExportingReports(true);
+    try {
+      const { rows, truncated } = await fetchAllPages({
+        url: `${API()}/admin/partners/${id}/reports`,
+        headers: authHeaders().headers,
+      });
+
+      const filtered = q
+        ? rows.filter((r) => `${r.customer || ''} ${r.bureau || ''} ${r.kind || ''} ${r.ref || ''} ${r.status || ''}`.toLowerCase().includes(q))
+        : rows;
+
+      const header = ['Date', 'Type', 'Bureau', 'Customer', 'Reference', 'Score', 'Status', 'Charge', 'File'];
+      const body = filtered.map((r) => [
+        fmtDT(r.createdAt),
+        r.kind === 'ai' ? 'AI Credit Analysis' : r.kind === 'rc' ? 'Vehicle RC' : r.kind === 'gst' ? 'GST Verification' : 'Credit Report',
+        r.bureau || '',
+        r.customer || '',
+        r.ref || '',
+        r.score ?? '',
+        reportStatusLabel(r.status),
+        r.charge != null ? r.charge : '',
+        r.hasFile ? 'Yes' : 'No',
+      ]);
+
+      const written = downloadCsv(csvFilename(['admin_partner_reports', partner.partner_id || id, fileStamp()]), header, body);
+
+      setExportToast({
+        severity: 'success',
+        text: truncated
+          ? `Exported the first ${written} reports (50,000 row limit reached).`
+          : `Exported ${written} report${written === 1 ? '' : 's'} to CSV.`,
+      });
+    } catch (err) {
+      console.error('Failed to export partner reports:', err);
+      setExportToast({ severity: 'error', text: 'Export failed. Please try again.' });
+    } finally {
+      setExportingReports(false);
+    }
+  };
+
+  // Export EVERY transaction for this partner.
+  const handleExportTxns = async () => {
+    setExportingTxns(true);
+    try {
+      const { rows, truncated } = await fetchAllPages({
+        url: `${API()}/admin/partners/${id}/transactions`,
+        headers: authHeaders().headers,
+      });
+
+      const header = ['Date', 'Purpose', 'Type', 'Amount', 'GST', 'Total', 'Status', 'Gateway'];
+      const body = rows.map((t) => [
+        fmtDT(t.createdAt),
+        (t.purpose || '').replace(/_/g, ' '),
+        t.type === 'CREDIT' ? 'Credit' : 'Debit',
+        t.amount ?? '',
+        t.gstAmount ?? '',
+        t.totalAmount ?? t.amount ?? '',
+        txnStatusLabel(t.status),
+        t.gateway || '',
+      ]);
+
+      const written = downloadCsv(csvFilename(['admin_partner_transactions', partner.partner_id || id, fileStamp()]), header, body);
+
+      setExportToast({
+        severity: 'success',
+        text: truncated
+          ? `Exported the first ${written} transactions (50,000 row limit reached).`
+          : `Exported ${written} transaction${written === 1 ? '' : 's'} to CSV.`,
+      });
+    } catch (err) {
+      console.error('Failed to export partner transactions:', err);
+      setExportToast({ severity: 'error', text: 'Export failed. Please try again.' });
+    } finally {
+      setExportingTxns(false);
     }
   };
 
@@ -495,14 +585,26 @@ const PartnerDetail = () => {
                 <DescriptionOutlinedIcon fontSize="small" color="primary" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Reports ({reportsTotal})</Typography>
               </Box>
-              <TextField
-                size="small"
-                placeholder="Search reports…"
-                value={reportQuery}
-                onChange={(e) => setReportQuery(e.target.value)}
-                sx={{ width: 260 }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Search reports…"
+                  value={reportQuery}
+                  onChange={(e) => setReportQuery(e.target.value)}
+                  sx={{ width: 220 }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                />
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleExportReports}
+                  disabled={exportingReports}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  {exportingReports ? 'Exporting…' : 'Export to Sheets'}
+                </Button>
+              </Box>
             </Box>
             {reportsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
@@ -517,11 +619,16 @@ const PartnerDetail = () => {
                 emptyMessage={q ? `No reports match "${reportQuery}"` : 'No reports yet.'}
               />
             )}
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2, alignItems: 'center' }}>
-              <Button size="small" disabled={reportsPage === 1} onClick={() => setReportsPage((p) => p - 1)}>Previous</Button>
-              <Typography variant="caption">Page {reportsPage} of {Math.max(1, Math.ceil(reportsTotal / pageSize))}</Typography>
-              <Button size="small" disabled={reportsPage * pageSize >= reportsTotal} onClick={() => setReportsPage((p) => p + 1)}>Next</Button>
-            </Box>
+            <Pagination
+              page={reportsPage}
+              totalPages={Math.max(1, Math.ceil(reportsTotal / reportsPageSize))}
+              totalCount={reportsTotal}
+              pageSize={reportsPageSize}
+              onChange={(p) => setReportsPage(p)}
+              onPageSizeChange={(n) => { setReportsPageSize(n); setReportsPage(1); }}
+              disabled={reportsLoading}
+              compact
+            />
           </CardContent>
         </Card>
       )}
@@ -536,9 +643,19 @@ const PartnerDetail = () => {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Payment History</Typography>
               </Box>
               {txnsSummary && (
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                   <Chip icon={<CallReceivedIcon />} color="success" variant="outlined" label={`Credited ${inr0(txnsSummary.credited)}`} />
                   <Chip icon={<CallMadeIcon />} color="error" variant="outlined" label={`Debited ${inr0(txnsSummary.debited)}`} />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleExportTxns}
+                    disabled={exportingTxns}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    {exportingTxns ? 'Exporting…' : 'Export to Sheets'}
+                  </Button>
                 </Box>
               )}
             </Box>
@@ -553,14 +670,30 @@ const PartnerDetail = () => {
                 emptyMessage="No transactions yet."
               />
             )}
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2, alignItems: 'center' }}>
-              <Button size="small" disabled={txnsPage === 1} onClick={() => setTxnsPage((p) => p - 1)}>Previous</Button>
-              <Typography variant="caption">Page {txnsPage} of {Math.max(1, Math.ceil(txnsTotal / pageSize))}</Typography>
-              <Button size="small" disabled={txnsPage * pageSize >= txnsTotal} onClick={() => setTxnsPage((p) => p + 1)}>Next</Button>
-            </Box>
+            <Pagination
+              page={txnsPage}
+              totalPages={Math.max(1, Math.ceil(txnsTotal / txnsPageSize))}
+              totalCount={txnsTotal}
+              pageSize={txnsPageSize}
+              onChange={(p) => setTxnsPage(p)}
+              onPageSizeChange={(n) => { setTxnsPageSize(n); setTxnsPage(1); }}
+              disabled={txnsLoading}
+              compact
+            />
           </CardContent>
         </Card>
       )}
+
+      <Snackbar
+        open={Boolean(exportToast)}
+        autoHideDuration={5000}
+        onClose={() => setExportToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={exportToast?.severity || 'error'} onClose={() => setExportToast(null)} sx={{ width: '100%' }}>
+          {exportToast?.text || ''}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -8,10 +8,12 @@ import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import FilterBar from "../../Components/shared/FilterBar";
+import Pagination from "../../Components/shared/Pagination";
 import DownloadIcon from "@mui/icons-material/Download";
 import { TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
 import { downloadCsv, csvFilename, fileStamp } from "../../utils/csvExport";
+import { fetchAllPages } from "../../utils/exportAll";
 
 const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31";
@@ -66,8 +68,9 @@ const AdminTransactions = () => {
   const [toast, setToast] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const limit = 50;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(null);
+  const [limit, setLimit] = useState(50);
 
   const [filters, setFilters] = useState({
     type: "All", status: "All", purpose: "All",
@@ -89,7 +92,8 @@ const AdminTransactions = () => {
       if (res.data.success) {
         setRows(res.data.data);
         setSummary(res.data.summary);
-        setHasNextPage(page < (res.data.pages || 1));
+        setTotalPages(res.data.pages || 1);
+        setTotalCount(res.data.total ?? null);
       } else {
         setError("Failed to load transactions.");
       }
@@ -99,9 +103,16 @@ const AdminTransactions = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, filters]);
+  }, [page, filters, limit]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
+
+  // Changing the rows-per-page resets to page 1 so the admin never lands on
+  // an out-of-range page after the rows-per-page shrink.
+  const handlePageSizeChange = (nextLimit) => {
+    setLimit(nextLimit);
+    setPage(1);
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -113,42 +124,25 @@ const AdminTransactions = () => {
     setPage(1);
   };
 
-  // Pull EVERY transaction matching the active filters (not just the 50 rows
-  // on the current page) so the exported file matches the date range and
+  // Pull EVERY transaction matching the active filters (not just the rows on
+  // the current page) so the exported file matches the date range and
   // filters the admin is looking at.
   const fetchAllFilteredRows = async () => {
     const token = localStorage.getItem("token");
-    const params = new URLSearchParams({ page: 1, limit: 500 });
 
+    const params = {};
     for (const [k, v] of Object.entries(filters)) {
-      if (v && v !== "All") params.append(k, v);
+      if (v && v !== "All") params[k] = v;
     }
 
-    const collected = [];
-    let total = 0;
-    let page = 1;
+    const { rows } = await fetchAllPages({
+      url: `${API_BASE}/admin/transactions`,
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+      pageSize: 500,
+    });
 
-    do {
-      params.set("page", String(page));
-
-      const res = await axios.get(`${API_BASE}/admin/transactions?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.data?.success) {
-        throw new Error("Could not load transactions for export.");
-      }
-
-      const pageRows = res.data.data || [];
-      collected.push(...pageRows);
-      total = res.data.total || 0;
-      page += 1;
-
-      // Stop if the server has nothing more to give.
-      if (pageRows.length === 0) break;
-    } while (collected.length < total);
-
-    return collected;
+    return rows;
   };
 
   const handleExport = async () => {
@@ -355,11 +349,16 @@ const AdminTransactions = () => {
       ) : (
         <>
           <DataTable title="Ledger" columns={columns} data={rows} emptyMessage="No transactions found matching filters." pageSize={limit} />
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>
-            <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous Page</Button>
-            <Typography sx={{ display: "flex", alignItems: "center" }}>Page {page}</Typography>
-            <Button disabled={!hasNextPage} onClick={() => setPage((p) => p + 1)}>Next Page</Button>
-          </Box>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={handlePageSizeChange}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 
