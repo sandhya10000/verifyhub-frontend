@@ -1,25 +1,33 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete, Snackbar } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import DownloadIcon from '@mui/icons-material/Download';
 import axios from 'axios';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import RowActions from '../../Components/shared/RowActions';
 import FilterBar from '../../Components/shared/FilterBar';
+import Pagination from '../../Components/shared/Pagination';
+import { downloadCsv, csvFilename, fileStamp } from '../../utils/csvExport';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(null); // total from server
+  const [totalPages, setTotalPages] = useState(1); // page count from server
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const limit = 50;
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  const [exportToast, setExportToast] = useState(null);
+
+  const [limit, setLimit] = useState(50);
 
   const [selectedPartner, setSelectedPartner] = useState(null);
 
@@ -93,6 +101,7 @@ const AdminPartners = () => {
       if (res.data.success) {
         setPartners(res.data.data);
         setTotalCount(res.data.total ?? res.data.data.length);
+        setTotalPages(res.data.pages || 1);
       } else {
         setError('Failed to load partners data.');
       }
@@ -106,7 +115,73 @@ const AdminPartners = () => {
 
   useEffect(() => {
     fetchPartners();
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, limit]);
+
+  // Export every partner matching the current search — not just the 50 rows
+  // on the current page. The backend serves these in one bulk call (all=1).
+  const handleExport = async () => {
+    setExporting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      const params = new URLSearchParams({ page: 1, all: 1 });
+      if (debouncedSearch) params.append('search', debouncedSearch);
+
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.data?.success) {
+        throw new Error('Could not load partners for export.');
+      }
+
+      const allPartners = res.data.data || [];
+
+      if (!allPartners.length) {
+        setExportToast({ severity: 'error', text: 'No partners found for the current search.' });
+        return;
+      }
+
+      const header = [
+        'Partner ID', 'Name', 'Email', 'Phone', 'State', 'City', 'Pincode',
+        'Total Reports', 'Wallet Balance', 'Last Report', 'Last Login', 'Joined Date', 'Status',
+      ];
+
+      const body = allPartners.map((p) => [
+        p.partner_id || '',
+        formatName(p.name || ''),
+        p.email || '',
+        p.phone || '',
+        p.state || '',
+        p.city || '',
+        p.pincode || '',
+        Number(p.totalReports || 0),
+        Number(p.walletBalance || 0),
+        p.lastReportDate ? new Date(p.lastReportDate).toLocaleString('en-GB') : '',
+        p.lastLoginAt ? new Date(p.lastLoginAt).toLocaleString('en-GB') : '',
+        p.createdAt ? new Date(p.createdAt).toLocaleString('en-GB') : '',
+        p.isActive !== false ? 'Active' : 'Suspended',
+      ]);
+
+      const nameParts = ['admin_partners'];
+      if (debouncedSearch) nameParts.push(`search_${debouncedSearch}`);
+      nameParts.push(fileStamp());
+
+      const written = downloadCsv(csvFilename(nameParts), header, body);
+
+      setExportToast({
+        severity: 'success',
+        text: `Exported ${written} partner${written === 1 ? '' : 's'} to CSV.`,
+      });
+    } catch (err) {
+      console.error('Failed to export partners:', err);
+      setExportToast({ severity: 'error', text: 'Export failed. Please try again.' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleConfirmClose = () => {
     setConfirmOpen(false);
@@ -426,6 +501,9 @@ const AdminPartners = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading || exporting} sx={{ whiteSpace: 'nowrap' }}>
+            {exporting ? 'Exporting…' : 'Export to Sheets'}
+          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenFunds()} sx={{ whiteSpace: 'nowrap' }}>
             Add Funds
           </Button>
@@ -477,11 +555,16 @@ const AdminPartners = () => {
             data={partners}
             emptyMessage="No partners found."
           />
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, gap: 2 }}>
-            <Button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous Page</Button>
-            <Typography sx={{ display: 'flex', alignItems: 'center' }}>Page {page}</Typography>
-            <Button disabled={partners.length < limit} onClick={() => setPage(p => p + 1)}>Next Page</Button>
-          </Box>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={(n) => { setLimit(n); setPage(1); }}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 
@@ -636,6 +719,17 @@ const AdminPartners = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={Boolean(exportToast)}
+        autoHideDuration={5000}
+        onClose={() => setExportToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={exportToast?.severity || 'error'} onClose={() => setExportToast(null)} sx={{ width: '100%' }}>
+          {exportToast?.text || ''}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

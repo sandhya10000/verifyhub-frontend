@@ -255,6 +255,15 @@ const CustomBrandedReportPage = () => {
         setPaying(false);
         return;
       }
+      // Genuine gateway failure → backend marks the fee attempt FAILED and
+      // sends a Razorpay payment link on WhatsApp. Plain dismiss stays silent.
+      const markOrderCancelled = () => {
+        axios.post(
+          `${API_BASE}/partner/custom-branded-report/cancel`,
+          { orderId: data.orderId, failed: true },
+          { headers },
+        ).catch(() => { /* non-fatal */ });
+      };
       const rzp = new window.Razorpay({
         key: data.keyId,
         amount: data.amount,
@@ -304,7 +313,10 @@ const CustomBrandedReportPage = () => {
         },
         modal: { ondismiss: () => setPaying(false) },
       });
-      rzp.on('payment.failed', () => setPaying(false));
+      rzp.on('payment.failed', () => {
+        markOrderCancelled();
+        setPaying(false);
+      });
       rzp.open();
     } catch (err) {
       if (err.response?.data?.code === 'DUPLICATE_REQUEST') {

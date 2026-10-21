@@ -177,10 +177,13 @@ const AddFunds = () => {
       // shows Failed instead of sitting in history as Pending forever.
       // Silent on failure; server only flips PENDING rows (SUCCESS untouched,
       // and a same-order retry can still verify to SUCCESS afterwards).
-      const markOrderCancelled = () => {
-        axios.post(`${API_BASE_URL}/wallet-recharge/cancel`, { orderId: createdOrderId }, { headers })
+      const markOrderCancelled = (opts = {}) => {
+        axios.post(`${API_BASE_URL}/wallet-recharge/cancel`, { orderId: createdOrderId, ...opts }, { headers })
           .catch(() => { /* non-fatal — row stays Pending until retried */ });
       };
+      // A genuine gateway failure (not a modal dismiss) triggers the backend's
+      // WhatsApp retry link. Tracked so a dismiss that follows doesn't race it.
+      let failureReported = false;
       const rzp = new window.Razorpay({
         key: data.keyId,
         amount: data.amount,
@@ -230,9 +233,22 @@ const AddFunds = () => {
             setPaying(false);
           }
         },
-        modal: { ondismiss: () => { markOrderCancelled(); setPaying(false); } },
+        modal: {
+          ondismiss: () => {
+            setPaying(false);
+            // Let payment.failed land first; only a pure dismiss closes the row
+            // without a retry link.
+            setTimeout(() => {
+              if (!failureReported) markOrderCancelled();
+            }, 1500);
+          },
+        },
       });
-      rzp.on('payment.failed', () => { markOrderCancelled(); setPaying(false); });
+      rzp.on('payment.failed', () => {
+        failureReported = true;
+        markOrderCancelled({ failed: true });
+        setPaying(false);
+      });
       rzp.open();
     } catch (err) {
       console.error('Gateway payment error:', err);

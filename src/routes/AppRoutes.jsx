@@ -19,11 +19,13 @@ const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
 const PageLayout = lazy(() => import("../Components/layout/PageLayout"));
 const ProtectedRoute = lazy(() => import("../Components/common/ProtectedRoute"));
 const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
+const PublicRoute = lazy(() => import("../Components/common/PublicRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const CustomBrandedReportPage = lazy(() => import("../pages/partner/CustomBrandedReport"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
+const RetryPayment = lazy(() => import("../pages/partner/RetryPayment"));
 const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
@@ -89,7 +91,7 @@ const AppRoutes = () => {
             </PageLayout>
           }
         >
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
           <Route path="/contact" element={<Contact />} />
@@ -104,8 +106,8 @@ const AppRoutes = () => {
         </Route>
 
         {/* Auth */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -118,6 +120,7 @@ const AppRoutes = () => {
             path="add-funds"
             element={<AddFunds />}
           />
+          <Route path="retry-payment" element={<RetryPayment />} />
           {/* Legacy URL — redirects to the separate Pricing tab */}
           <Route
             path="plans"

@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box, Typography, CircularProgress, Alert, Snackbar, Grid,
-  Button, Skeleton,
+  Button, Skeleton, Tooltip,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import DataTable from "../../Components/shared/DataTable";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import FilterBar from "../../Components/shared/FilterBar";
+import Pagination from "../../Components/shared/Pagination";
 import DownloadIcon from "@mui/icons-material/Download";
 import { TrendingUp, Wallet, Scale } from "lucide-react";
 import { KpiCard } from "../../Components/admin/AdminWidgets";
+import { downloadCsv, csvFilename, fileStamp } from "../../utils/csvExport";
+import { fetchAllPages } from "../../utils/exportAll";
 
 const DATE_MIN = "1900-01-01";
 const DATE_MAX = "2100-12-31";
@@ -38,6 +42,17 @@ const statusLabel = (s) => {
   return s || '—';
 };
 
+// Date shown in the CSV, in IST, as "YYYY-MM-DD HH:mm:ss" so the column still
+// sorts correctly in a spreadsheet and matches the business timezone.
+const fmtExportDate = (v) => {
+  if (!v) return "";
+  try {
+    return new Date(v).toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" });
+  } catch {
+    return new Date(v).toISOString();
+  }
+};
+
 // Display label for ledger purpose — DB enum stays CUSTOM_BRAND_FEE so
 // existing rows/filters keep working; partners/admins see the friendly name.
 const purposeLabel = (p) => {
@@ -50,10 +65,12 @@ const AdminTransactions = () => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const limit = 50;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(null);
+  const [limit, setLimit] = useState(50);
 
   const [filters, setFilters] = useState({
     type: "All", status: "All", purpose: "All",
@@ -75,7 +92,8 @@ const AdminTransactions = () => {
       if (res.data.success) {
         setRows(res.data.data);
         setSummary(res.data.summary);
-        setHasNextPage(page < (res.data.pages || 1));
+        setTotalPages(res.data.pages || 1);
+        setTotalCount(res.data.total ?? null);
       } else {
         setError("Failed to load transactions.");
       }
@@ -85,9 +103,16 @@ const AdminTransactions = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, filters]);
+  }, [page, filters, limit]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
+
+  // Changing the rows-per-page resets to page 1 so the admin never lands on
+  // an out-of-range page after the rows-per-page shrink.
+  const handlePageSizeChange = (nextLimit) => {
+    setLimit(nextLimit);
+    setPage(1);
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -99,26 +124,75 @@ const AdminTransactions = () => {
     setPage(1);
   };
 
-  const handleExport = () => {
-    const csv = [
-      ["Date", "Partner", "Email", "Type", "Purpose", "Amount", "Status", "Order ID", "Payment ID"],
-      ...rows.map((r) => [
-        r.createdAt ? new Date(r.createdAt).toISOString() : "",
-        fmtName(r.userId).replace(/,/g, ""),
-        (r.userId?.email || "").replace(/,/g, ""),
-        r.type, purposeLabel(r.purpose),
+  // Pull EVERY transaction matching the active filters (not just the rows on
+  // the current page) so the exported file matches the date range and
+  // filters the admin is looking at.
+  const fetchAllFilteredRows = async () => {
+    const token = localStorage.getItem("token");
+
+    const params = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (v && v !== "All") params[k] = v;
+    }
+
+    const { rows } = await fetchAllPages({
+      url: `${API_BASE}/admin/transactions`,
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+      pageSize: 500,
+    });
+
+    return rows;
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+
+    try {
+      const exportRows = await fetchAllFilteredRows();
+
+      if (!exportRows.length) {
+        setToast({ severity: "error", text: "No transactions found for the selected filters." });
+        return;
+      }
+
+      const header = [
+        "Date (IST)", "Partner", "Email", "Partner ID", "Type", "Purpose",
+        "Amount", "Status", "Order ID", "Payment ID",
+      ];
+
+      const body = exportRows.map((r) => [
+        fmtExportDate(r.createdAt),
+        fmtName(r.userId),
+        r.userId?.email || "",
+        r.userId?.partner_id || "",
+        r.type,
+        purposeLabel(r.purpose),
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
-        r.status, r.orderId || "", r.paymentId || "",
-      ]),
-    ].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "admin_transactions_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        r.status,
+        r.orderId || "",
+        r.paymentId || "",
+      ]);
+
+      // Stamp the range into the filename so successive exports don't
+      // silently overwrite each other in the Downloads folder.
+      const nameParts = ["admin_transactions"];
+      if (filters.startDate) nameParts.push(`from_${filters.startDate}`);
+      if (filters.endDate) nameParts.push(`to_${filters.endDate}`);
+      if (!filters.startDate && !filters.endDate) nameParts.push(fileStamp());
+
+      const written = downloadCsv(csvFilename(nameParts), header, body);
+
+      setToast({
+        severity: "success",
+        text: `Exported ${written} transaction${written === 1 ? "" : "s"} to CSV.`,
+      });
+    } catch (err) {
+      console.error("Failed to export admin transactions:", err);
+      setToast({ severity: "error", text: "Export failed. Please try again." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const columns = [
@@ -134,6 +208,39 @@ const AdminTransactions = () => {
           <Typography title={r.userId?.email || ""} sx={{ fontSize: "0.7rem", color: "#8A94A6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.userId?.email || ""}</Typography>
         </Box>
       ),
+    },
+    {
+      header: "Partner ID", field: "partner_id", nowrap: true, minWidth: 110,
+      render: (r) => {
+        const dbId = r.userId?._id || null;
+        const pid = r.userId?.partner_id || "—";
+        const pname = fmtName(r.userId);
+        return dbId && pid !== "—" ? (
+          <Tooltip title={`${pname} — open profile, reports & transactions`}>
+            <Typography
+              component={RouterLink}
+              to={`/admin/partners/${dbId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                fontSize: "0.78rem",
+                whiteSpace: "nowrap",
+                color: "#3730A3",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {pid}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography sx={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#33415C", whiteSpace: "nowrap" }}>
+            {pid}
+          </Typography>
+        );
+      },
     },
     {
       header: "Type", field: "type", nowrap: true, minWidth: 80,
@@ -183,8 +290,8 @@ const AdminTransactions = () => {
             Full money ledger — recharges in, report charges out. Read-only.
           </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading || rows.length === 0}>
-          Export to Sheets
+        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading || exporting}>
+          {exporting ? "Exporting…" : "Export to Sheets"}
         </Button>
       </Box>
 
@@ -229,6 +336,10 @@ const AdminTransactions = () => {
         ]}
       />
 
+      <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+        Export to Sheets downloads every transaction matching the filters above — not just the current page.
+      </Typography>
+
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {loading ? (
@@ -238,17 +349,22 @@ const AdminTransactions = () => {
       ) : (
         <>
           <DataTable title="Ledger" columns={columns} data={rows} emptyMessage="No transactions found matching filters." pageSize={limit} />
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>
-            <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous Page</Button>
-            <Typography sx={{ display: "flex", alignItems: "center" }}>Page {page}</Typography>
-            <Button disabled={!hasNextPage} onClick={() => setPage((p) => p + 1)}>Next Page</Button>
-          </Box>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={handlePageSizeChange}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 
-      <Snackbar open={Boolean(toast)} autoHideDuration={5000} onClose={() => setToast("")}
+      <Snackbar open={Boolean(toast)} autoHideDuration={5000} onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert severity="error" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>
+        <Alert severity={toast?.severity || "error"} onClose={() => setToast(null)} sx={{ width: "100%" }}>{toast?.text || ""}</Alert>
       </Snackbar>
     </Box>
   );
