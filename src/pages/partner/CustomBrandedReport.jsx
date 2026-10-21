@@ -9,6 +9,7 @@ import {
   StickyQuickBar, HeroSection, CustomisationGrid, ThemesGallery, WorkflowTimeline,
   PricingCard} from './components/BrandedReportSections';
 import { BrandedReportPaidView } from './components/BrandedReportPaidView';
+import { BrandedReportAnalyzerSection } from './components/BrandedReportAnalyzerSection';
 import { BRANDED_REPORT_COPY } from '../../constants/brandedReportCopy';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -91,6 +92,7 @@ const CustomBrandedReportPage = () => {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [activeRequest, setActiveRequest] = useState(null);
   const [brandingStatusData, setBrandingStatusData] = useState(null);
+  const [brandProfile, setBrandProfile] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
   const [quote, setQuote] = useState({ price: FALLBACK_PRICE, walletBalance: user?.walletBalance ?? 0, canAffordWallet: true });
@@ -117,14 +119,16 @@ const CustomBrandedReportPage = () => {
     setLoadingStatus(true);
     setFetchError(null);
     try {
-      const [statusRes, quoteRes] = await Promise.all([
+      const [statusRes, quoteRes, profileRes] = await Promise.all([
         axios.get(`${API_BASE}/partner/custom-branded-report/status`, { headers: authHeader() }),
         axios.get(`${API_BASE}/partner/custom-branded-report/quote`, { headers: authHeader() }).catch(() => null),
+        axios.get(`${API_BASE}/partner/custom-branded-report/profile`, { headers: authHeader() }).catch(() => null),
       ]);
       const statusPayload = statusRes.data?.data || null;
       setBrandingStatusData(statusPayload);
       setActiveRequest(statusPayload?.request || null);
       if (quoteRes?.data?.data) setQuote(quoteRes.data.data);
+      if (profileRes?.data?.data) setBrandProfile(profileRes.data.data);
 
       const existingReq = statusPayload?.request;
       if (existingReq && existingReq.paymentStatus !== 'Paid') {
@@ -345,11 +349,15 @@ const CustomBrandedReportPage = () => {
 
         {isPaid ? (
           <FadeInSection>
-            <BrandedReportPaidView
-              statusData={brandingStatusData}
-              activeRequest={activeRequest}
-              onStatusUpdate={load}
-            />
+            {status === 'active' ? (
+              <BrandedReportAnalyzerSection brandProfile={brandProfile} />
+            ) : (
+              <BrandedReportPaidView
+                statusData={brandingStatusData}
+                activeRequest={activeRequest}
+                onStatusUpdate={load}
+              />
+            )}
           </FadeInSection>
         ) : (
           <>
