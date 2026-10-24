@@ -69,7 +69,7 @@ const Plans = () => {
           Pricing
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-          Single plan for everyone — no selection needed. Only generated reports are charged.
+          Single plan for everyone — no selection needed.
         </Typography>
         <Button
           variant="contained" disableElevation
