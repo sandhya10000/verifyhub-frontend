@@ -68,9 +68,6 @@ const Plans = () => {
         <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
           Pricing
         </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-          Single plan for everyone — no selection needed.
-        </Typography>
         <Button
           variant="contained" disableElevation
           onClick={goTopUp}
