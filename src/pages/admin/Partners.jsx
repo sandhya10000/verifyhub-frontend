@@ -12,6 +12,19 @@ import FilterBar from '../../Components/shared/FilterBar';
 import Pagination from '../../Components/shared/Pagination';
 import { downloadCsv, csvFilename, fileStamp } from '../../utils/csvExport';
 
+// Partner dropdown filter: matches name, email, phone or VH ID. "vh25"
+// also finds "VH025" — the leading zeros in the ID are ignored.
+const partnerFilterOptions = (options, { inputValue }) => {
+  const q = inputValue.trim().toLowerCase();
+  if (!q) return options;
+  const idDigits = q.match(/^vh0*(\d+)$/)?.[1];
+  return options.filter((p) => {
+    const fields = [p.name, p.email, p.partner_id, p.phone].map((v) => String(v || '').toLowerCase());
+    if (fields.some((f) => f.includes(q))) return true;
+    return idDigits !== undefined && String(p.partner_id || '').toLowerCase().replace(/^vh0*/, '') === idDigits;
+  });
+};
+
 const AdminPartners = () => {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -227,7 +240,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.get(`${API_BASE_URL}/admin/partners?page=1&limit=500`, {
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
@@ -270,7 +283,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.get(`${API_BASE_URL}/admin/partners?page=1&limit=500`, {
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
@@ -517,7 +530,7 @@ const AdminPartners = () => {
         search={{
           value: search,
           onChange: (v) => setSearch(v),
-          placeholder: 'Search name, email, or phone…',
+          placeholder: 'Search name, email, phone, or VH ID…',
         }}
       />
 
@@ -607,6 +620,7 @@ const AdminPartners = () => {
           {fundsSuccess && <Alert severity="success" sx={{ mb: 2 }}>{fundsSuccess}</Alert>}
           <Autocomplete
             options={fundsOptions}
+            filterOptions={partnerFilterOptions}
             loading={fundsLoading}
             value={fundsPartner}
             onChange={(_, v) => setFundsPartner(v)}
@@ -666,6 +680,7 @@ const AdminPartners = () => {
           {deductSuccess && <Alert severity="success" sx={{ mb: 2 }}>{deductSuccess}</Alert>}
           <Autocomplete
             options={fundsOptions}
+            filterOptions={partnerFilterOptions}
             loading={fundsLoading}
             value={deductPartner}
             onChange={(_, v) => setDeductPartner(v)}
