@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, CircularProgress, Alert, Radio, Grid } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Alert, Radio, Grid, Checkbox, FormControlLabel } from '@mui/material';
 import { Wallet, CreditCard } from 'lucide-react';
 import useAuth from '../../context/useAuth';
 import { FIRST_TOPUP_MESSAGE, isFirstTopupPrompt } from '../../utils/walletErrors';
@@ -96,6 +96,10 @@ const CustomBrandedReportPage = () => {
   const [fetchError, setFetchError] = useState(null);
 
   const [quote, setQuote] = useState({ price: FALLBACK_PRICE, walletBalance: user?.walletBalance ?? 0, canAffordWallet: true });
+  // Credit points for the one-time fee: up to 1000 (10 points = Rs 1).
+  const [usePointsFee, setUsePointsFee] = useState(false);
+  const feePoints = Math.min(1000, Number(quote.maxPoints || 0));
+  const feeDiscount = usePointsFee ? feePoints / 10 : 0;
   const price = quote.price ?? FALLBACK_PRICE;
 
   const [email, setEmail] = useState('');
@@ -167,7 +171,12 @@ const CustomBrandedReportPage = () => {
     try {
       const res = await axios.post(
         `${API_BASE}/partner/custom-branded-report/pay/wallet`,
-        { email: email.trim(), phone: phone.replace(/\D/g, '') },
+        {
+          email: email.trim(),
+          phone: phone.replace(/\D/g, ''),
+          usePoints: usePointsFee && feePoints > 0 ? 'true' : 'false',
+          pointsToRedeem: usePointsFee ? feePoints : 0,
+        },
         { headers: authHeader() },
       );
       setActiveRequest(res.data.data);
@@ -466,9 +475,22 @@ const CustomBrandedReportPage = () => {
                 </Box>
 
                 <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5, textAlign: 'center' }}>
+                  {payMethod === 'wallet' && feePoints > 0 && (
+                    <FormControlLabel
+                      sx={{ justifyContent: 'center', m: 0 }}
+                      control={
+                        <Checkbox
+                          checked={usePointsFee}
+                          onChange={(e) => setUsePointsFee(e.target.checked)}
+                          disabled={paying}
+                        />
+                      }
+                      label={`Use ${feePoints.toLocaleString('en-IN')} VeriPoints (Rs ${(feePoints / 10).toLocaleString('en-IN')} off)`}
+                    />
+                  )}
                   <Button onClick={handlePay} disabled={paying} sx={{ width: '100%', py: 2, borderRadius: 4, bgcolor: '#2563eb', color: '#fff', fontSize: '1rem', fontWeight: 700, textTransform: 'none', boxShadow: '0 20px 25px -5px rgba(37,99,235,0.1), 0 10px 10px -5px rgba(37,99,235,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, transition: 'all 0.2s', '&:hover': { bgcolor: '#1d4ed8' }, '&.Mui-disabled': { bgcolor: '#94a3b8', color: '#f8fafc' } }}>
                     {paying ? <CircularProgress size={20} sx={{ color: 'inherit' }} /> : (payMethod === 'wallet' ? <Wallet size={20} /> : <CreditCard size={20} />)}
-                    {paying ? 'Processing payment...' : `Pay ${inr0(price)} ${payMethod === 'wallet' ? `with wallet${shortfall > 0 && !isFirstTimer ? ' (Requires Recharge)' : ''}` : 'with Razorpay / Instant UPI'}`}
+                    {paying ? 'Processing payment...' : `Pay ${inr0(payMethod === 'wallet' ? price - feeDiscount : price)} ${payMethod === 'wallet' ? `with wallet${shortfall > 0 && !isFirstTimer ? ' (Requires Recharge)' : ''}` : 'with Razorpay / Instant UPI'}`}
                   </Button>
                   <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                     🔒 {BRANDED_REPORT_COPY.checkoutSecurity}. Debited securely. Tax Invoice with GST input credit available immediately upon receipt.

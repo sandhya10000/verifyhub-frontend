@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
           const updated = {
             ...prev,
             walletBalance: data.data.walletBalance,
+            creditPoints: data.data.creditPoints ?? prev.creditPoints ?? 0,
             activePlan: data.data.activePlan || prev.activePlan,
             pendingPlanChoice: data.data.pendingPlanChoice ?? prev.pendingPlanChoice ?? false,
           };

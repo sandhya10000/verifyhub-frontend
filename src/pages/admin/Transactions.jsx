@@ -158,7 +158,7 @@ const AdminTransactions = () => {
 
       const header = [
         "Date (IST)", "Partner", "Email", "Partner ID", "Type", "Purpose",
-        "Amount", "Status", "Order ID", "Payment ID",
+        "Amount", "VeriPoints Used", "Status", "Order ID", "Payment ID",
       ];
 
       const body = exportRows.map((r) => [
@@ -169,6 +169,7 @@ const AdminTransactions = () => {
         r.type,
         purposeLabel(r.purpose),
         r.type === "CREDIT" ? r.amount : (r.totalAmount ?? r.amount),
+        r.pointsRedeemed || 0,
         r.status,
         r.orderId || "",
         r.paymentId || "",
@@ -269,6 +270,14 @@ const AdminTransactions = () => {
           </Typography>
         );
       },
+    },
+    {
+      header: "VeriPoints Used", field: "pointsRedeemed", nowrap: true, minWidth: 130, align: "right",
+      render: (r) => (
+        <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: r.pointsRedeemed > 0 ? "#4F46E5" : "#94A3B8", whiteSpace: "nowrap" }}>
+          {r.pointsRedeemed > 0 ? `${Number(r.pointsRedeemed).toLocaleString("en-IN")} VP` : "—"}
+        </Typography>
+      ),
     },
     { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={statusLabel(r.status)} /> },
     {

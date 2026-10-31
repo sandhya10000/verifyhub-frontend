@@ -15,6 +15,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Wallet,
+  Star,
   FileText,
   IndianRupee,
   Bot,
@@ -323,6 +324,22 @@ const PartnerLayout = () => {
             </Box>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Chip
+                icon={<Star size={16} />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, mr: 0.5 }}>VeriPoints</Box>
+                    {Number(user?.creditPoints || 0).toLocaleString("en-IN")}
+                  </Box>
+                }
+                sx={{
+                  bgcolor: "#EEF2FF",
+                  color: "#3730A3",
+                  fontWeight: 800,
+                  borderRadius: 6,
+                  height: { xs: 32, sm: 40 },
+                }}
+              />
               <Chip
                 icon={<Wallet size={16} />}
                 label={

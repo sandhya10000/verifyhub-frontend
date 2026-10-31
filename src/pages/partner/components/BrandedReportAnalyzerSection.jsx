@@ -12,6 +12,8 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import {
   UploadCloud,
@@ -79,7 +81,11 @@ const secondaryBtnSx = {
 };
 
 export const BrandedReportAnalyzerSection = ({ brandProfile }) => {
-  const { refreshWallet, hasToppedUp } = useAuth();
+  const { refreshWallet, hasToppedUp, user } = useAuth();
+  // Credit points: up to 100 per analysis (10 points = Rs 1, so Rs 10 off).
+  const [usePoints, setUsePoints] = useState(false);
+  const pointsAvailable = Number(user?.creditPoints || 0);
+  const pointsForThisReport = Math.min(100, pointsAvailable);
   const navigate = useNavigate();
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -141,6 +147,7 @@ export const BrandedReportAnalyzerSection = ({ brandProfile }) => {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("language", selectedLanguage);
+    formData.append("usePoints", usePoints && pointsForThisReport > 0 ? "true" : "false");
 
     const token = localStorage.getItem("token");
 
@@ -719,6 +726,19 @@ export const BrandedReportAnalyzerSection = ({ brandProfile }) => {
 
           {/* Action Center */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 1 }}>
+            {/* Credit points toggle */}
+            {pointsAvailable > 0 && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={usePoints}
+                    onChange={(e) => setUsePoints(e.target.checked)}
+                    disabled={busy || !!analysisResult}
+                  />
+                }
+                label={`Use ${pointsForThisReport} VeriPoints (Rs ${(pointsForThisReport / 10).toFixed(2)} off) — you have ${pointsAvailable.toLocaleString("en-IN")} VeriPoints`}
+              />
+            )}
             {/* 1. Analyze Button */}
             <Button
               variant="contained"
