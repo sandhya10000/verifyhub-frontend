@@ -42,7 +42,7 @@ const resolveBannerSrc = (imageUrl) => {
 
 const AddFunds = () => {
   // First top-up flips the sidebar from Add Funds to Pricing instantly.
-  const { user, token, login, hasToppedUp, setHasToppedUp } = useAuth();
+  const { user, token, login, hasToppedUp, setHasToppedUp, refreshWallet } = useAuth();
   const headerRef = useRef(null);
   const [showStrip, setShowStrip] = useState(false);
 
@@ -212,6 +212,9 @@ const AddFunds = () => {
               if (user && token && newBalance != null) {
                 login({ ...user, walletBalance: newBalance, activePlan: newPlan || user.activePlan, pendingPlanChoice: false }, token);
               }
+              // Pull fresh balance + VeriPoints from the server so the header
+              // chip updates without a page reload (recharge also earns points).
+              refreshWallet?.();
               // First top-up gets an unlock confirmation (reinforces the highlight line).
               const unlockedNote = firstTimer ? ' All services unlocked — bureau reports, AI analysis, RC & GST verification.' : '';
               const credited = verifyRes.data?.credited ?? amt;
