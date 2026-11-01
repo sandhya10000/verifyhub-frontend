@@ -305,8 +305,10 @@ const AiAnalyzer = () => {
             if (status === "completed") {
               setAnalysisResult(result);
               setIsAnalyzing(false);
-              // Analysis deducted server-side — refresh context balance
+              // Analysis deducted server-side — refresh context balance.
+              // The debit lands just after 'completed', so refresh again shortly.
               refreshWallet();
+              setTimeout(() => refreshWallet(), 2000);
               clearInterval(intervalId);
             } else if (status === "failed") {
               if (response.data.errorCode === "NOT_A_CREDIT_REPORT") {

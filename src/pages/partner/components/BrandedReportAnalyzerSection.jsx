@@ -228,7 +228,9 @@ export const BrandedReportAnalyzerSection = ({ brandProfile }) => {
             if (status === "completed") {
               setAnalysisResult(result);
               setIsAnalyzing(false);
+              // The debit lands just after 'completed', so refresh again shortly.
               refreshWallet();
+              setTimeout(() => refreshWallet(), 2000);
               clearInterval(intervalId);
             } else if (status === "failed") {
               if (response.data.errorCode === "NOT_A_CREDIT_REPORT") {
