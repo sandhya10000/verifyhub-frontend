@@ -128,6 +128,14 @@ function TransactionHistory() {
         );
       },
     },
+    {
+      header: "VeriPoints Used", field: "pointsRedeemed", nowrap: true, minWidth: 130, align: "right",
+      render: (r) => (
+        <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: r.pointsRedeemed > 0 ? "#4F46E5" : "#94A3B8", whiteSpace: "nowrap" }}>
+          {r.pointsRedeemed > 0 ? `${Number(r.pointsRedeemed).toLocaleString("en-IN")} VP` : "—"}
+        </Typography>
+      ),
+    },
     { header: "Status", field: "status", nowrap: true, minWidth: 110, render: (r) => <StatusBadge status={statusLabel(r.status)} /> },
   ];
 

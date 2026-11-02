@@ -13,10 +13,13 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
 import PasswordField from "../../Components/auth/PasswordField";
 import OtpInput from "../../Components/auth/OtpInput";
+import TopUpBonusBanner from "../../components/TopUpBonusBanner";
+import LeftFeatureList from "../../Components/auth/LeftFeatureList";
 import { signupSchema } from "../../schemas/authSchemas";
 import { authService } from "../../services/authService";
 import useAuth from "../../context/useAuth";
@@ -123,8 +126,56 @@ const Signup = () => {
   };
 
   return (
-    <AuthLayout variant="split">
+    <AuthLayout
+      variant="split"
+      leftContent={
+        <>
+          <LeftFeatureList />
+          <TopUpBonusBanner sx={{ maxWidth: '100%' }} />
+        </>
+      }
+    >
       <AuthCard sx={{ maxWidth: 600 }}>
+        <Link
+          component={RouterLink}
+          to="/"
+          aria-label="Back to home"
+          underline="none"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            fontSize: "13.5px",
+            fontWeight: 500,
+            color: "text.secondary",
+            minHeight: "40px",
+            mb: 1.5,
+            width: "fit-content",
+            borderRadius: "6px",
+            textDecoration: "none",
+            outline: "none",
+            "& .back-arrow-icon": {
+              fontSize: "16px",
+              transition: "transform 180ms ease, color 180ms ease",
+            },
+            "&:hover": {
+              color: "#2563EB",
+              textDecoration: "underline",
+              "& .back-arrow-icon": {
+                transform: "translateX(-3px)",
+                color: "#2563EB",
+              },
+            },
+            "&:focus-visible": {
+              color: "#2563EB",
+              boxShadow: "0 0 0 2px rgba(37, 99, 235, 0.4)",
+              outline: "none",
+            },
+          }}
+        >
+          <ArrowBackIcon className="back-arrow-icon" />
+          Back to home
+        </Link>
         <Typography variant="h4" sx={{ mb: 1 }}>
           Register
         </Typography>
@@ -223,10 +274,11 @@ const Signup = () => {
               />
             </Box>
 
-            <Box sx={{ display: "flex", gap: 3, mb: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2.5, sm: 3 }, mb: 3 }}>
               <PasswordField
                 fullWidth
                 label="Password"
+                placeholder="Password"
                 {...register("password")}
                 error={!!errors.password}
                 helperText={errors.password?.message}
@@ -234,6 +286,7 @@ const Signup = () => {
               <PasswordField
                 fullWidth
                 label="Confirm Password"
+                placeholder="Confirm Password"
                 {...register("confirmPassword")}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message}

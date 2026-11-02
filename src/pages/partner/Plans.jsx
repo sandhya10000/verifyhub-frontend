@@ -27,19 +27,12 @@ const FALLBACK_GST = { base: 10, gstRate: 0, total: 10 };
 
 const Plans = () => {
   const navigate = useNavigate();
-  // Pricing is hidden from first-time partners until their first top-up —
-  // direct visits bounce to Add Funds (funded partners always pass).
-  const { user, refreshWallet, hasToppedUp, isLoading } = useAuth();
-  useEffect(() => {
-    if (!isLoading && hasToppedUp === false) navigate('/partner/add-funds', { replace: true });
-  }, [isLoading, hasToppedUp, navigate]);
+  // Pricing is visible to everyone, including newly joined partners.
+  const { user, refreshWallet } = useAuth();
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [ai, setAi] = useState(FALLBACK_AI);
   const [rc, setRc] = useState(FALLBACK_RC);
   const [gst, setGst] = useState(FALLBACK_GST);
-  // Single-plan launch: AI failure is flat ₹100 (no GST).
-  // TODO(multi-plan-restore): drop aiFail, fall back to otherFailedCharge.
-  const [aiFail, setAiFail] = useState(100);
   const [minRecharge, setMinRecharge] = useState(1000);
 
   useEffect(() => {
@@ -52,7 +45,6 @@ const Plans = () => {
           if (data.data?.ai) setAi(data.data.ai);
           if (data.data?.rc) setRc(data.data.rc);
           if (data.data?.gst) setGst(data.data.gst);
-          if (data.data?.aiFail?.total != null) setAiFail(data.data.aiFail.total);
           if (data.data?.minRecharge != null) setMinRecharge(data.data.minRecharge);
         }
       })
@@ -72,21 +64,16 @@ const Plans = () => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
-            Pricing
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Single plan for everyone — no selection needed. Only generated reports are charged.
-          </Typography>
-        </Box>
+      <Box sx={{ mb: 2.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif' }}>
+          Pricing
+        </Typography>
         <Button
           variant="contained" disableElevation
           onClick={goTopUp}
-          sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2.5, py: 1 }}
+          sx={{ mt: 1.5, borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#3730A3', whiteSpace: 'nowrap', px: 2.5, py: 1 }}
         >
-          Top up wallet
+          Recharge Plan
         </Button>
       </Box>
 
@@ -101,7 +88,7 @@ const Plans = () => {
           <Typography sx={{ fontWeight: 800 }}>{inr0(minRecharge)}</Typography>
         </Box>
         <Box sx={{ flex: 1, minWidth: 200, textAlign: { xs: 'left', md: 'right' } }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Bureau + RC/GST fails bill the same as success · AI fail {inr0(aiFail)} flat.</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Every bureau, RC and GST pull is charged at the rate shown below.</Typography>
         </Box>
       </Paper>
 
@@ -119,7 +106,7 @@ const Plans = () => {
               <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>
                 {inr0(row[b.key])}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>per report · success or fail</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>per report</Typography>
             </Paper>
           </Grid>
         ))}
@@ -134,7 +121,7 @@ const Plans = () => {
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Credit report analyzer</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>{inr0(ai.total)}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              per analysis · fail {inr0(aiFail)} flat
+              per analysis
             </Typography>
           </Paper>
         </Grid>
@@ -143,7 +130,7 @@ const Plans = () => {
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Vehicle RC</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>RC verification</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>{inr0(rc.total)}</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>per verification · success or fail</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>per verification</Typography>
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -151,7 +138,7 @@ const Plans = () => {
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>GST</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>GST verification</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>{inr0(gst.total)}</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>per verification · success or fail</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>per verification</Typography>
           </Paper>
         </Grid>
       </Grid>

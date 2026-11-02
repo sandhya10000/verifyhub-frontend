@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import useAuth from '../../context/useAuth';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
+import { downloadCsv, csvFilename, fileStamp } from '../../utils/csvExport';
 import { KpiCard, ChartCard, MoneyTrend, BureauDonutPanel, TopPartnersList, timeAgo } from '../../Components/admin/AdminWidgets';
 
 const API = (path) => {
@@ -73,16 +74,17 @@ const AdminOverview = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // The money timeseries endpoint is an aggregate (not a paginated list), so
+  // it already returns the full range — this writes all of it to a CSV.
   const exportCsv = () => {
-    const rows = [
-      ['Date', 'Collected', 'Consumed', 'Reports'],
-      ...money.map((d) => [d.date, d.collected, d.consumed, d.reports]),
-    ].map((r) => r.join(',')).join('\n');
-    const blob = new Blob([rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'money-timeseries.csv'; a.click();
-    URL.revokeObjectURL(url);
+    const header = ['Date', 'Collected', 'Consumed', 'Reports'];
+    const body = money.map((d) => [d.date, d.collected, d.consumed, d.reports]);
+
+    downloadCsv(
+      csvFilename(['admin_money_timeseries', `${range}d`, fileStamp()]),
+      header,
+      body,
+    );
   };
 
   const s = summary || {};

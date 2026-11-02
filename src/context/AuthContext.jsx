@@ -17,8 +17,15 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch {
+        // Corrupt/partial stored session — drop it cleanly instead of
+        // hanging on "Loading session..." or bouncing the user to login.
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -66,6 +73,7 @@ export const AuthProvider = ({ children }) => {
           const updated = {
             ...prev,
             walletBalance: data.data.walletBalance,
+            creditPoints: data.data.creditPoints ?? prev.creditPoints ?? 0,
             activePlan: data.data.activePlan || prev.activePlan,
             pendingPlanChoice: data.data.pendingPlanChoice ?? prev.pendingPlanChoice ?? false,
           };

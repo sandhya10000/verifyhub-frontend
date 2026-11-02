@@ -1,0 +1,168 @@
+/* =========================================
+   HERO GLOBE (dark theme only)
+   Uses the page's existing dark hero colours. No light variant.
+========================================= */
+
+.home-container .hg {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+/* Hero layout glue: centre the figure in its column, and lift the copy so its
+   middle lines up with the globe (the info panel and chips sit below the globe). */
+.home-container .hero-visual {
+  justify-content: center;
+  min-width: 0;
+}
+
+@media (min-width: 1025px) {
+  .home-container .hero-content {
+    padding-bottom: 170px;
+  }
+}
+
+.home-container .hg-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.9;
+  overflow: visible;
+}
+
+.home-container .hg-stage::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 98%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0.12) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-container .hg-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+/* Info panel under the globe */
+.home-container .hg-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 84px;
+  margin-top: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.home-container .hg-swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent);
+}
+
+.home-container .hg-group {
+  display: block;
+  color: #8ca1c4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.home-container .hg-name {
+  display: block;
+  color: #ffffff;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+.home-container .hg-desc {
+  margin: 2px 0 0;
+  color: #a9bad6;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* Service chips (real, focusable buttons) */
+.home-container .hg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-container .hg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-family: var(--body);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.home-container .hg-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.home-container .hg-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.home-container .hg-chip[aria-pressed="true"] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+}
+
+.home-container .hg-chip:focus-visible,
+.home-container .hg-canvas:focus-visible {
+  outline: 2px solid #8fb0ff;
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .home-container .hg-chip {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-container .hg-chip {
+    transition: none;
+  }
+}

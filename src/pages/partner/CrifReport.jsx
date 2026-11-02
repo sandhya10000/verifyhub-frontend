@@ -2690,7 +2690,7 @@ const CrifReport = () => {
                     <Button
                       variant="contained"
                       component="a"
-                      href={reportData.reportUrl}
+                      onClick={handleViewReport}
                       target="_blank"
                       rel="noopener noreferrer"
                       sx={{

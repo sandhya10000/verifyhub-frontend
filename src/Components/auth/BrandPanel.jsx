@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import Logo from '../shared/Logo';
 
-const BrandPanel = () => {
+const BrandPanel = ({ leftContent }) => {
   return (
     <Box
       sx={{
@@ -39,39 +39,61 @@ const BrandPanel = () => {
         }}
       />
 
-      {/* Content */}
-      <Box sx={{ position: 'relative', zIndex: 1 }}>
-        {/* Logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-          <Logo height={50} alt="VerifyHub" />
-        </Box>
-
-        <Typography
-          variant="overline"
+      {/* Content wrapper with single unified inner container */}
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          flex: 1,
+        }}
+      >
+        <Box
           sx={{
-            color: '#8CA1C4',
-            letterSpacing: '0.1em',
-            fontFamily: '"Inter", sans-serif',
+            width: '100%',
+            maxWidth: 600,
+            display: 'flex',
+            flexDirection: 'column',
+            my: { xs: 0, md: 'auto' },
           }}
         >
-          PARTNER PORTAL • VERIFYHUB.IN
-        </Typography>
+          {/* Logo */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <Logo height={50} alt="VerifyHub" />
+          </Box>
 
-        <Box sx={{ mt: { xs: 4, md: 'auto' }, mb: { xs: 0, md: '20vh' } }}>
-          {/* Headline — "Instant Credit Insights," plain, then highlighted phrase with home page blue→green gradient */}
+          {/* Tagline */}
+          <Typography
+            variant="overline"
+            sx={{
+              color: '#8CA1C4',
+              letterSpacing: '0.1em',
+              fontFamily: '"Inter", sans-serif',
+              display: 'block',
+              mb: { xs: 3, md: 4 },
+            }}
+          >
+            PARTNER PORTAL • VERIFYHUB.IN
+          </Typography>
+
+          {/* Headline */}
           <Typography
             variant="h3"
             sx={{
               fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
               fontWeight: 800,
               mb: 2,
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               letterSpacing: '-0.025em',
               fontSize: 'clamp(28px, 3.2vw, 42px)',
               color: '#fff',
+              width: '100%',
             }}
           >
-            Instant Credit Insights,{' '}
+            Download instant credit{' '}
             <Box
               component="span"
               sx={{
@@ -82,21 +104,25 @@ const BrandPanel = () => {
                 color: 'transparent',
               }}
             >
-              Seamless Verification.
+              reports without OTP.
             </Box>
           </Typography>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              color: '#A9BAD6',
-              maxWidth: 400,
-              lineHeight: 1.7,
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '17px',
-            }}
-          >
-            Access CIBIL, Experian, and CRIF reports instantly. Manage wallet balances, track activity, and streamline your partner workflow from a single dashboard.
-          </Typography>
+
+
+          {/* Feature list and offer card (aligned flush with the container) */}
+          {leftContent && (
+            <Box
+              sx={{
+                mt: { xs: 3.5, sm: 4 },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: { xs: 3.5, sm: 4 },
+                width: '100%',
+              }}
+            >
+              {leftContent}
+            </Box>
+          )}
         </Box>
       </Box>
     </Box>

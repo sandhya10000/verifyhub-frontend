@@ -12,15 +12,71 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import LockIcon from '@mui/icons-material/Lock';
 import './Home.css';
-import shieldImg from '../assets/verifyhub_shield_high_quality.png';
+import HeroGlobe from '../Components/HeroGlobe/HeroGlobe';
 
 /* ================= BUREAU CARDS DATA ================= */
 const BUREAU_CARDS = [
-  { key: 'cibil',    name: 'CIBIL',      title: 'Credit Information Bureau', live: true, color: 'var(--blue)', arrow: 'var(--green)',  glow: 'rgba(59,130,246,.08)' },
-  { key: 'experian', name: '✦ Experian', title: 'Experian',                  live: true,  color: '#9b2bc7',     arrow: 'var(--green)', glow: 'rgba(155,43,199,.07)', to: '/credit-bureau-api' },
-  { key: 'equifax',  name: 'EQUIFAX',    title: 'Equifax',                   live: true, color: '#e31837',    arrow: 'var(--green)', glow: 'rgba(227,24,55,.06)' },
-  { key: 'crif',     name: '≋ CRIF',     title: 'CRIF',                      live: true,  color: '#26364d',     arrow: 'var(--green)', glow: 'rgba(16,185,129,.07)', to: '/credit-bureau-api' },
+  { key: 'cibil', name: 'CIBIL', title: 'Credit Information Bureau', live: true, color: 'var(--blue)', arrow: 'var(--green)', glow: 'rgba(59,130,246,.08)' },
+  { key: 'experian', name: '✦ Experian', title: 'Experian', live: true, color: '#9b2bc7', arrow: 'var(--green)', glow: 'rgba(155,43,199,.07)', to: '/credit-bureau-api' },
+  { key: 'equifax', name: 'EQUIFAX', title: 'Equifax', live: true, color: '#e31837', arrow: 'var(--green)', glow: 'rgba(227,24,55,.06)' },
+  { key: 'crif', name: '≋ CRIF', title: 'CRIF', live: true, color: '#26364d', arrow: 'var(--green)', glow: 'rgba(16,185,129,.07)', to: '/credit-bureau-api' },
 ];
+
+/* ================= GST & VEHICLE RC VERIFICATION DATA =================
+   Placeholder content in [SQUARE BRACKETS] - replace with real copy / sample data later.
+   No prices anywhere in this section. */
+const VERIFY_SERVICES = [
+  {
+    id: 'gst-verification',
+    eyebrow: 'GST VERIFICATION',
+    title: 'Authenticate GSTIN and taxpayer status instantly',
+    body: 'Confirm that a business GSTIN is valid, check its taxpayer status and review filing compliance before you lend.',
+    checks: [
+      { title: 'GSTIN authentication', sub: 'Check if the GST number is real and see the business’s legal name.' },
+      { title: 'Taxpayer status check', sub: 'See if the business is Active, and if it is a Regular taxpayer.' },
+      { title: 'Filing compliance review', sub: 'See if the business files its GST returns on time.' },
+    ],
+    cta: 'Explore GST verification',
+    mock: {
+      title: 'GST Verification',
+      pill: 'Authenticated',
+      rows: [
+        { label: 'GSTIN', value: '27AAOCR8332H1ZY' },
+        { label: 'Legal name', value: 'RUPEEYAN FINTECH PRIVATE LIMITED' },
+        { label: 'Taxpayer type', value: 'Regular' },
+      ],
+    },
+  },
+  {
+    id: 'vehicle-rc',
+    eyebrow: 'VEHICLE RC VERIFICATION',
+    title: 'Verify vehicle registration, owner and insurance instantly',
+    body: 'Check the registration, owner, insurance and permit details of a vehicle before you approve a loan.',
+    checks: [
+      { title: 'Registration details', sub: 'Check if the vehicle is registered, and see its make, model and fuel type.' },
+      { title: 'Owner details', sub: 'See the name of the person the vehicle is registered to.' },
+      { title: 'Insurance and permit status', sub: 'Check if the insurance and permit are valid, and until when.' },
+    ],
+    cta: 'Explore vehicle RC verification',
+    mock: {
+      title: 'Vehicle RC',
+      pill: 'Verified',
+      rows: [
+        { label: 'Vehicle number', value: 'MH12AB1234' },
+        { label: 'Owner', value: 'Rahul Patil' },
+        { label: 'Insurance', value: 'Valid until 18 Aug 2027' },
+        { label: 'Permit', value: 'Valid' },
+      ],
+    },
+  },
+];
+
+
+
+const getInitials = (name = '') =>
+  name.startsWith('[')
+    ? ''
+    : name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 const arrowStyle = (b) => ({
   position: 'absolute',
@@ -36,6 +92,57 @@ const arrowStyle = (b) => ({
   fontSize: '15px',
   textDecoration: 'none',
 });
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "We used to log in to different sites for CIBIL and CRIF. Now I get both from one screen. It saves me a lot of back and forth.",
+    name: "Ramesh Patil",
+    role: "Credit Officer",
+    company: "Sai Krupa Finance, Kolhapur",
+    avatar: null,
+  },
+  {
+    quote:
+      "The AI summary is useful when I am short on time. I read the score, the risk points and the advice, and then I decide.",
+    name: "Neha Joshi",
+    role: "Credit Analyst",
+    company: "Triveni Capital",
+    avatar: null,
+  },
+  {
+    quote:
+      "GST check costs only ₹10 and shows the filing history too. Last month it helped us catch a business that had stopped filing returns.",
+    name: "Sandeep Kulkarni",
+    role: "Branch Manager",
+    company: "Navjeevan Credit Society",
+    avatar: null,
+  },
+  {
+    quote:
+      "For used vehicle loans, I check the insurance date and permit before anything else. Vehicle RC gives me both in a few seconds.",
+    name: "Faisal Shaikh",
+    role: "Loan Executive",
+    company: "Motorline Finance",
+    avatar: null,
+  },
+  {
+    quote:
+      "The API was easy to connect. Our developer finished it in about a week, and the support team answered all his questions.",
+    name: "Aditi Rao",
+    role: "Product Manager",
+    company: "LendPe Technologies",
+    avatar: null,
+  },
+  {
+    quote:
+      "I like that the wallet balance and every charge are in the dashboard. At the end of the month, our accounts team does not have to ask me for anything.",
+    name: "Manoj Gupta",
+    role: "Operations Lead",
+    company: "Shree Ganesh Microfinance",
+    avatar: null,
+  },
+];
 
 const BureauGrid = ({ addToRevealRefs }) => (
   <Box
@@ -163,6 +270,17 @@ const Home = () => {
     return () => countObserver.disconnect();
   }, []);
 
+  const testimonialRef = useRef(null);
+
+  const scrollTestimonials = (dir) => {
+    const el = testimonialRef.current;
+    if (!el) return;
+    const card = el.querySelector('.tm-card');
+    const step = card ? card.offsetWidth + 20 : 320;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollBy({ left: dir * step, behavior: reduce ? 'auto' : 'smooth' });
+  };
+
   const addToRevealRefs = (el) => {
     if (el && !revealRefs.current.includes(el)) {
       revealRefs.current.push(el);
@@ -184,653 +302,325 @@ const Home = () => {
           <div className="hero-grid">
             <div className="hero-content">
               <h1>The verification layer behind <span className="grad">modern lending</span></h1>
-              <p className="lead">Our AI-powered verification platform helps lenders make faster, smarter and more secure decisions. Verify identities, reduce fraud and onboard customers in minutes.</p>
+              <p className="lead">Pull CIBIL, Experian, Equifax and CRIF reports through one API, get AI-driven risk insights on every applicant, and approve with confidence in minutes.</p>
               <div className="hero-actions">
                 {/* <a className="btn btn-primary" href="#contact">Book a demo</a>
                 <a className="btn btn-dark-outline" href="#contact">Talk to sales</a> */}
               </div>
             </div>
             <div className="hero-visual">
-              <img src={shieldImg} alt="VerifyHub Shield AI Platform" className="hero-shield" />
+              <HeroGlobe />
             </div>
-          </div>
-
-          <div className="hero-stats" role="list" aria-label="Platform highlights">
-            <div className="hstat" role="listitem"><b>1M+</b><span>Verifications</span></div>
-            <div className="hstat" role="listitem"><b>50+</b><span>Enterprise Clients</span></div>
-            <div className="hstat" role="listitem"><b>640ms</b><span>Avg. Response Time</span></div>
-            <div className="hstat" role="listitem"><b>99.98%</b><span>Uptime</span></div>
           </div>
         </div>
       </header>
 
-      {/* ================= OUR SERVICES WRAPPER ================= */}
-      <section
-        id="services"
-        aria-labelledby="services-heading"
-        className="services-wrapper"
-      >
-        {/* Services section header */}
+      {/* ================= TESTIMONIALS ================= */}
+      <section id="testimonials" className="tm" aria-labelledby="testimonials-heading">
         <div className="wrap">
-          <div className="services-header reveal" ref={addToRevealRefs}>
-            <span className="eyebrow services-eyebrow">WHAT WE OFFER</span>
-            <h2 id="services-heading" className="services-title">
-              Smarter credit decisions{' '}
-              <span className="grad-blue">powered by one platform</span>
+          <div className="tm-head">
+            <div>
+              <span className="svc-pill">CLIENT STORIES</span>
+              <h2 id="testimonials-heading" className="svc-h2 tm-title">
+                Trusted by <span className="svc-grad">lenders and fintechs</span> across India
+              </h2>
+            </div>
+
+            <div className="tm-nav">
+              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(-1)} aria-label="Previous testimonials">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+              </button>
+              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(1)} aria-label="Next testimonials">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <ul className="tm-track" ref={testimonialRef} tabIndex={0} aria-label="Client testimonials, scroll horizontally">
+            {TESTIMONIALS.map((t, i) => (
+              <li key={i} className="tm-card">
+                <figure>
+                  <span className="tm-mark" aria-hidden="true">&ldquo;</span>
+                  <blockquote className="tm-quote">{t.quote}</blockquote>
+                  <figcaption className="tm-person">
+                    {t.avatar ? (
+                      <img className="tm-avatar" src={t.avatar} alt="" />
+                    ) : (
+                      <span className="tm-avatar tm-avatar-empty" aria-hidden="true">{getInitials(t.name)}</span>
+                    )}
+                    <span className="tm-meta">
+                      <strong>{t.name}</strong>
+                      <span>{t.role}</span>
+                      <span>{t.company}</span>
+                    </span>
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ================= OUR SERVICES WRAPPER ================= */}
+      <section id="services" aria-labelledby="services-heading" className="services-wrapper">
+
+        {/* ================= WHAT WE OFFER ================= */}
+        <div className="wrap svc-offer">
+          <div className="svc-offer-head reveal" ref={addToRevealRefs}>
+            <span className="svc-pill">WHAT WE OFFER</span>
+            <h2 id="services-heading" className="svc-h2 svc-h2-center">
+              One platform for <span className="svc-grad">credit bureau data</span>, AI analysis and business verification
             </h2>
-            <p className="services-sub">
-              AI-powered credit analysis and direct access to India’s leading
-              credit bureaus, in one platform.
+            <p className="svc-sub">
+              AI-powered credit analysis and direct access to India&rsquo;s leading credit bureaus, in one platform.
             </p>
           </div>
+
+          <div className="svc-offer-grid">
+            <article className="svc-offer-card tone-blue reveal" ref={addToRevealRefs}>
+              <span className="svc-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h7" /></svg>
+              </span>
+              <h3>Credit Bureau API</h3>
+              <p>Pull full credit reports from CIBIL, Experian, Equifax and CRIF with a single integration.</p>
+              <a href="#bureau-coverage" className="svc-link">Explore the credit report API &rarr;</a>
+            </article>
+
+            <article className="svc-offer-card tone-purple reveal" ref={addToRevealRefs}>
+              <span className="svc-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>
+              </span>
+              <h3>AI Decisioning</h3>
+              <p>Risk assessment, key factors and recommendations on every report, ready for your credit team.</p>
+              <a href="#ai-credit-report" className="svc-link">See AI credit decisioning &rarr;</a>
+            </article>
+            <article className="svc-offer-card tone-teal reveal" ref={addToRevealRefs}>
+              <span className="svc-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" /><path d="M9 8h3M9 12h7M9 16h7" /></svg>
+              </span>
+              <h3>GST Verification</h3>
+              <p>Authenticate GSTIN, taxpayer status and filing compliance instantly.</p>
+              <a href="#gst-verification" className="svc-link">Explore GST verification &rarr;</a>
+            </article>
+
+            <article className="svc-offer-card tone-orange reveal" ref={addToRevealRefs}>
+              <span className="svc-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 16v-4l1.7-4.3A2 2 0 0 1 8.6 6.5h6.8a2 2 0 0 1 1.9 1.2L19 12v4" /><path d="M3 16h18v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-1H7v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M7.5 12.5h.01M16.5 12.5h.01" /></svg>
+              </span>
+              <h3>Vehicle RC Verification</h3>
+              <p>Verify registration, owner, insurance and permit details instantly.</p>
+              <a href="#vehicle-rc" className="svc-link">Explore vehicle RC verification &rarr;</a>
+            </article>
+          </div>
         </div>
 
-      {/* ================= AI CREDIT ANALYSIS ================= */}
-      <section id="ai-credit-report" className="ai-credit" style={{ background: 'var(--bg-soft)', borderTop: '1px solid var(--line)' }}>
-        <div className="wrap">
-          <div className="hero-grid" style={{ alignItems: 'center', gap: '60px' }}>
+        {/* ================= AI CREDIT ANALYSIS ================= */}
+        <section id="ai-credit-report" className="svc-ai">
+          <div className="wrap svc-ai-grid">
 
-            {/* LEFT COLUMN */}
+            {/* LEFT */}
             <div className="reveal" ref={addToRevealRefs}>
-              <span className="eyebrow">NEW · AI-POWERED ANALYSIS</span>
-              <h2 style={{ fontSize: 'clamp(30px, 4vw, 44px)', fontWeight: 800, lineHeight: 1.15, marginBottom: '20px', color: 'var(--ink)' }}>
-                Smarter insights with{' '}
-                <span style={{ color: 'var(--blue)' }}>AI-driven</span>{' '}
-                credit analysis
+              <span className="svc-eyebrow">NEW &middot; AI CREDIT CHECK</span>
+              <h2 className="svc-h2 svc-ai-title">
+                Know if an applicant is <span className="svc-grad">safe to lend to, </span>in minutes
               </h2>
-              <p style={{ color: 'var(--slate)', fontSize: '17px', lineHeight: 1.7, marginBottom: '36px' }}>
-                Get a detailed breakdown of your applicant's credit health with AI-powered analysis. We highlight key factors, risks and opportunities so you can make confident lending decisions.
+              <p className="svc-body">
+                Upload your credit report. Our AI checks their credit report and tells you the score, the risks, and what to do next.
               </p>
 
-              {/* Checklist */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
+              <ul className="svc-checks">
                 {[
                   { title: 'AI risk assessment & score prediction', sub: 'Understand risk with advanced ML models.' },
-                  { title: 'Detailed credit insights', sub: "See what's helping or hurting the score." },
-                  { title: 'Actionable recommendations', sub: 'Make better decisions, faster.' },
+                  { title: 'Detailed credit insights', sub: 'See what is helping or hurting the score.' },
+                  { title: 'Actionable recommendations', sub: 'See the score, the risks and a simple approve or review suggestion.' },
                 ].map((item) => (
-                  <div key={item.title} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                    <div style={{
-                      width: '26px', height: '26px', borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-                      color: '#fff', display: 'grid', placeItems: 'center',
-                      flexShrink: 0, fontSize: '13px', fontWeight: 700,
-                    }}>✓</div>
+                  <li key={item.title}>
+                    <span className="svc-check">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                    </span>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '2px' }}>{item.title}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--slate-lt)' }}>{item.sub}</div>
+                      <strong>{item.title}</strong>
+                      <span>{item.sub}</span>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
 
-              {/* CTA Button — reuses btn-primary gradient */}
-              <Box
-                component={RouterLink}
-                to="/login"
-                onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
-                className="btn btn-primary"
-              >
-                Analyse my report <span>→</span>
-              </Box>
+              
             </div>
 
-            {/* RIGHT COLUMN — white card */}
+            {/* RIGHT — analysis card */}
             <div className="reveal" ref={addToRevealRefs}>
-              <div style={{
-                background: '#fff',
-                borderRadius: '20px',
-                border: '1px solid var(--line)',
-                boxShadow: 'var(--shadow-lg)',
-                overflow: 'hidden',
-              }}>
-                {/* Card Header */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '20px 24px 16px',
-                  borderBottom: '1px solid var(--line)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>✨</span>
-                    <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--ink)' }}>AI Analysis</span>
-                  </div>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em',
-                    background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-                    color: '#fff', padding: '4px 12px', borderRadius: '100px',
-                  }}>Powered by AI</span>
+              <div className="svc-card">
+                <div className="svc-card-head">
+                  <span>AI Analysis</span>
+                  <span className="svc-badge">Powered by AI</span>
                 </div>
 
-                {/* Card Body — two sub-columns */}
-                <div style={{ display: 'flex', gap: '24px', padding: '24px', alignItems: 'flex-start' }}>
-
-                  {/* Score ring */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <div style={{ position: 'relative', width: '100px', height: '100px' }}>
-                      <svg width="100" height="100" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" strokeWidth="8" />
+                <div className="svc-card-body">
+                  <div className="svc-score">
+                    <div className="svc-ring">
+                      <svg width="110" height="110" viewBox="0 0 100 100" aria-hidden="true">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="#e4e8f2" strokeWidth="8" />
                         <circle
-                          cx="50" cy="50" r="42" fill="none"
-                          stroke="url(#scoreGrad)" strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray="263.9"
-                          strokeDashoffset="52.8"
+                          cx="50" cy="50" r="42" fill="none" stroke="#12a67c" strokeWidth="8"
+                          strokeLinecap="round" strokeDasharray="263.9" strokeDashoffset="52.8"
                           transform="rotate(-90 50 50)"
                         />
-                        <defs>
-                          <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#10B981" />
-                            <stop offset="100%" stopColor="#14B8A6" />
-                          </linearGradient>
-                        </defs>
                       </svg>
-                      <div style={{
-                        position: 'absolute', inset: 0, display: 'flex',
-                        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>742</span>
-                      </div>
+                      <b>742</b>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--green)' }}>Good</span>
+                    <span className="svc-good">Good</span>
                   </div>
 
-                  {/* Key Insights */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--slate)', marginBottom: '12px' }}>Key Insights</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {[
-                        { icon: '💳', label: 'Payment history', status: 'Strong', green: true },
-                        { icon: '📊', label: 'Credit utilisation', status: 'Low risk', green: true },
-                        { icon: '🏦', label: 'Account mix', status: 'Healthy', green: true },
-                        { icon: '🆕', label: 'New credit', status: 'No recent inquiries', green: false },
-                      ].map((row) => (
-                        <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '13px' }}>{row.icon}</span>
-                            <span style={{ fontSize: '13px', color: 'var(--slate)', fontWeight: 500 }}>{row.label}</span>
-                          </div>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: row.green ? 'var(--green)' : 'var(--slate-lt)', whiteSpace: 'nowrap' }}>{row.status}</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="svc-insights">
+                    <div className="svc-insights-label">KEY INSIGHTS</div>
+                    {[
+                      { label: 'Payment history', status: 'Strong', good: true },
+                      { label: 'Credit utilisation', status: 'Low risk', good: true },
+                      { label: 'Account mix', status: 'Healthy', good: true },
+                      { label: 'New credit', status: 'No recent inquiries', good: false },
+                    ].map((row) => (
+                      <div key={row.label} className="svc-insight-row">
+                        <span>{row.label}</span>
+                        <span className={row.good ? 'good' : 'muted'}>{row.status}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* AI Recommendation row */}
-                <div style={{
-                  margin: '0 16px 16px',
-                  background: 'var(--bg-soft)',
-                  border: '1px solid var(--line)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  gap: '10px',
-                  alignItems: 'flex-start',
-                }}>
-                  <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--ink)', marginBottom: '4px' }}>AI Recommendation</div>
-                    <div style={{ fontSize: '13px', color: 'var(--slate)', lineHeight: 1.6 }}>
-                      Maintain low credit utilisation and continue timely payments to improve your score further.
-                    </div>
-                  </div>
+                <div className="svc-reco">
+                  <b>AI recommendation.</b> Maintain low credit utilisation and continue timely payments to improve
+                  the score further.
                 </div>
               </div>
             </div>
 
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ================= BUREAU COVERAGE ================= */}
-      <Box
-        component="section"
-        id="bureau-coverage"
-        className="bureau-coverage"
-        sx={{
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)',
-          borderTop: '1px solid var(--line)',
-          pt: { xs: 6, md: 12.5 },
-          pb: { xs: 7, md: 14 },
-        }}
-      >
-        {/* Background decorative glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-180px',
-            right: '-120px',
-            width: '500px',
-            height: '500px',
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(74, 108, 255, 0.10) 0%, rgba(124, 58, 237, 0.04) 45%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
+        {/* ================= BUREAU COVERAGE ================= */}
+        <section id="bureau-coverage" className="svc-bureau">
+          <div className="wrap">
+            <div className="svc-bureau-head">
+              <div className="reveal" ref={addToRevealRefs}>
+                <span className="svc-pill">WIDE BUREAU COVERAGE</span>
+                <h2 className="svc-h2 svc-bureau-title">
+                  CIBIL, Experian, Equifax and CRIF credit reports through <span className="svc-grad">one API</span>
+                </h2>
+                <p className="svc-body">
+                  Pull credit reports from India&rsquo;s leading bureaus in one place. Get a complete view of your
+                  customer&rsquo;s credit profile and make faster, better-informed decisions.
+                </p>
+              </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-200px',
-            left: '-150px',
-            width: '450px',
-            height: '450px',
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(45, 212, 191, 0.08) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
+              <div className="svc-stats reveal" ref={addToRevealRefs}>
+                <div><b>4</b><span>Major bureaus</span></div>
+                <div><b>4</b><span>Live connections</span></div>
+                <div><b className="green">1</b><span>Unified API</span></div>
+              </div>
+            </div>
 
-        <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
+            <div className="svc-bureau-grid">
+              {[
+                { name: 'CIBIL', full: 'Credit Information Bureau', color: '#2f5bd8' },
+                { name: 'Experian', full: 'Experian', color: '#7c3aed' },
+                { name: 'Equifax', full: 'Equifax', color: '#b4231f' },
+                { name: 'CRIF', full: 'CRIF', color: '#0f7b5a' },
+              ].map((b) => (
+                <article key={b.name} className="svc-bureau-card reveal" ref={addToRevealRefs}>
+                  <span className="svc-live">&bull; LIVE</span>
+                  <h3 style={{ color: b.color }}>{b.name}</h3>
+                  <p>
+                    {b.full}
+                    <br />
+                    Score &amp; full report analysis
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-          {/* ================= HEADER ================= */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1.05fr 0.95fr' },
-              alignItems: 'center',
-              gap: { xs: 4, md: 8 },
-              mb: { xs: 5, md: 9 },
-            }}
-          >
+        {/* ================= GST & VEHICLE RC VERIFICATION ================= */}
+        <section id="verification-services" className="svc-verify" aria-labelledby="verify-heading">
+          <div className="wrap">
+            <div className="svc-verify-head reveal" ref={addToRevealRefs}>
+              <span className="svc-pill">VERIFICATION SERVICES</span>
+              <h2 id="verify-heading" className="svc-h2 svc-h2-center">
+                GST and vehicle RC <span className="svc-grad">verification APIs</span> for lenders
+              </h2>
+              <p className="svc-sub">
+                Check business and vehicle details alongside the credit report, from the same platform.
+              </p>
+            </div>
+          </div>
 
-            {/* LEFT CONTENT */}
-            <Box
-              className="reveal"
-              ref={addToRevealRefs}
-              sx={{ maxWidth: { xs: '100%', md: '650px' } }}
-            >
-              <span
-                className="eyebrow"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '7px 12px',
-                  borderRadius: '999px',
-                  background: '#edf4ff',
-                  color: 'var(--blue)',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  marginBottom: '18px',
-                }}
-              >
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: 'var(--blue)',
-                  }}
-                />
-                WIDE BUREAU COVERAGE
-              </span>
+          {VERIFY_SERVICES.map((svc, i) => (
+            <div key={svc.id} id={svc.id} className={`svc-verify-band${i % 2 === 1 ? ' alt' : ''}`}>
+              <div className={`wrap svc-verify-grid${i % 2 === 1 ? ' flip' : ''}`}>
 
-              <Box
-                component="h2"
-                sx={{
-                  fontSize: { xs: '30px', sm: 'clamp(34px, 4vw, 52px)' },
-                  fontWeight: 800,
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.03em',
-                  m: '0 0 16px',
-                  color: 'var(--ink)',
-                  maxWidth: { xs: '100%', md: '650px' },
-                }}
-              >
-                Connected to every major{' '}
-                <span
-                  style={{
-                    background:
-                      'linear-gradient(90deg, #6d3df5 0%, #3b82f6 55%, #16c79a 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  credit bureau
-                </span>
-              </Box>
+                {/* TEXT */}
+                <div className="svc-verify-text reveal" ref={addToRevealRefs}>
+                  <span className="svc-eyebrow">{svc.eyebrow}</span>
+                  <h3 className="svc-verify-title">{svc.title}</h3>
+                  <p className="svc-body">{svc.body}</p>
 
-              <Box
-                component="p"
-                sx={{
-                  color: 'var(--slate)',
-                  fontSize: { xs: '15px', md: '17px' },
-                  lineHeight: 1.7,
-                  m: 0,
-                  maxWidth: { xs: '100%', md: '600px' },
-                }}
-              >
-                Pull credit reports from India's leading bureaus in one place.
-                Get a complete view of your customer's credit profile and make
-                faster, more informed decisions.
-              </Box>
+                  <ul className="svc-checks">
+                    {svc.checks.map((item) => (
+                      <li key={item.title}>
+                        <span className="svc-check">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                        </span>
+                        <div>
+                          <strong>{item.title}</strong>
+                          <span>{item.sub}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
 
-              {/* Mini stats */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  justifyContent: { xs: 'space-between', sm: 'flex-start' },
-                  gap: { xs: 2, sm: 3.5 },
-                  mt: { xs: 3, md: 4 },
-                  p: { xs: 2, sm: 0 },
-                  background: { xs: '#f7f9fc', sm: 'transparent' },
-                  borderRadius: { xs: '14px', sm: 0 },
-                }}
-              >
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>4</Box>
-                  <Box sx={{ fontSize: { xs: '11px', md: '12px' }, color: 'var(--slate-lt)', mt: 0.5 }}>Major bureaus</Box>
-                </Box>
-
-                <Box sx={{ width: '1px', height: '30px', background: 'var(--line)' }} />
-
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--ink)' }}>4</Box>
-                  <Box sx={{ fontSize: { xs: '11px', md: '12px' }, color: 'var(--slate-lt)', mt: 0.5 }}>Live connections</Box>
-                </Box>
-
-                <Box sx={{ width: '1px', height: '30px', background: 'var(--line)' }} />
-
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Box sx={{ fontSize: { xs: '18px', md: '22px' }, fontWeight: 800, color: 'var(--green)' }}>1</Box>
-                  <Box sx={{ fontSize: { xs: '11px', md: '12px' }, color: 'var(--slate-lt)', mt: 0.5 }}>Unified platform</Box>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* ================= ILLUSTRATION ================= */}
-            <Box
-              className="reveal"
-              ref={addToRevealRefs}
-              sx={{
-                position: 'relative',
-                minHeight: { xs: '220px', md: '300px' },
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                transform: { xs: 'scale(0.72)', sm: 'scale(0.85)', md: 'scale(1)' },
-                mx: 'auto',
-                overflow: 'hidden', // prevent orbit ellipses from leaking on mobile
-              }}
-            >
-
-              {/* Glow */}
-              <div
-                style={{
-                  position: 'absolute',
-                  width: '310px',
-                  height: '210px',
-                  borderRadius: '50%',
-                  background:
-                    'radial-gradient(circle, rgba(76, 104, 255, 0.16), transparent 70%)',
-                  filter: 'blur(8px)',
-                }}
-              />
-
-              {/* Orbit ellipses — hidden on mobile to prevent overflow */}
-              <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: '350px',
-                    height: '150px',
-                    border: '1px solid rgba(74, 108, 255, 0.18)',
-                    borderRadius: '50%',
-                    transform: 'rotate(75deg)',
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: '400px',
-                    height: '150px',
-                    border: '1px solid rgba(62, 6, 228, 0.18)',
-                    borderRadius: '50%',
-                    transform: 'rotate(20deg)',
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: '450px',
-                    height: '200px',
-                    border: '1px solid rgba(9, 2, 31, 0.18)',
-                    borderRadius: '50%',
-                    transform: 'rotate(-16deg)',
-                  }}
-                />
-              </Box>
-
-              {/* Orbit dots */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '46px',
-                  right: '65px',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#6d3df5',
-                  boxShadow: '0 0 12px rgba(109,61,245,.5)',
-                }}
-              />
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '54px',
-                  left: '75px',
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background: '#16c79a',
-                  boxShadow: '0 0 12px rgba(22,199,154,.5)',
-                }}
-              />
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '-10px',
-                  left: '250px',
-                  width: '9px',
-                  height: '9px',
-                  borderRadius: '50%',
-                  background: '#1f43b8ff',
-                  boxShadow: '0 0 12px rgba(28, 8, 82, 0.5)',
-                }}
-              />
-
-              {/* Cards stack */}
-              <div
-                style={{
-                  position: 'relative',
-                  width: '290px',
-                  height: '230px',
-                }}
-              >
-
-                {/* CRIF */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '125px',
-                    left: '48px',
-                    width: '230px',
-                    padding: '17px 20px',
-                    background: 'rgba(255,255,255,.88)',
-                    border: '1px solid rgba(220,228,240,.9)',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 50px rgba(31,50,90,.10)',
-                    transform: 'rotate(4deg)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                >
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#26364d' }}>
-                    ≋ CRIF
-                  </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      width: '62%',
-                      marginTop: '12px',
-                      borderRadius: '10px',
-                      background: '#e5ebf4',
-                    }}
-                  />
+                  {/* <Box
+                    component={RouterLink}
+                    to="/login"
+                    onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
+                    className="btn btn-primary svc-cta"
+                  >
+                    {svc.cta} <span>&rarr;</span>
+                  </Box> */}
                 </div>
 
-                {/* EQUIFAX */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '82px',
-                    left: '30px',
-                    width: '230px',
-                    padding: '17px 20px',
-                    background: 'rgba(255,255,255,.92)',
-                    border: '1px solid rgba(220,228,240,.9)',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 50px rgba(31,50,90,.10)',
-                    transform: 'rotate(-1deg)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                >
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#e31837' }}>
-                    EQUIFAX
-                  </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      width: '72%',
-                      marginTop: '12px',
-                      borderRadius: '10px',
-                      background: '#f0e5e8',
-                    }}
-                  />
-                </div>
-
-                {/* Experian */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '39px',
-                    left: '14px',
-                    width: '230px',
-                    padding: '17px 20px',
-                    background: 'rgba(255,255,255,.95)',
-                    border: '1px solid rgba(220,228,240,.9)',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 50px rgba(31,50,90,.11)',
-                    transform: 'rotate(-3deg)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                >
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#9b2bc7' }}>
-                    ✦ Experian
-                  </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      width: '66%',
-                      marginTop: '12px',
-                      borderRadius: '10px',
-                      background: '#eee5f3',
-                    }}
-                  />
-                </div>
-
-                {/* CIBIL front */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    width: '230px',
-                    padding: '18px 20px',
-                    background: '#ffffff',
-                    border: '1px solid #dce6f3',
-                    borderRadius: '16px',
-                    boxShadow: '0 25px 60px rgba(31,50,90,.15)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--blue)' }}>
-                      CIBIL
+                {/* MOCK RESULT CARD */}
+                <div className="reveal" ref={addToRevealRefs}>
+                  <div className="svc-card svc-vcard">
+                    <div className="svc-card-head">
+                      <span>{svc.mock.title}</span>
+                      <span className="svc-badge svc-badge-green">{svc.mock.pill}</span>
                     </div>
-                    <span
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: '#94a3b8',
-                      }}
-                    />
+
+                    <div className="svc-vcard-body">
+                      <span className="svc-vcheck" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                      </span>
+                      <div className="svc-vcard-rows">
+                        {svc.mock.rows.map((row) => (
+                          <div key={row.label} className="svc-insight-row">
+                            <span>{row.label}</span>
+                            <span className="muted">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      width: '78%',
-                      marginTop: '13px',
-                      borderRadius: '10px',
-                      background: '#e5ebf4',
-                    }}
-                  />
-                  <div
-                    style={{
-                      height: '6px',
-                      width: '48%',
-                      marginTop: '7px',
-                      borderRadius: '10px',
-                      background: '#eef2f7',
-                    }}
-                  />
                 </div>
+
               </div>
+            </div>
+          ))}
+        </section>
 
-              {/* Verified badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '25px',
-                  bottom: '28px',
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: 'linear-gradient(135deg, #10b981, #20c997)',
-                  color: '#fff',
-                  fontSize: '20px',
-                  fontWeight: 800,
-                  boxShadow: '0 10px 25px rgba(16,185,129,.28)',
-                  border: '4px solid #fff',
-                }}
-              >
-                ✓
-              </div>
-            </Box>
-          </Box>
-
-          {/* ================= BUREAU CARDS ================= */}
-          <BureauGrid addToRevealRefs={addToRevealRefs} />
-
-        </div>
-      </Box>
-
-      {/* ── Close the services wrapper ── */}
       </section>
+
 
       {/* ================= WHY CHOOSE VERIFYHUB ================= */}
       <section
@@ -853,11 +643,11 @@ const Home = () => {
                   backgroundClip: 'text',
                 }}
               >
-                VerifyHub
+                Verify Hub
               </span>
             </h2>
             <p className="why-choose-sub">
-              Built for lenders and partners who need fast, reliable and compliant verification.
+              Built for lenders who want fast, simple and safe checks.
             </p>
           </div>
 
@@ -879,8 +669,8 @@ const Home = () => {
               {
                 Icon: AutoAwesomeIcon,
                 gradient: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
-                title: 'AI-powered insights',
-                desc: 'Risk assessment, key factors and recommendations on every report.',
+                title: 'AI explains your credit reports',
+                desc: 'Get AI analysis and clear advice on any raw credit report.',
               },
               {
                 Icon: VerifiedIcon,
@@ -891,14 +681,14 @@ const Home = () => {
               {
                 Icon: AccountBalanceWalletIcon,
                 gradient: 'linear-gradient(135deg,#F59E0B,#EF4444)',
-                title: 'Transparent wallet billing',
-                desc: 'Track pulls, spend and wallet balance in real time from your dashboard.',
+                title: 'Clear and simple billing',
+                desc: 'See your wallet balance and every payment in your dashboard, live.',
               },
               {
                 Icon: LockIcon,
                 gradient: 'linear-gradient(135deg,#06B6D4,#3B82F6)',
                 title: 'Secure and privacy-first',
-                desc: 'Built with data protection in mind, with clear policies and a grievance officer.',
+                desc: 'We protect your data, and a grievance officer is there if you have a problem.',
               },
             ].map(({ Icon, gradient, title, desc }) => (
               <div
@@ -915,7 +705,7 @@ const Home = () => {
             ))}
           </div>
 
-          
+
         </div>
       </section>
 

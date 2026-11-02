@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -15,6 +15,9 @@ import {
 import axios from "axios";
 import { Link as RouterLink } from "react-router-dom";
 import DataTable from "../../Components/shared/DataTable";
+import { exportAllToCsv } from "../../utils/exportAll";
+import { csvFilename, fileStamp } from "../../utils/csvExport";
+import Pagination from "../../Components/shared/Pagination";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import FilterBar from "../../Components/shared/FilterBar";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -58,6 +61,30 @@ const formatDateTime = (value) =>
 const capStatus = (s) =>
   s ? s.charAt(0).toUpperCase() + s.slice(1) : "—";
 
+// Row mapper — shared by the table AND the CSV export so both always show
+// exactly the same values.
+const mapAiRow = (r) => ({
+  id: r._id,
+  date: formatDate(r.createdAt),
+  dateTime: formatDateTime(r.createdAt),
+  partnerName: formatName(r.userId?.name || r.userId?.email || "Unknown"),
+  partnerDbId: r.userId?._id || null,
+  partnerPid: r.userId?.partner_id || null,
+  customer: formatName(
+    r.mergedData?.client_name ||
+      r.result?.customerName ||
+      (r.fileName || "").replace(/\.[^/.]+$/, "") ||
+      "-",
+  ),
+  fileName: r.fileName || "—",
+  fileType: String(r.fileType || "").toLowerCase(),
+  score: r.result?.score ?? "—",
+  status: capStatus(r.status),
+  reason: r.errorMessage || "Analysis failed",
+  rawType: "ai-analyzer",
+  rawReport: r,
+});
+
 const AdminAiReports = () => {
   const [aiData, setAiData] = useState([]);
   const [activeTab, setActiveTab] = useState(0); // 0 = all AI, 1 = failed AI
@@ -65,11 +92,13 @@ const AdminAiReports = () => {
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [openingId, setOpeningId] = useState(null);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const limit = 50;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(null);
+  const [limit, setLimit] = useState(50);
 
   const [filters, setFilters] = useState({
     startDate: "",
@@ -101,29 +130,7 @@ const AdminAiReports = () => {
       let aiMapped = [];
 
       if (aiRes.data.success && Array.isArray(aiRes.data.data)) {
-        aiMapped = aiRes.data.data.map((r) => ({
-          id: r._id,
-          date: formatDate(r.createdAt),
-          dateTime: formatDateTime(r.createdAt),
-          partnerName: formatName(
-            r.userId?.name || r.userId?.email || "Unknown",
-          ),
-          partnerDbId: r.userId?._id || null,
-          partnerPid: r.userId?.partner_id || null,
-          customer: formatName(
-            r.mergedData?.client_name ||
-              r.result?.customerName ||
-              (r.fileName || "").replace(/\.[^/.]+$/, "") ||
-              "-",
-          ),
-          fileName: r.fileName || "—",
-          fileType: String(r.fileType || "").toLowerCase(),
-          score: r.result?.score ?? "—",
-          status: capStatus(r.status),
-          reason: r.errorMessage || "Analysis failed",
-          rawType: "ai-analyzer",
-          rawReport: r,
-        }));
+        aiMapped = aiRes.data.data.map(mapAiRow);
       }
 
       aiMapped.sort((a, b) => {
@@ -133,7 +140,8 @@ const AdminAiReports = () => {
       });
 
       setAiData(aiMapped);
-      setHasNextPage(page < (aiRes.data?.pages || 1));
+      setTotalPages(aiRes.data?.pages || 1);
+      setTotalCount(aiRes.data?.total ?? null);
     } catch (err) {
       console.error("Failed to fetch AI reports:", err);
       setError("Failed to load AI reports. Please try again.");
@@ -144,7 +152,7 @@ const AdminAiReports = () => {
 
   useEffect(() => {
     fetchAiReports();
-  }, [page, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, filters, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -204,7 +212,7 @@ const AdminAiReports = () => {
       } catch {
         /* keep default message */
       }
-      setToast(message);
+      setToast({ severity: "error", text: message });
     } finally {
       setOpeningId(null);
     }
@@ -244,46 +252,64 @@ const AdminAiReports = () => {
       } catch {
         /* keep default message */
       }
-      setToast(message);
+      setToast({ severity: "error", text: message });
     } finally {
       setDownloadingId(null);
     }
   };
 
-  const handleExport = () => {
-    const rows = activeTab === 1 ? failedRows : aiData;
-    const header =
-      activeTab === 1
-        ? ["Date & Time", "Partner", "File", "Reason"]
-        : ["Date", "Partner", "File", "Score", "Status"];
-    const body =
-      activeTab === 1
-        ? rows.map((r) => [
-            r.dateTime,
-            String(r.partnerName || "").replace(/,/g, ""),
-            String(r.fileName || "").replace(/,/g, ""),
-            `"${String(r.reason || "").replace(/"/g, '""')}"`,
-          ])
-        : rows.map((r) => [
-            r.date,
-            String(r.partnerName || "").replace(/,/g, ""),
-            String(r.fileName || "").replace(/,/g, ""),
-            r.score,
-            r.status,
-          ]);
-    const csvContent = [header, ...body].map((e) => e.join(",")).join("\n");
+  // Export EVERY analysis matching the filters above — not just the rows on
+  // the current page. The failed tab asks the server for the complete failed
+  // set (?status=failed) instead of filtering the visible page client-side.
+  const handleExport = async () => {
+    setExporting(true);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      activeTab === 1 ? "admin_ai_failed_export.csv" : "admin_ai_reports_export.csv",
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      const isFailed = activeTab === 1;
+
+      const params = {
+        ...(isFailed && { status: "failed" }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch }),
+      };
+
+      const nameParts = [isFailed ? "admin_ai_failed" : "admin_ai_reports"];
+      if (filters.startDate) nameParts.push(`from_${filters.startDate}`);
+      if (filters.endDate) nameParts.push(`to_${filters.endDate}`);
+      nameParts.push(fileStamp());
+
+      const { written, truncated } = await exportAllToCsv({
+        url: `${API_BASE}/admin/reports/ai-analyzer`,
+        params,
+        headers,
+        header: isFailed
+          ? ["Date & Time", "Partner", "File", "Reason"]
+          : ["Date", "Partner", "File", "Score", "Status"],
+        mapRow: (r) => {
+          const row = mapAiRow(r);
+
+          return isFailed
+            ? [row.dateTime, row.partnerName, row.fileName, row.reason]
+            : [row.date, row.partnerName, row.fileName, row.score, row.status];
+        },
+        filename: csvFilename(nameParts),
+      });
+
+      setToast({
+        severity: "success",
+        text: truncated
+          ? `Exported the first ${written} rows (50,000 row limit reached).`
+          : `Exported ${written} analys${written === 1 ? "is" : "es"} to CSV.`,
+      });
+    } catch (err) {
+      console.error("Failed to export AI reports:", err);
+      setToast({ severity: "error", text: "Export failed. Please try again." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Shared borderless HTML pill (matches partner panel + Partner Reports):
@@ -514,9 +540,9 @@ const AdminAiReports = () => {
           variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={handleExport}
-          disabled={loading || tableData.length === 0}
+          disabled={loading || exporting}
         >
-          Export to Sheets
+          {exporting ? "Exporting…" : "Export to Sheets"}
         </Button>
       </Box>
 
@@ -575,33 +601,31 @@ const AdminAiReports = () => {
             }
             pageSize={limit}
           />
-          <Box
-            sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}
-          >
-            <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Previous Page
-            </Button>
-            <Typography sx={{ display: "flex", alignItems: "center" }}>
-              Page {page}
-            </Typography>
-            <Button
-              disabled={!hasNextPage}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next Page
-            </Button>
-          </Box>
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1, mb: 1 }}>
+            Export to Sheets downloads every analysis matching the filters above — not just the current page.
+          </Typography>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={(n) => { setLimit(n); setPage(1); }}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 
       <Snackbar
         open={Boolean(toast)}
         autoHideDuration={5000}
-        onClose={() => setToast("")}
+        onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="error" onClose={() => setToast("")} sx={{ width: "100%" }}>
-          {toast}
+        <Alert severity={toast?.severity || "error"} onClose={() => setToast(null)} sx={{ width: "100%" }}>
+          {toast?.text || ""}
         </Alert>
       </Snackbar>
     </Box>

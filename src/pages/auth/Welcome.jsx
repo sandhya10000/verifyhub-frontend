@@ -3,11 +3,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Box, Button, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import confetti from "canvas-confetti";
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
 
-const COUNTDOWN_SECONDS = 5;
+const COUNTDOWN_SECONDS = 60;
 const DASHBOARD_PATH = "/partner/dashboard";
 const SESSION_FLAG = "vh_from_register";
 
@@ -22,7 +23,6 @@ const Welcome = () => {
   const location = useLocation();
   const [count, setCount] = useState(COUNTDOWN_SECONDS);
   const intervalRef = useRef(null);
-
 
   const [fromRegister] = useState(
     () =>
@@ -55,7 +55,6 @@ const Welcome = () => {
     return () => {
       clearInterval(intervalRef.current);
     };
-
   }, [fromRegister, navigate]);
 
   // ── Celebration: party-popper confetti on page open ───────────────────────
@@ -106,15 +105,12 @@ const Welcome = () => {
   }, [fromRegister]);
 
   const goNow = () => {
-
     clearInterval(intervalRef.current);
     navigate(DASHBOARD_PATH, { replace: true });
   };
 
   // While the guard is still deciding, render nothing to avoid flash.
   if (!fromRegister) return null;
-
-
 
   return (
     <AuthLayout variant="split">
@@ -159,6 +155,35 @@ const Welcome = () => {
           </Box>
         </Box>
 
+        {/* Thank-you pill */}
+        <Box
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            px: 1.75,
+            py: 0.6,
+            mb: 2,
+            borderRadius: "999px",
+            background: "rgba(16,185,129,0.08)",
+            border: "1px solid rgba(16,185,129,0.22)",
+          }}
+        >
+          <FavoriteRoundedIcon sx={{ fontSize: 14, color: "#10B981" }} />
+          <Typography
+            component="span"
+            sx={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#059669",
+            }}
+          >
+            Thank you for registering
+          </Typography>
+        </Box>
+
         {/* Heading */}
         <Typography
           variant="h4"
@@ -175,10 +200,9 @@ const Welcome = () => {
         <Typography
           variant="body1"
           color="text.secondary"
-          sx={{ mb: 4, lineHeight: 1.7 }}
+          sx={{ mb: 4, lineHeight: 1.7, maxWidth: 380, mx: "auto" }}
         >
-          You have created your VerifyHub account successfully.
-        </Typography>
+          Your account has been created successfully. Head to your dashboard to explore.        </Typography>
 
         {/* ── Countdown: gradient ring + glass pill ───────────────────────── */}
         <Box
@@ -428,8 +452,6 @@ const Welcome = () => {
         >
           Go to Dashboard
         </Button>
-
-
       </AuthCard>
     </AuthLayout>
   );

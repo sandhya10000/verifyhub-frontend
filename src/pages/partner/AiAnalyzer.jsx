@@ -13,6 +13,8 @@ import {
   Alert,
   CircularProgress,
   Tooltip,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import {
   UploadCloud,
@@ -116,7 +118,11 @@ const secondaryBtnSx = {
 };
 
 const AiAnalyzer = () => {
-  const { refreshWallet, hasToppedUp } = useAuth();
+  const { refreshWallet, hasToppedUp, user } = useAuth();
+  // Credit points: up to 100 per analysis (10 points = Rs 1, so Rs 10 off).
+  const [usePoints, setUsePoints] = useState(false);
+  const pointsAvailable = Number(user?.creditPoints || 0);
+  const pointsForThisReport = Math.min(100, pointsAvailable);
   const navigate = useNavigate();
   // Fresh partners who never topped up don't see per-analysis pricing —
   // same rule as the Pricing nav item (Add Funds shown instead until the
@@ -215,6 +221,7 @@ const AiAnalyzer = () => {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("language", selectedLanguage);
+    formData.append("usePoints", usePoints && pointsForThisReport > 0 ? "true" : "false");
 
     const token = localStorage.getItem("token");
 
@@ -298,8 +305,10 @@ const AiAnalyzer = () => {
             if (status === "completed") {
               setAnalysisResult(result);
               setIsAnalyzing(false);
-              // Analysis deducted server-side — refresh context balance
+              // Analysis deducted server-side — refresh context balance.
+              // The debit lands just after 'completed', so refresh again shortly.
               refreshWallet();
+              setTimeout(() => refreshWallet(), 2000);
               clearInterval(intervalId);
             } else if (status === "failed") {
               if (response.data.errorCode === "NOT_A_CREDIT_REPORT") {
@@ -905,6 +914,19 @@ const AiAnalyzer = () => {
 
             {/* Action Center */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 1 }}>
+              {/* Credit points toggle */}
+              {pointsAvailable > 0 && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={usePoints}
+                      onChange={(e) => setUsePoints(e.target.checked)}
+                      disabled={busy || !!analysisResult}
+                    />
+                  }
+                  label={`Use ${pointsForThisReport} VeriPoints (Rs ${(pointsForThisReport / 10).toFixed(2)} off) — you have ${pointsAvailable.toLocaleString("en-IN")} VeriPoints`}
+                />
+              )}
               {/* 1. Analyze — always visible */}
               <Button
                 variant="contained"

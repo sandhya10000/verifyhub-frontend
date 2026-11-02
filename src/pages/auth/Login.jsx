@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -13,6 +13,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
 import PasswordField from "../../Components/auth/PasswordField";
@@ -23,6 +24,7 @@ import useAuth from "../../context/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState(
@@ -51,8 +53,14 @@ const Login = () => {
         login(res.user, res.token);
       }
 
-      // Keep the overlay visible during route transition; it unmounts with this component
-      if (res.user?.role === "admin") {
+      // Keep the overlay visible during route transition; it unmounts with this component.
+      // Partners sent here from a protected deep link (e.g. the WhatsApp retry
+      // page) go straight back to it.
+      const isAdmin = res.user?.role === "admin";
+      const from = location.state?.from;
+      if (!isAdmin && typeof from === "string" && from.startsWith("/")) {
+        navigate(from, { replace: true });
+      } else if (isAdmin) {
         navigate("/admin/overview");
       } else {
         navigate("/partner/dashboard");
@@ -72,6 +80,46 @@ const Login = () => {
 
       <AuthLayout variant="split">
         <AuthCard>
+          <Link
+            component={RouterLink}
+            to="/"
+            aria-label="Back to home"
+            underline="none"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              fontSize: "13.5px",
+              fontWeight: 500,
+              color: "text.secondary",
+              minHeight: "40px",
+              mb: 1.5,
+              width: "fit-content",
+              borderRadius: "6px",
+              textDecoration: "none",
+              outline: "none",
+              "& .back-arrow-icon": {
+                fontSize: "16px",
+                transition: "transform 180ms ease, color 180ms ease",
+              },
+              "&:hover": {
+                color: "#2563EB",
+                textDecoration: "underline",
+                "& .back-arrow-icon": {
+                  transform: "translateX(-3px)",
+                  color: "#2563EB",
+                },
+              },
+              "&:focus-visible": {
+                color: "#2563EB",
+                boxShadow: "0 0 0 2px rgba(37, 99, 235, 0.4)",
+                outline: "none",
+              },
+            }}
+          >
+            <ArrowBackIcon className="back-arrow-icon" />
+            Back to home
+          </Link>
           <Typography variant="h4" sx={{ mb: 1 }}>
             Welcome back
           </Typography>

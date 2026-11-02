@@ -15,6 +15,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Wallet,
+  Star,
   FileText,
   IndianRupee,
   Bot,
@@ -125,7 +126,7 @@ const PartnerLayout = () => {
     };
   }, []);
 
-  const { user, logout, refreshWallet, hasToppedUp } = useAuth();
+  const { user, logout, refreshWallet } = useAuth();
 
   // Single-plan mode: no forced plan pick — single plan auto-applies to all.
   // TODO(multi-plan-restore): restore pendingPlanChoice lock redirect here.
@@ -150,35 +151,25 @@ const PartnerLayout = () => {
 
   if (!user) return null;
 
-  // First-time sidebar: partners who never topped up see Add Funds right
-  // below Dashboard (Pricing hidden); funded partners see Pricing in the same
-  // slot. hasToppedUp null (still loading) renders the funded nav to avoid a
-  // flash of the wrong tabs. TODO(multi-plan-restore): no action needed here.
-  const showAddFunds = hasToppedUp === false;
-
+  // Pricing always sits directly below Dashboard — including for newly
+  // joined partners (Add Funds stays reachable via the Pricing page's top-up
+  // button and the report error prompts).
   const navItems = [
     {
       text: "Dashboard",
       icon: <LayoutDashboard size={20} />,
       path: "/partner/dashboard",
     },
-    // Pricing sits directly below Dashboard (funded); first-timers get
-    // Add Funds in this exact slot instead.
-    ...(showAddFunds
-      ? [
-          {
-            text: "Add Funds",
-            icon: <Wallet size={20} />,
-            path: "/partner/add-funds",
-          },
-        ]
-      : [
-          {
-            text: "Pricing",
-            icon: <IndianRupee size={20} />,
-            path: "/partner/pricing",
-          },
-        ]),
+    {
+      text: "Pricing",
+      icon: <IndianRupee size={20} />,
+      path: "/partner/pricing",
+    },
+    {
+      text: "Recharge Plans",
+      icon: <Wallet size={20} />,
+      path: "/partner/add-funds",
+    },
     {
       text: "Credit Reports",
       icon: <FileText size={20} />,
@@ -334,6 +325,22 @@ const PartnerLayout = () => {
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Chip
+                icon={<Star size={16} />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, mr: 0.5 }}>VeriPoints</Box>
+                    {Number(user?.creditPoints || 0).toLocaleString("en-IN")}
+                  </Box>
+                }
+                sx={{
+                  bgcolor: "#EEF2FF",
+                  color: "#3730A3",
+                  fontWeight: 800,
+                  borderRadius: 6,
+                  height: { xs: 32, sm: 40 },
+                }}
+              />
+              <Chip
                 icon={<Wallet size={16} />}
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -364,7 +371,7 @@ const PartnerLayout = () => {
                   {user?.companyName || formatName(user?.name) || "Partner"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {user?.partner_id || "N/A"} · Tier {user?.tier || 1}
+                  {user?.partner_id || "N/A"}
                 </Typography>
               </Box>
               {console.log('user', user)}

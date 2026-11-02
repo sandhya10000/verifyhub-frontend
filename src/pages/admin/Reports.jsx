@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -14,6 +14,9 @@ import {
 import axios from "axios";
 import { Link as RouterLink } from "react-router-dom";
 import DataTable from "../../Components/shared/DataTable";
+import Pagination from "../../Components/shared/Pagination";
+import { exportAllToCsv } from "../../utils/exportAll";
+import { csvFilename, fileStamp } from "../../utils/csvExport";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import TypePill from "../../Components/shared/TypePill";
 import FilterBar from "../../Components/shared/FilterBar";
@@ -57,6 +60,50 @@ const formatDateTime = (value) =>
     hour12: true,
   });
 
+// Row mappers — shared by the table AND the CSV export so both always show
+// exactly the same values.
+const mapCreditRow = (r) => ({
+  id: r._id,
+  date: formatDate(r.createdAt),
+  dateTime: formatDateTime(r.createdAt),
+  partnerName: formatName(r.userId?.name || r.userId?.email || "Unknown"),
+  partnerDbId: r.userId?._id || null,
+  partnerPid: r.userId?.partner_id || null,
+  customer: formatName(
+    r.fullName ||
+      r.name ||
+      `${r.firstName || ""} ${r.lastName || ""}`.trim() ||
+      "-",
+  ),
+  customerPhone: r.mobile || r.phone || "—",
+  customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
+  type: "Credit Report",
+  bureau: (r.bureau || "—").toUpperCase(),
+  score: r.score !== null && r.score !== undefined ? r.score : "—",
+  status: "Success",
+  rawType: "credit-report",
+  rawReport: r,
+});
+
+const mapFailedRow = (r) => ({
+  id: r._id,
+  dateTime: formatDateTime(r.failedAt || r.createdAt),
+  createdAt: r.createdAt,
+  partnerId: r.userId?.partner_id || "—",
+  partnerDbId:
+    typeof r.userId === "object" ? r.userId?._id || null : r.userId || null,
+  partnerName: formatName(r.userId?.name || r.userId?.email || "Unknown"),
+  customer: formatName(r.name || "-"),
+  customerPhone: r.mobile || "—",
+  customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
+  type: (r.reportType || r.bureau || "Credit").toUpperCase(),
+  bureau: (r.bureau || "—").toUpperCase(),
+  reason: r.failureReason || "Bureau request failed",
+  category: r.failureCategory || "UNKNOWN",
+  errorCode: r.errorCode || "",
+  rawReport: r,
+});
+
 const AdminReports = () => {
   const [reportsData, setReportsData] = useState([]);
   const [failedData, setFailedData] = useState([]);
@@ -65,11 +112,13 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const limit = 50;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(null);
+  const [limit, setLimit] = useState(50);
 
   const [filters, setFilters] = useState({
     bureau: "All",
@@ -108,31 +157,7 @@ const AdminReports = () => {
         // All bureaus render, including CIBIL. (A stale "CIBIL duplicates AI"
         // filter was removed — AI rows never appear on this tab by design.)
         // TODO(multi-plan-restore): no action needed here.
-        creditMapped = creditRes.data.data
-          .map((r) => ({
-            id: r._id,
-            date: formatDate(r.createdAt),
-            dateTime: formatDateTime(r.createdAt),
-            partnerName: formatName(
-              r.userId?.name || r.userId?.email || "Unknown",
-            ),
-            partnerDbId: r.userId?._id || null,
-            partnerPid: r.userId?.partner_id || null,
-            customer: formatName(
-              r.fullName ||
-                r.name ||
-                `${r.firstName || ""} ${r.lastName || ""}`.trim() ||
-                "-",
-            ),
-            customerPhone: r.mobile || r.phone || "—",
-            customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
-            type: "Credit Report",
-            bureau: (r.bureau || "—").toUpperCase(),
-            score: r.score !== null && r.score !== undefined ? r.score : "—",
-            status: "Success",
-            rawType: "credit-report",
-            rawReport: r,
-          }));
+        creditMapped = creditRes.data.data.map(mapCreditRow);
       }
 
       creditMapped.sort((a, b) => {
@@ -142,7 +167,8 @@ const AdminReports = () => {
       });
 
       setReportsData(creditMapped);
-      setHasNextPage(page < (creditRes.data?.pages || 1));
+      setTotalPages(creditRes.data?.pages || 1);
+      setTotalCount(creditRes.data?.total ?? null);
     } catch (err) {
       console.error("Failed to fetch admin reports:", err);
       setError("Failed to load reports. Please try again.");
@@ -172,30 +198,15 @@ const AdminReports = () => {
         { headers },
       );
       if (res.data?.success && Array.isArray(res.data.data)) {
-        const mapped = res.data.data.map((r) => ({
-          id: r._id,
-          dateTime: formatDateTime(r.failedAt || r.createdAt),
-          createdAt: r.createdAt,
-          partnerId: r.userId?.partner_id || "—",
-          partnerDbId:
-            typeof r.userId === "object" ? r.userId?._id || null : r.userId || null,
-          partnerName: formatName(r.userId?.name || r.userId?.email || "Unknown"),
-          customer: formatName(r.name || "-"),
-          customerPhone: r.mobile || "—",
-          customerPan: r.pan ? String(r.pan).toUpperCase() : "—",
-          type: (r.reportType || r.bureau || "Credit").toUpperCase(),
-          bureau: (r.bureau || "—").toUpperCase(),
-          reason: r.failureReason || "Bureau request failed",
-          category: r.failureCategory || "UNKNOWN",
-          errorCode: r.errorCode || "",
-          rawReport: r,
-        }));
+        const mapped = res.data.data.map(mapFailedRow);
         setFailedData(mapped);
         setFailedTotal(res.data.total || 0);
-        setHasNextPage(page < (res.data.pages || 1));
+        setTotalPages(res.data.pages || 1);
+        setTotalCount(res.data.total ?? null);
       } else {
         setFailedData([]);
-        setHasNextPage(false);
+        setTotalPages(1);
+        setTotalCount(0);
       }
     } catch (err) {
       console.error("Failed to fetch failed reports:", err);
@@ -208,7 +219,7 @@ const AdminReports = () => {
   useEffect(() => {
     if (activeTab === 1) fetchFailedReports();
     else fetchReports();
-  }, [page, filters, activeTab]); // re-fetch when page, filters or tab change
+  }, [page, filters, activeTab, limit]); // re-fetch when page, filters, tab or page-size change
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -268,7 +279,7 @@ const AdminReports = () => {
           );
         } catch (err) {
           console.error("PDF conversion error:", err);
-          setToast("Could not open the PDF. The report data is invalid.");
+          setToast({ severity: "error", text: "Could not open the PDF. The report data is invalid." });
         }
       } else if (report?.reportUrl || report?.localPath) {
         let finalUrl = report.reportUrl;
@@ -288,7 +299,7 @@ const AdminReports = () => {
 
         window.open(finalUrl, "_blank");
       } else {
-        setToast("Report file is not available.");
+        setToast({ severity: "error", text: "Report file is not available." });
       }
       return;
     }
@@ -326,53 +337,84 @@ const AdminReports = () => {
       } catch {
         /* keep default message */
       }
-      setToast(message);
+      setToast({ severity: "error", text: message });
     } finally {
       setDownloadingId(null);
     }
   };
 
-  const handleExport = () => {
-    const isFailed = activeTab === 1;
-    const rows = isFailed ? failedData : reportsData;
-    const header = isFailed
-      ? ["Date & Time", "Partner ID", "Partner", "Type", "Bureau", "Name", "Phone", "PAN", "Reason"]
-      : ["Date", "Partner", "Type", "Bureau", "Score", "Name", "Phone", "PAN"];
-    const body = isFailed
-      ? rows.map((r) => [
-          r.dateTime,
-          r.partnerId,
-          String(r.partnerName || "").replace(/,/g, ""),
-          r.type,
-          r.bureau,
-          String(r.rawReport?.name || r.customer || "").replace(/,/g, ""),
-          r.rawReport?.mobile || r.customerPhone || "",
-          r.rawReport?.pan || r.customerPan || "",
-          `"${String(r.reason || "").replace(/"/g, '""')}"`,
-        ])
-      : rows.map((r) => [
-          r.date,
-          String(r.partnerName || "").replace(/,/g, ""),
-          r.type,
-          r.bureau,
-          r.score,
-          String(r.rawReport?.fullName || r.rawReport?.name || r.customer || "").replace(/,/g, ""),
-          r.rawReport?.mobile || r.rawReport?.phone || r.customerPhone || "",
-          r.rawReport?.pan || r.customerPan || "",
-        ]);
-    const csvContent = [header, ...body].map((e) => e.join(",")).join("\n");
+  // Export EVERY row matching the filters above — not just the rows on the
+  // current page. The list endpoint is walked page by page and the whole
+  // result set is written to the CSV.
+  const handleExport = async () => {
+    setExporting(true);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      isFailed ? "admin_failed_reports_export.csv" : "admin_reports_export.csv",
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      const isFailed = activeTab === 1;
+
+      const params = {
+        ...(filters.bureau !== "All" && { bureau: filters.bureau }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.partnerSearch && { partnerSearch: filters.partnerSearch }),
+      };
+
+      const nameParts = [isFailed ? "admin_failed_reports" : "admin_reports"];
+      if (filters.bureau !== "All") nameParts.push(filters.bureau.toLowerCase());
+      if (filters.startDate) nameParts.push(`from_${filters.startDate}`);
+      if (filters.endDate) nameParts.push(`to_${filters.endDate}`);
+      nameParts.push(fileStamp());
+
+      const { written, truncated } = await exportAllToCsv({
+        url: `${API_BASE}/admin/reports/${isFailed ? "failed-reports" : "credit-reports"}`,
+        params,
+        headers,
+        header: isFailed
+          ? ["Date & Time", "Partner ID", "Partner", "Type", "Bureau", "Name", "Phone", "PAN", "Reason"]
+          : ["Date", "Partner", "Type", "Bureau", "Score", "Name", "Phone", "PAN"],
+        mapRow: (r) => {
+          const row = isFailed ? mapFailedRow(r) : mapCreditRow(r);
+
+          return isFailed
+            ? [
+                row.dateTime,
+                row.partnerId,
+                row.partnerName,
+                row.type,
+                row.bureau,
+                row.rawReport?.name || row.customer,
+                row.rawReport?.mobile || row.customerPhone,
+                row.rawReport?.pan || row.customerPan,
+                row.reason,
+              ]
+            : [
+                row.date,
+                row.partnerName,
+                row.type,
+                row.bureau,
+                row.score,
+                row.rawReport?.fullName || row.rawReport?.name || row.customer,
+                row.rawReport?.mobile || row.rawReport?.phone || row.customerPhone,
+                row.rawReport?.pan || row.customerPan,
+              ];
+        },
+        filename: csvFilename(nameParts),
+      });
+
+      setToast({
+        severity: "success",
+        text: truncated
+          ? `Exported the first ${written} rows (50,000 row limit reached).`
+          : `Exported ${written} report${written === 1 ? "" : "s"} to CSV.`,
+      });
+    } catch (err) {
+      console.error("Failed to export admin reports:", err);
+      setToast({ severity: "error", text: "Export failed. Please try again." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Shared borderless PDF pill (matches partner panel).
@@ -611,9 +653,9 @@ const AdminReports = () => {
           variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={handleExport}
-          disabled={loading || tableData.length === 0}
+          disabled={loading || exporting}
         >
-          Export to Sheets
+          {exporting ? "Exporting…" : "Export to Sheets"}
         </Button>
       </Box>
 
@@ -675,33 +717,31 @@ const AdminReports = () => {
             emptyMessage={emptyMessage}
             pageSize={limit}
           />
-          <Box
-            sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}
-          >
-            <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Previous Page
-            </Button>
-            <Typography sx={{ display: "flex", alignItems: "center" }}>
-              Page {page}
-            </Typography>
-            <Button
-              disabled={!hasNextPage}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next Page
-            </Button>
-          </Box>
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1, mb: 1 }}>
+            Export to Sheets downloads every report matching the filters above — not just the current page.
+          </Typography>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={(n) => { setLimit(n); setPage(1); }}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
 
       <Snackbar
         open={Boolean(toast)}
         autoHideDuration={5000}
-        onClose={() => setToast("")}
+        onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="error" onClose={() => setToast("")} sx={{ width: "100%" }}>
-          {toast}
+        <Alert severity={toast?.severity || "error"} onClose={() => setToast(null)} sx={{ width: "100%" }}>
+          {toast?.text || ""}
         </Alert>
       </Snackbar>
     </Box>

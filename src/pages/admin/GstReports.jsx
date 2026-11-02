@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   Box, Typography, CircularProgress, Alert,
-  Button, Tooltip, TextField, InputAdornment, Tabs, Tab, Chip,
+  Button, Tooltip, TextField, InputAdornment, Tabs, Tab, Chip, Snackbar,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { Search } from "lucide-react";
 import axios from "axios";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DownloadIcon from "@mui/icons-material/Download";
 import DataTable from "../../Components/shared/DataTable";
+import Pagination from "../../Components/shared/Pagination";
 import StatusBadge from "../../Components/shared/StatusBadge";
 import FilterBar from "../../Components/shared/FilterBar";
+import { exportAllToCsv } from "../../utils/exportAll";
+import { csvFilename, fileStamp } from "../../utils/csvExport";
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(
   /\/api\/?$/,
@@ -35,8 +39,11 @@ const AdminGstReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const limit = 50;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(null);
+  const [limit, setLimit] = useState(50);
+  const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Successful / Failed tabs (admin bureau Reports module pattern).
   // Pending rows appear in neither tab.
@@ -76,7 +83,8 @@ const AdminGstReports = () => {
         });
         if (res.data?.success) {
           setRows(res.data.data || []);
-          setHasNextPage(page < (res.data.pages || 1));
+          setTotalPages(res.data.pages || 1);
+          setTotalCount(res.data.total ?? null);
         } else {
           setError("Failed to load GST reports.");
         }
@@ -88,7 +96,7 @@ const AdminGstReports = () => {
       }
     };
     load();
-  }, [page, debounced, activeTab, filters.startDate, filters.endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, debounced, activeTab, filters.startDate, filters.endDate, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -98,6 +106,64 @@ const AdminGstReports = () => {
     }
     setFilters((prev) => ({ ...prev, [name]: value }));
     setPage(1);
+  };
+
+  // Export EVERY GST verification matching the filters above — not just the
+  // rows on the current page.
+  const handleExport = async () => {
+    setExporting(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const params = {
+        status: tabStatus,
+        ...(debounced.search && { search: debounced.search }),
+        ...(debounced.partnerSearch && { partnerSearch: debounced.partnerSearch }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      };
+
+      const nameParts = ["admin_gst_reports", activeTab === 1 ? "failed" : "successful"];
+      if (filters.startDate) nameParts.push(`from_${filters.startDate}`);
+      if (filters.endDate) nameParts.push(`to_${filters.endDate}`);
+      nameParts.push(fileStamp());
+
+      const { written, truncated } = await exportAllToCsv({
+        url: `${API_BASE}/admin/gst-reports`,
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+        header: [
+          "Date", "Partner ID", "Partner", "Email", "Phone",
+          "GSTIN", "Legal Name", "Status", "Failure Reason", "Report URL",
+        ],
+        mapRow: (r) => [
+          fmtDateTime(r.createdAt),
+          r.userId?.partner_id || "",
+          formatName(r.userId?.name || r.userId?.email || "Unknown"),
+          r.userId?.email || "",
+          r.userId?.phone || "",
+          r.gstin || "",
+          r.legalName || "",
+          r.status || "",
+          r.failureReason || "",
+          r.reportUrl || r.localPath || "",
+        ],
+        filename: csvFilename(nameParts),
+      });
+
+      setToast({
+        severity: "success",
+        text: truncated
+          ? `Exported the first ${written} rows (50,000 row limit reached).`
+          : `Exported ${written} GST verification${written === 1 ? "" : "s"} to CSV.`,
+      });
+    } catch (err) {
+      console.error("Failed to export GST reports:", err);
+      setToast({ severity: "error", text: "Export failed. Please try again." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const reportFileUrl = (r) => {
@@ -220,11 +286,22 @@ const AdminGstReports = () => {
 
   return (
     <Box sx={{ maxWidth: 1280, mx: "auto", p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>GST Reports</Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Every GST verification across all partners, newest first.
-        </Typography>
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>GST Reports</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Every GST verification across all partners, newest first.
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+          disabled={loading || exporting}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          {exporting ? "Exporting…" : "Export to Sheets"}
+        </Button>
       </Box>
 
       <Tabs
@@ -296,13 +373,33 @@ const AdminGstReports = () => {
             emptyMessage={activeTab === 1 ? "No failed GST verifications." : "No successful GST verifications yet."}
             pageSize={limit}
           />
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>
-            <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous Page</Button>
-            <Typography sx={{ display: "flex", alignItems: "center" }}>Page {page}</Typography>
-            <Button disabled={!hasNextPage} onClick={() => setPage((p) => p + 1)}>Next Page</Button>
-          </Box>
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1, mb: 1 }}>
+            Export to Sheets downloads every verification matching the filters above — not just the current page.
+          </Typography>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={limit}
+            onChange={(p) => setPage(p)}
+            onPageSizeChange={(n) => { setLimit(n); setPage(1); }}
+            disabled={loading}
+            sx={{ mt: 2, border: '1px solid #E8EEF5', borderRadius: 1 }}
+          />
         </>
       )}
+
+      <Snackbar
+        open={Boolean(toast)}
+        autoHideDuration={5000}
+        onClose={() => setToast(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={toast?.severity || "error"} onClose={() => setToast(null)} sx={{ width: "100%" }}>
+          {toast?.text || ""}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

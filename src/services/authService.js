@@ -34,9 +34,13 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - remove token and redirect to root
-      localStorage.removeItem("token");
-      window.location.href = "/";
+      // Unauthorized — the token was rejected or expired. Only clear a
+      // session that actually existed, so a stray 401 can't force a re-login.
+      if (localStorage.getItem("token")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/";
+      }
     }
     if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_DEACTIVATED") {
       // Suspended by admin — drop the session and surface the reason on login
