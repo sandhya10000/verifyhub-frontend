@@ -18,6 +18,8 @@ import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
 import PasswordField from "../../Components/auth/PasswordField";
 import OtpInput from "../../Components/auth/OtpInput";
+import TopUpBonusBanner from "../../components/TopUpBonusBanner";
+import LeftFeatureList from "../../Components/auth/LeftFeatureList";
 import { signupSchema } from "../../schemas/authSchemas";
 import { authService } from "../../services/authService";
 import useAuth from "../../context/useAuth";
@@ -124,7 +126,15 @@ const Signup = () => {
   };
 
   return (
-    <AuthLayout variant="split">
+    <AuthLayout
+      variant="split"
+      leftContent={
+        <>
+          <LeftFeatureList />
+          <TopUpBonusBanner sx={{ maxWidth: '100%' }} />
+        </>
+      }
+    >
       <AuthCard sx={{ maxWidth: 600 }}>
         <Link
           component={RouterLink}

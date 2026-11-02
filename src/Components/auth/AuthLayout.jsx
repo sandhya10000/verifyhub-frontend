@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import BrandPanel from './BrandPanel';
 import Logo from '../shared/Logo';
 
-const AuthLayout = ({ children, variant = 'split' }) => {
+const AuthLayout = ({ children, leftContent, variant = 'split' }) => {
   if (variant === 'centered') {
     return (
       <Box
@@ -28,7 +28,7 @@ const AuthLayout = ({ children, variant = 'split' }) => {
   // Split layout
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', flexDirection: { xs: 'column', md: 'row' } }}>
-      <BrandPanel />
+      <BrandPanel leftContent={leftContent} />
       <Box
         sx={{
           width: { xs: '100%', md: '45%' },
