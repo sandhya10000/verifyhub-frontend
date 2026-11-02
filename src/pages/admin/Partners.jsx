@@ -446,6 +446,14 @@ const AdminPartners = () => {
       )
     },
     {
+      header: 'VeriPoints', field: 'creditPoints', nowrap: true, minWidth: 100, align: 'right',
+      render: (row) => (
+        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', color: Number(row.creditPoints) > 0 ? '#4F46E5' : 'text.secondary' }}>
+          {Number(row.creditPoints || 0).toLocaleString('en-IN')}
+        </Typography>
+      ),
+    },
+    {
       header: 'Wallet Balance', field: 'walletBalance', nowrap: true, minWidth: 110, align: 'right',
       render: (row) => {
         const bal = Number(row.walletBalance);
