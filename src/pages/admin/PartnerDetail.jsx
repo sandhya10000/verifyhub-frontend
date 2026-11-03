@@ -203,6 +203,15 @@ const PartnerDetail = () => {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+      } else if (row.kind === 'bsa') {
+        // Owner/admin-only PDF, fetched with the admin token.
+        const res = await axios.get(`${API()}/admin/bsa-reports/${row.id}/report`, {
+          ...authHeaders(),
+          responseType: 'blob',
+        });
+        const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       } else if (row.fileUrl) {
         const href = row.fileUrl.startsWith('http') ? row.fileUrl : `${API_ROOT()}${row.fileUrl}`;
         const a = document.createElement('a');
@@ -238,7 +247,7 @@ const PartnerDetail = () => {
       const header = ['Date', 'Type', 'Bureau', 'Customer', 'Reference', 'Score', 'Status', 'Charge', 'File'];
       const body = filtered.map((r) => [
         fmtDT(r.createdAt),
-        r.kind === 'ai' ? 'AI Credit Analysis' : r.kind === 'rc' ? 'Vehicle RC' : r.kind === 'gst' ? 'GST Verification' : 'Credit Report',
+        r.kind === 'ai' ? 'AI Credit Analysis' : r.kind === 'rc' ? 'Vehicle RC' : r.kind === 'gst' ? 'GST Verification' : r.kind === 'bsa' ? 'Bank Statement' : 'Credit Report',
         r.bureau || '',
         r.customer || '',
         r.ref || '',
@@ -343,6 +352,7 @@ const PartnerDetail = () => {
         if (r.kind === 'ai') return <TypePill type="AI Credit Analysis" bureau="AI" />;
         if (r.kind === 'rc') return <TypePill type="Vehicle RC" bureau={null} />;
         if (r.kind === 'gst') return <TypePill type="GST Verification" bureau={null} />;
+        if (r.kind === 'bsa') return <TypePill type="Bank Statement" bureau={null} />;
         return <TypePill type="Credit Report" bureau={r.bureau} />;
       },
     },

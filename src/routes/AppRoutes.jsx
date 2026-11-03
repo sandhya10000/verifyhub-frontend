@@ -32,6 +32,7 @@ const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
 const AdminRcReports = lazy(() => import("../pages/admin/RcReports"));
 const AdminGstReports = lazy(() => import("../pages/admin/GstReports"));
+const AdminBankStatementReports = lazy(() => import("../pages/admin/BankStatementReports"));
 const AdminPartners = lazy(() => import("../pages/admin/Partners"));
 const AdminPartnerDetail = lazy(() => import("../pages/admin/PartnerDetail"));
 const AdminSupport = lazy(() => import("../pages/admin/Support"));
@@ -45,6 +46,7 @@ const Reports = lazy(() => import("../pages/partner/Reports"));
 const RcVerification = lazy(() => import("../pages/partner/RcVerification"));
 const RcReports = lazy(() => import("../pages/partner/RcReports"));
 const GstVerification = lazy(() => import("../pages/partner/GstVerification"));
+const BankStatementAnalyzer = lazy(() => import("../pages/partner/BankStatementAnalyzer"));
 const GstReports = lazy(() => import("../pages/partner/GstReports"));
 const TransactionHistory = lazy(() => import("../pages/partner/TransactionHistory"));
 const Profile = lazy(() => import("../pages/partner/Profile"));
@@ -155,6 +157,10 @@ const AppRoutes = () => {
             element={<GstVerification />}
           />
           <Route
+            path="account/reports/bsa"
+            element={<BankStatementAnalyzer />}
+          />
+          <Route
             path="account/gst-reports"
             element={<GstReports />}
           />
@@ -254,6 +260,10 @@ const AppRoutes = () => {
           <Route
             path="gst-reports"
             element={<AdminGstReports />}
+          />
+          <Route
+            path="bsa-reports"
+            element={<AdminBankStatementReports />}
           />
           <Route
             path="support"
