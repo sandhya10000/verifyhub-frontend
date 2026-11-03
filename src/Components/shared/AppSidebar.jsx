@@ -67,6 +67,7 @@ const AppSidebar = ({
           }}
           title={collapsed ? item.text : ''}
           sx={{
+            position: 'relative',
             py: 1,
             px: collapsed ? 1 : 1.5,
             pl: collapsed ? 1 : 1.5 + depth * 1.5,
@@ -144,6 +145,23 @@ const AppSidebar = ({
                 {Number(item.badge) > 99 ? '99+' : item.badge}
               </Box>
             ) : null
+          )}
+          {item.blinkDot && (
+            <Box
+              aria-hidden
+              sx={{
+                position: 'absolute',
+                top: 4,
+                left: 4,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                bgcolor: '#F43F5E',
+                boxShadow: '0 0 0 3px rgba(244, 63, 94, 0.25)',
+                animation: 'dotBlink 1.2s ease-in-out infinite',
+                '@keyframes dotBlink': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.2 } },
+              }}
+            />
           )}
           {!collapsed && hasChildren && (open ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />)}
         </ListItemButton>

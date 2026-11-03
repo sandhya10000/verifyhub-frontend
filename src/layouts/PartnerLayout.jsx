@@ -166,6 +166,7 @@ const PartnerLayout = () => {
       text: "Important Updates",
       icon: <Megaphone size={20} />,
       path: "/partner/important-updates",
+      blinkDot: true,
     },
     {
       text: "Pricing",
