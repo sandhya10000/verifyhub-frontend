@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
-import { resolveReportError, isFirstTopupPrompt } from "../../utils/walletErrors";
+import {
+  resolveReportError,
+  isFirstTopupPrompt,
+} from "../../utils/walletErrors";
 import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 
 import { creditAPI } from "../../services/authService";
@@ -66,6 +69,78 @@ const getReportUrl = (report) => {
   return report?.reportUrl || null;
 };
 
+// ============================================================
+// EXPERIAN SCORE EXTRACTION
+// ============================================================
+
+const parseObject = (value) => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+};
+
+const getExperianScore = (response) => {
+  const root = parseObject(response);
+
+  const data = parseObject(root.data);
+  const verify = parseObject(root.verify || data.verify);
+
+  const result = parseObject(verify.result || root.result || data.result);
+
+  const report = parseObject(
+    result.inprofileResponse ||
+      root.inprofileResponse ||
+      data.inprofileResponse ||
+      result,
+  );
+
+  const scoreObject = parseObject(report.SCORE || result.SCORE || root.SCORE);
+
+  const candidates = [
+    root.score,
+    root.creditScore,
+    root.credit_score,
+
+    data.score,
+    data.creditScore,
+
+    result.score,
+    result.creditScore,
+    result.credit_score,
+
+    scoreObject.FCIREXScore,
+    scoreObject.BureauScore,
+    scoreObject.ExperianScore,
+    scoreObject.score,
+
+    report.FCIREXScore,
+    report.BureauScore,
+  ];
+
+  const score = candidates.find(
+    (value) =>
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() !== "" &&
+      String(value).trim() !== "-",
+  );
+
+  return score ?? null;
+};
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -958,7 +1033,11 @@ const ExperianReport = () => {
                         size="small"
                         variant="contained"
                         onClick={() => navigate("/partner/add-funds")}
-                        sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
                       >
                         Add Funds
                       </Button>
@@ -1066,7 +1145,6 @@ const ExperianReport = () => {
                       },
                     }}
                   />
-
                 </Grid>
 
                 {/* EMAIL */}
@@ -1574,7 +1652,7 @@ const ExperianReport = () => {
                       color: "#2563eb",
                     }}
                   >
-                    {reportData.score ?? "N/A"}
+                    {getExperianScore(reportData) ?? "N/A"}
                   </Typography>
 
                   <Box sx={{ mt: 1.5 }}>
