@@ -181,6 +181,28 @@ export const creditAPI = {
   },
   verifyRc: async (payload) => await api.post("/rc/verify-rc", payload),
   verifyGst: async (payload) => await api.post("/gst/verify-gst", payload),
+  // Bank Statement Analyzer (multipart upload; axios sets the boundary itself).
+  analyzeBankStatement: async (formData) => {
+    const response = await api.post("/bsa/analyze", formData);
+    return response.data;
+  },
+  getBsaStatus: async (id) => {
+    const response = await api.get(`/bsa/${id}`);
+    return response.data;
+  },
+  // Owner-only PDF; fetched with the auth header, then turned into a blob URL.
+  downloadBsaReport: async (id) => {
+    const response = await api.get(`/bsa/${id}/report`, { responseType: "blob" });
+    return response.data;
+  },
+  getMyBsaAnalyses: async (opts = {}) => {
+    const params = { page: 1, limit: 20, ...opts };
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v != null)),
+    ).toString();
+    const response = await api.get(`/bsa/my-analyses?${query}`);
+    return response.data;
+  },
   getMyGstVerifications: async (opts = 20) => {
     const params = typeof opts === "number"
       ? { limit: opts }

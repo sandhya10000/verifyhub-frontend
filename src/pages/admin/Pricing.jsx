@@ -229,6 +229,7 @@ const diffPricing = (cur, saved) => {
     ['aiFail', 'base', 'AI fail ₹'],
     ['rc', 'base', 'RC base ₹'],
     ['gst', 'base', 'GST base ₹'],
+    ['bsa', 'base', 'Bank Statement base ₹'],
     ['otherFailedCharge', 'base', 'Fallback base ₹'],
   ];
   for (const [obj, field, label] of pairs) {
@@ -518,6 +519,9 @@ const AdminPricing = () => {
                   </Grid>
                   <Grid size={{ xs: 12 }}>
                     <NumField label="GST base ₹" value={pricing.gst?.base} onChange={(v) => setTop('gst', 'base', v)} />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <NumField label="Bank Statement base ₹" value={pricing.bsa?.base} onChange={(v) => setTop('bsa', 'base', v)} />
                   </Grid>
                 </Grid>
                 <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 1.5 }}>

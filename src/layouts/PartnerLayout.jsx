@@ -35,6 +35,7 @@ import {
   ReceiptText,
   Palette,
   Sparkles,
+  Landmark,
 } from "lucide-react";
 import AppSidebar from "../Components/shared/AppSidebar";
 import useAuth from '../context/useAuth';
@@ -224,6 +225,11 @@ const PartnerLayout = () => {
       text: "GST Verification",
       icon: <ReceiptText size={20} />,
       path: "/partner/account/reports/gst",
+    },
+    {
+      text: "Bank Statement Analyzer",
+      icon: <Landmark size={20} />,
+      path: "/partner/account/reports/bsa",
     },
   ];
 

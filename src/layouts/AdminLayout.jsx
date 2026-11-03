@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Drawer, Typography, IconButton, AppBar, Toolbar, Menu as MuiMenu, MenuItem } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, IndianRupee, Image as ImageIcon, RefreshCcw, Activity, Bot, CarFront, ReceiptText, Settings, Menu as
+import { LayoutDashboard, Users, IndianRupee, Image as ImageIcon, RefreshCcw, Activity, Bot, CarFront, ReceiptText, Landmark, Settings, Menu as
 MenuIcon, LogOut
 } from 'lucide-react';
 import AppSidebar from '../Components/shared/AppSidebar';
@@ -69,6 +69,7 @@ const AdminLayout = () => {
         { text: 'AI Analysed Reports', icon: <Bot size={20} />, path: '/admin/ai-reports' },
         { text: 'Vehicle RC Reports', icon: <CarFront size={20} />, path: '/admin/rc-reports' },
         { text: 'GST Reports', icon: <ReceiptText size={20} />, path: '/admin/gst-reports' },
+        { text: 'Bank Statement Reports', icon: <Landmark size={20} />, path: '/admin/bsa-reports' },
         { text: 'Support Tickets', icon: <Activity size={20} />, path: '/admin/support', showBadge: true },
         { text: 'Settings', icon: <Settings size={20} />, path: '/admin/settings' },
       ]
