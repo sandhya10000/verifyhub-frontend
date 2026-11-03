@@ -128,6 +128,13 @@ const AppSidebar = ({
                       : item.badge === 'Active'
                       ? '1px solid rgba(59, 130, 246, 0.3)'
                       : 'none',
+                  ...(item.badge === 'Newly launched' && {
+                    bgcolor: '#2F7CF6',
+                    color: '#fff',
+                    border: 'none',
+                    animation: 'blink 1.2s ease-in-out infinite',
+                    '@keyframes blink': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.25 } },
+                  }),
                 }}
               >
                 {item.badge}

@@ -36,6 +36,7 @@ import {
   Palette,
   Sparkles,
   Landmark,
+  Megaphone,
 } from "lucide-react";
 import AppSidebar from "../Components/shared/AppSidebar";
 import useAuth from '../context/useAuth';
@@ -162,6 +163,11 @@ const PartnerLayout = () => {
       path: "/partner/dashboard",
     },
     {
+      text: "Important Updates",
+      icon: <Megaphone size={20} />,
+      path: "/partner/important-updates",
+    },
+    {
       text: "Pricing",
       icon: <IndianRupee size={20} />,
       path: "/partner/pricing",
@@ -204,7 +210,7 @@ const PartnerLayout = () => {
       path: "/partner/ai-analyzer",
     },
     {
-      text: "AI Custom Branded Report",
+      text: "White Labeled AI Reports",
       icon: <Sparkles size={20} />,
       path: "/partner/custom-branded-report",
       badge:
@@ -230,6 +236,7 @@ const PartnerLayout = () => {
       text: "Bank Statement Analyzer",
       icon: <Landmark size={20} />,
       path: "/partner/account/reports/bsa",
+      badge: "Newly launched",
     },
   ];
 

@@ -22,6 +22,7 @@ const AdminRoute = lazy(() => import("../Components/common/AdminRoute"));
 const PublicRoute = lazy(() => import("../Components/common/PublicRoute"));
 
 const PartnerDashboard = lazy(() => import("../pages/partner/Dashboard"));
+const ImportantUpdates = lazy(() => import("../pages/partner/ImportantUpdates"));
 const AiAnalyzer = lazy(() => import("../pages/partner/AiAnalyzer"));
 const CustomBrandedReportPage = lazy(() => import("../pages/partner/CustomBrandedReport"));
 const AddFunds = lazy(() => import("../pages/partner/AddFunds"));
@@ -118,6 +119,7 @@ const AppRoutes = () => {
         <Route path="/partner" element={<ProtectedRoute><PartnerLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/partner/dashboard" replace />} />
           <Route path="dashboard" element={<PartnerDashboard />} />
+          <Route path="important-updates" element={<ImportantUpdates />} />
           <Route
             path="add-funds"
             element={<AddFunds />}
