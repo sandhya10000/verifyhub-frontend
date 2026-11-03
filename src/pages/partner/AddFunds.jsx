@@ -439,6 +439,9 @@ const AddFunds = () => {
                         <Typography variant="caption" sx={{ color: bonus > 0 ? '#059669' : 'text.disabled', fontWeight: 700 }}>
                           {bonus > 0 ? `+${inr0(bonus)} bonus` : 'No bonus'}
                         </Typography>
+                        <Typography variant="caption" sx={{ color: '#4F46E5', fontWeight: 700, display: 'block' }}>
+                          +{pay.toLocaleString('en-IN')} VeriPoints
+                        </Typography>
                         <Box sx={{
                           mt: 1, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, py: 0.75, borderRadius: '8px',
                           bgcolor: selected ? '#6D28D9' : '#F1F0FF', color: selected ? '#fff' : '#6D28D9',
