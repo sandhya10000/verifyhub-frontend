@@ -7,6 +7,7 @@ import {
   Button,
   Typography,
   TextField,
+  MenuItem,
   FormControlLabel,
   Checkbox,
   Link,
@@ -85,6 +86,23 @@ const LoginRegister = () => {
       block: "start",
     });
   };
+
+  // On mobile, the form sits below the brand panel. Scroll it into view once on
+  // first load so users don't have to find it themselves. Runs once per page
+  // visit (not on every mode toggle), and respects reduced-motion.
+  const autoScrolledRef = useRef(false);
+  useEffect(() => {
+    if (!isMobile || autoScrolledRef.current) return;
+    const timer = setTimeout(() => {
+      const el = formCardRef.current;
+      if (!el || autoScrolledRef.current) return;
+      autoScrolledRef.current = true;
+      const rect = el.getBoundingClientRect();
+      const alreadyVisible = rect.top >= 0 && rect.top < window.innerHeight * 0.6;
+      if (!alreadyVisible) handleScrollToForm();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isMobile]);
 
   // Redirection guard: If user is already authenticated, take them directly to dashboard
   useEffect(() => {
@@ -245,10 +263,23 @@ const LoginRegister = () => {
   // ---------------------------------------------------------------------------
   // TOGGLE BETWEEN SIGNUP & LOGIN
   // ---------------------------------------------------------------------------
+  // After switching mode, bring the whole card into view if it isn't fully visible
+  // (e.g. on mobile, where the form sits below the brand panel).
+  const scrollCardIntoView = () => {
+    setTimeout(() => {
+      const el = formCardRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const fullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (!fullyVisible) handleScrollToForm();
+    }, 50);
+  };
+
   const switchToLogin = (e) => {
     if (e) e.preventDefault();
     setLoginError(null);
     setMode("login");
+    scrollCardIntoView();
   };
 
   const switchToSignup = (e) => {
@@ -256,7 +287,52 @@ const LoginRegister = () => {
     setSignupError(null);
     setSignupFieldError(null);
     setMode("signup");
+    scrollCardIntoView();
   };
+
+  // Segmented Log in / Register toggle shown at the top of the card.
+  const ModeToggle = () => (
+    <Box role="tablist" sx={{ display: "flex", p: 0.5, mb: 3, bgcolor: "#EEF0F7", borderRadius: 2 }}>
+      {[
+        { key: "login", label: "Log in", onClick: switchToLogin },
+        { key: "signup", label: "Register", onClick: switchToSignup },
+      ].map((tab) => {
+        const active = mode === tab.key;
+        return (
+          <Box
+            key={tab.key}
+            component="button"
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={tab.onClick}
+            sx={{
+              flex: 1,
+              py: 1,
+              border: 0,
+              borderRadius: 1.5,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: "14px",
+              fontWeight: 600,
+              bgcolor: active ? "#FFFFFF" : "transparent",
+              color: active ? "#0F172A" : "#64748B",
+              boxShadow: active ? "0 1px 3px rgba(15, 23, 42, 0.12)" : "none",
+            }}
+          >
+            {tab.label}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+
+  // Label rendered above the field (matches the design; the MUI field has no floating label).
+  const FieldLabel = ({ children }) => (
+    <Typography component="span" sx={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#334155", mb: 0.75 }}>
+      {children}
+    </Typography>
+  );
 
   // If initial auth check is running, render a clean loader
   if (authLoading) {
@@ -335,12 +411,13 @@ const LoginRegister = () => {
           {mode === "signup" && (
             <Fade in={mode === "signup"} timeout={350}>
               <Box>
+                <ModeToggle />
                 <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
-                  Register
+                  Create your account
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
                   {signupStep === 1
-                    ? "Join VerifyHub as a partner to start pulling reports"
+                    ? "Join VerifyHub as a partner to start pulling reports."
                     : otpOnWhatsApp
                     ? `Enter the OTP sent to ${savedSignupData?.email} and WhatsApp`
                     : `Enter the OTP sent to ${savedSignupData?.email}`}
@@ -368,100 +445,69 @@ const LoginRegister = () => {
 
                 {signupStep === 1 ? (
                   <Box component="form" onSubmit={handleSignupSubmit(onSignupDetailsSubmit)} noValidate>
-                    {/* Name fields */}
+                    {/* First / last name */}
                     <Box sx={{ display: "flex", gap: 3, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
-                      <TextField
-                        fullWidth
-                        label="First Name"
-                        {...registerSignup("firstName")}
-                        error={!!signupErrors.firstName}
-                        helperText={signupErrors.firstName?.message}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Last Name"
-                        {...registerSignup("lastName")}
-                        error={!!signupErrors.lastName}
-                        helperText={signupErrors.lastName?.message}
-                      />
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>First name</FieldLabel>
+                        <TextField fullWidth {...registerSignup("firstName")} error={!!signupErrors.firstName} helperText={signupErrors.firstName?.message} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>Last name</FieldLabel>
+                        <TextField fullWidth {...registerSignup("lastName")} error={!!signupErrors.lastName} helperText={signupErrors.lastName?.message} />
+                      </Box>
                     </Box>
 
                     {/* Email */}
                     <Box sx={{ mb: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Email Address"
-                        type="email"
-                        {...registerSignup("email")}
-                        error={!!signupErrors.email}
-                        helperText={signupErrors.email?.message}
-                      />
+                      <FieldLabel>Email address</FieldLabel>
+                      <TextField fullWidth type="email" {...registerSignup("email")} error={!!signupErrors.email} helperText={signupErrors.email?.message} />
                     </Box>
 
-                    {/* Phone */}
-                    <Box sx={{ mb: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Phone Number"
-                        {...registerSignup("phone")}
-                        error={!!signupErrors.phone}
-                        helperText={signupErrors.phone?.message}
-                      />
-                    </Box>
-
-                    {/* State & City */}
+                    {/* Phone & pincode */}
                     <Box sx={{ display: "flex", gap: 3, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="State"
-                        defaultValue=""
-                        {...registerSignup("state")}
-                        error={!!signupErrors.state}
-                        helperText={signupErrors.state?.message}
-                      >
-                        {stateMenuItems}
-                      </TextField>
-                      <TextField
-                        fullWidth
-                        label="City"
-                        {...registerSignup("city")}
-                        error={!!signupErrors.city}
-                        helperText={signupErrors.city?.message}
-                      />
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>Phone number</FieldLabel>
+                        <TextField fullWidth {...registerSignup("phone")} error={!!signupErrors.phone} helperText={signupErrors.phone?.message} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>Pincode</FieldLabel>
+                        <TextField fullWidth {...registerSignup("pincode")} error={!!signupErrors.pincode} helperText={signupErrors.pincode?.message} />
+                      </Box>
                     </Box>
 
-                    {/* Pincode */}
-                    <Box sx={{ mb: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Pincode"
-                        {...registerSignup("pincode")}
-                        error={!!signupErrors.pincode}
-                        helperText={signupErrors.pincode?.message}
-                      />
+                    {/* State & city */}
+                    <Box sx={{ display: "flex", gap: 3, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>State</FieldLabel>
+                        <TextField
+                          select
+                          fullWidth
+                          defaultValue=""
+                          SelectProps={{ displayEmpty: true }}
+                          {...registerSignup("state")}
+                          error={!!signupErrors.state}
+                          helperText={signupErrors.state?.message}
+                        >
+                          <MenuItem value="" disabled>Select state</MenuItem>
+                          {stateMenuItems}
+                        </TextField>
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>City</FieldLabel>
+                        <TextField fullWidth {...registerSignup("city")} error={!!signupErrors.city} helperText={signupErrors.city?.message} />
+                      </Box>
                     </Box>
 
-                    {/* Password */}
-                    <Box sx={{ mb: 3 }}>
-                      <PasswordField
-                        fullWidth
-                        label="Password"
-                        {...registerSignup("password")}
-                        error={!!signupErrors.password}
-                        helperText={signupErrors.password?.message}
-                      />
-                    </Box>
-
-                    {/* Confirm Password */}
-                    <Box sx={{ mb: 3 }}>
-                      <PasswordField
-                        fullWidth
-                        label="Confirm Password"
-                        {...registerSignup("confirmPassword")}
-                        error={!!signupErrors.confirmPassword}
-                        helperText={signupErrors.confirmPassword?.message}
-                      />
+                    {/* Password & confirm password */}
+                    <Box sx={{ display: "flex", gap: 3, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>Password</FieldLabel>
+                        <PasswordField fullWidth {...registerSignup("password")} error={!!signupErrors.password} helperText={signupErrors.password?.message} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <FieldLabel>Confirm password</FieldLabel>
+                        <PasswordField fullWidth {...registerSignup("confirmPassword")} error={!!signupErrors.confirmPassword} helperText={signupErrors.confirmPassword?.message} />
+                      </Box>
                     </Box>
 
                     {/* Terms & Conditions */}
@@ -495,35 +541,11 @@ const LoginRegister = () => {
                       color="primary"
                       type="submit"
                       disabled={isSignupSubmitting}
-                      sx={{ mb: 3, py: 1.5, fontWeight: 700 }}
+                      sx={{ mb: 3, py: 1.5, fontWeight: 700, bgcolor: "#5B4FD6", "&:hover": { bgcolor: "#4A3FC0" } }}
                     >
-                      {isSignupSubmitting ? <CircularProgress size={24} color="inherit" /> : "Send OTP"}
+                      {isSignupSubmitting ?<CircularProgress size={24} color="inherit" /> : "Send OTP"}
                     </Button>
 
-                    {/* Toggle to Login */}
-                    <Typography variant="body2" align="center" color="text.secondary">
-                      Already have an account?{" "}
-                      <Link
-                        component="button"
-                        type="button"
-                        onClick={switchToLogin}
-                        sx={{
-                          color: "#2563EB",
-                          textDecoration: "none",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          verticalAlign: "baseline",
-                          background: "none",
-                          border: "none",
-                          p: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                          "&:hover": { textDecoration: "underline" },
-                        }}
-                      >
-                        Login
-                      </Link>
-                    </Typography>
                   </Box>
                 ) : (
                   /* Step 2: OTP Entry */
@@ -574,11 +596,12 @@ const LoginRegister = () => {
           {mode === "login" && (
             <Fade in={mode === "login"} timeout={350}>
               <Box>
+                <ModeToggle />
                 <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
                   Welcome back
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                  Log in to your VerifyHub partner account
+                  Log in to your VerifyHub partner account.
                 </Typography>
 
                 {loginError && (
@@ -589,9 +612,9 @@ const LoginRegister = () => {
 
                 <Box component="form" onSubmit={handleLoginSubmit(onLoginSubmit)} noValidate>
                   <Box sx={{ mb: 3 }}>
+                    <FieldLabel>Email or partner ID</FieldLabel>
                     <TextField
                       fullWidth
-                      label="Email or Partner ID"
                       {...registerLogin("email")}
                       error={!!loginErrors.email}
                       helperText={loginErrors.email?.message}
@@ -600,9 +623,9 @@ const LoginRegister = () => {
                   </Box>
 
                   <Box sx={{ mb: 3 }}>
+                    <FieldLabel>Password</FieldLabel>
                     <PasswordField
                       fullWidth
-                      label="Password"
                       {...registerLogin("password")}
                       error={!!loginErrors.password}
                       helperText={loginErrors.password?.message}
@@ -647,7 +670,7 @@ const LoginRegister = () => {
                     color="primary"
                     type="submit"
                     disabled={isLoginSubmitting || loginOverlayLoading}
-                    sx={{ mb: 3, py: 1.5, fontWeight: 700 }}
+                    sx={{ mb: 3, py: 1.5, fontWeight: 700, bgcolor: "#5B4FD6", "&:hover": { bgcolor: "#4A3FC0" } }}
                   >
                     {isLoginSubmitting || loginOverlayLoading ? (
                       <CircularProgress size={24} color="inherit" />
@@ -656,30 +679,6 @@ const LoginRegister = () => {
                     )}
                   </Button>
 
-                  {/* Toggle back to Sign Up */}
-                  <Typography variant="body2" align="center" color="text.secondary">
-                    Don't have an account?{" "}
-                    <Link
-                      component="button"
-                      type="button"
-                      onClick={switchToSignup}
-                      sx={{
-                        color: "#2563EB",
-                        textDecoration: "none",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        verticalAlign: "baseline",
-                        background: "none",
-                        border: "none",
-                        p: 0,
-                        fontFamily: "inherit",
-                        fontSize: "inherit",
-                        "&:hover": { textDecoration: "underline" },
-                      }}
-                    >
-                      Sign up
-                    </Link>
-                  </Typography>
                 </Box>
               </Box>
             </Fade>
