@@ -4,8 +4,7 @@ import ScrollToTop from "../Components/shared/ScrollToTop";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("../pages/Home"));
-const Login = lazy(() => import("../pages/auth/Login"));
-const Signup = lazy(() => import("../pages/auth/Signup"));
+const LoginRegister = lazy(() => import("../pages/auth/LoginRegister"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 const Welcome = lazy(() => import("../pages/auth/Welcome"));
 
@@ -109,11 +108,16 @@ const AppRoutes = () => {
         </Route>
 
         {/* Auth */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-        <Route path="/register" element={<Navigate to="/signup" replace />} />
-        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/login/register" element={<PublicRoute><LoginRegister /></PublicRoute>} />
+        <Route path="/login-register" element={<Navigate to="/login/register" replace />} />
+        <Route path="/login" element={<Navigate to="/login/register" replace />} />
+        <Route path="/signup" element={<Navigate to="/login/register" replace />} />
+        <Route path="/register" element={<Navigate to="/login/register" replace />} />
+        <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* Global Dashboard route */}
+        <Route path="/dashboard" element={<Navigate to="/partner/dashboard" replace />} />
 
         {/* Partner */}
         <Route path="/partner" element={<ProtectedRoute><PartnerLayout /></ProtectedRoute>}>

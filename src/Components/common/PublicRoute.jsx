@@ -17,7 +17,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/partner/dashboard'} replace />;
+    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/dashboard'} replace />;
   }
 
   return children;
