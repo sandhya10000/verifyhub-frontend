@@ -29,13 +29,13 @@ import { stateMenuItems } from "../../Components/shared/StateMenuItems";
 /**
  * LoginRegisterPage
  * 
- * Unified authentication page accessible at `/login-register`.
+ * Unified authentication page accessible at `/login/register`.
  * Features:
  * - Default view: Sign Up (registration).
  * - Smooth in-place state toggle between Sign Up and Login without URL change.
  * - Post-registration -> /welcome (shows celebration & redirect to /dashboard).
  * - Post-login -> /dashboard (or deep link if passed in state.from).
- * - Route protection: Logged-in users visiting /login-register are redirected to /dashboard.
+ * - Route protection: Logged-in users visiting /login/register are redirected to /dashboard.
  */
 const LoginRegister = () => {
   const navigate = useNavigate();

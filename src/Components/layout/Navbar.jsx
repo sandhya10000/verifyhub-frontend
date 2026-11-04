@@ -481,7 +481,7 @@ const Navbar = () => {
               {/* Get started button */}
               <Button
                 component={RouterLink}
-                to="/login-register"
+                to="/login/register"
                 onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
                 variant="contained"
                 disableRipple
@@ -754,7 +754,7 @@ const Navbar = () => {
           >
             <Box
               component={RouterLink}
-              to="/login-register"
+              to="/login/register"
               onClick={() => {
                 sessionStorage.setItem('preLoginPath', window.location.pathname);
                 closeMobileMenu();
@@ -784,7 +784,7 @@ const Navbar = () => {
 
             <Button
               component={RouterLink}
-              to="/login-register"
+              to="/login/register"
               onClick={() => {
                 sessionStorage.setItem('preLoginPath', window.location.pathname);
                 closeMobileMenu();
