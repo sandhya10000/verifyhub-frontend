@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
     children
   ) : (
     <Navigate
-      to="/login"
+      to="/login-register"
       state={{ from: `${location.pathname}${location.search}` }}
       replace
     />
