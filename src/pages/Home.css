@@ -1658,6 +1658,109 @@
   }
 }
 
+/* Testimonials CTA bottom line */
+.home-container .tm-bottom-cta {
+  margin-top: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  text-align: center;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.home-container .tm-bottom-cta-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #E2E8F0;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .home-container .tm-bottom-cta {
+    border-radius: 20px;
+    padding: 20px 20px;
+    gap: 14px;
+  }
+  .home-container .tm-bottom-cta .btn {
+    width: 100%;
+  }
+}
+
+/* Mobile Sticky Bottom CTA Bar */
+.home-mobile-sticky-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .home-mobile-sticky-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: rgba(10, 18, 36, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: translateY(100%);
+    pointer-events: none;
+    transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .home-mobile-sticky-bar.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .home-mobile-sticky-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .home-mobile-sticky-title {
+    font-family: var(--display);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .home-mobile-sticky-sub {
+    font-size: 11px;
+    color: #94A3B8;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+
+  .home-mobile-sticky-btn {
+    flex-shrink: 0;
+    padding: 10px 20px !important;
+    font-size: 13.5px !important;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+}
+
 /* Scroll margin so sticky navbar (approx 64px - 72px) does not obscure section headings */
 html {
   scroll-behavior: smooth;

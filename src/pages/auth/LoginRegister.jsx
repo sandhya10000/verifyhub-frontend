@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link as RouterLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +13,12 @@ import {
   Alert,
   CircularProgress,
   Fade,
+  Slide,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
@@ -45,6 +49,42 @@ const LoginRegister = () => {
 
   // Mode toggle: 'signup' (default) or 'login'
   const [mode, setMode] = useState("signup");
+
+  // Mobile sticky scroll-to-form state & refs
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const formCardRef = useRef(null);
+  const [isFormInView, setIsFormInView] = useState(false);
+
+  // Monitor visibility of the form container on mobile screens
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const el = formCardRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Consider visible when >= 20% of form card is in view
+        setIsFormInView(entry.isIntersecting);
+      },
+      {
+        threshold: 0.2,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isMobile, mode]);
+
+  const handleScrollToForm = () => {
+    if (!formCardRef.current) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    formCardRef.current.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
   // Redirection guard: If user is already authenticated, take them directly to dashboard
   useEffect(() => {
@@ -237,7 +277,16 @@ const LoginRegister = () => {
       <LoginLoadingOverlay visible={loginOverlayLoading} />
 
       <AuthLayout variant="split">
-        <AuthCard sx={{ maxWidth: mode === "signup" ? 600 : 480, transition: "max-width 0.3s ease" }}>
+        <Box
+          ref={formCardRef}
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            scrollMarginTop: { xs: "24px", md: "0px" },
+          }}
+        >
+          <AuthCard sx={{ maxWidth: mode === "signup" ? 600 : 480, transition: "max-width 0.3s ease" }}>
           {/* Back to Home link */}
           <Link
             component={RouterLink}
@@ -636,7 +685,60 @@ const LoginRegister = () => {
             </Fade>
           )}
         </AuthCard>
+        </Box>
       </AuthLayout>
+
+      {/* Mobile Sticky Button to Scroll Straight to the Form */}
+      {isMobile && (
+        <Slide direction="up" in={!isFormInView} mountOnEnter unmountOnExit>
+          <Box
+            sx={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              p: "14px 16px calc(14px + env(safe-area-inset-bottom, 0px))",
+              bgcolor: "rgba(10, 18, 36, 0.88)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+              boxShadow: "0 -8px 24px rgba(0, 0, 0, 0.35)",
+              zIndex: 1100,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <Button
+              onClick={handleScrollToForm}
+              variant="contained"
+              fullWidth
+              endIcon={<ArrowDownwardRoundedIcon sx={{ fontSize: "20px !important" }} />}
+              aria-label={mode === "signup" ? "Scroll to registration form" : "Scroll to login form"}
+              sx={{
+                maxWidth: 480,
+                minHeight: 48,
+                borderRadius: "100px",
+                fontSize: "15px",
+                fontWeight: 700,
+                textTransform: "none",
+                background: "linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)",
+                boxShadow: "0 6px 18px rgba(59, 130, 246, 0.45)",
+                color: "#FFFFFF",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #6D28D9 0%, #2563EB 100%)",
+                  boxShadow: "0 8px 22px rgba(59, 130, 246, 0.6)",
+                },
+                "&:focus-visible": {
+                  outline: "none",
+                  boxShadow: "0 0 0 3px rgba(147, 197, 253, 0.8), 0 6px 18px rgba(59, 130, 246, 0.45)",
+                },
+              }}
+            >
+              {mode === "signup" ? "Register now" : "Login now"}
+            </Button>
+          </Box>
+        </Slide>
+      )}
     </>
   );
 };

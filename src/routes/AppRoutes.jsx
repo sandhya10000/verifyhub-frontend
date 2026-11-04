@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ScrollToTop from "../Components/shared/ScrollToTop";
+import { AUTH_ROUTE } from "./routesConfig";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("../pages/Home"));
@@ -108,11 +109,11 @@ const AppRoutes = () => {
         </Route>
 
         {/* Auth */}
-        <Route path="/login/register" element={<PublicRoute><LoginRegister /></PublicRoute>} />
-        <Route path="/login-register" element={<Navigate to="/login/register" replace />} />
-        <Route path="/login" element={<Navigate to="/login/register" replace />} />
-        <Route path="/signup" element={<Navigate to="/login/register" replace />} />
-        <Route path="/register" element={<Navigate to="/login/register" replace />} />
+        <Route path={AUTH_ROUTE} element={<PublicRoute><LoginRegister /></PublicRoute>} />
+        <Route path="/login-register" element={<Navigate to={AUTH_ROUTE} replace />} />
+        <Route path="/login" element={<Navigate to={AUTH_ROUTE} replace />} />
+        <Route path="/signup" element={<Navigate to={AUTH_ROUTE} replace />} />
+        <Route path="/register" element={<Navigate to={AUTH_ROUTE} replace />} />
         <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 

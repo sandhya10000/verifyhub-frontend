@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ShieldIcon from '@mui/icons-material/Shield';
@@ -13,6 +13,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import LockIcon from '@mui/icons-material/Lock';
 import './Home.css';
 import HeroGlobe from '../Components/HeroGlobe/HeroGlobe';
+import { AUTH_ROUTE } from '../routes/routesConfig';
 
 /* ================= BUREAU CARDS DATA ================= */
 const BUREAU_CARDS = [
@@ -271,6 +272,31 @@ const Home = () => {
   }, []);
 
   const testimonialRef = useRef(null);
+  const heroRef = useRef(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  // Monitor scroll for mobile sticky CTA bar: appears after scrolling past hero,
+  // hides when approaching the bottom of the page (near footer)
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      const heroHeight = heroRef.current?.offsetHeight || 450;
+      const docHeight = document.documentElement.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const distanceFromBottom = docHeight - (scrollY + windowHeight);
+
+      // Show after past hero, hide within 350px of the footer
+      if (scrollY > heroHeight && distanceFromBottom > 350) {
+        setShowStickyBar(true);
+      } else {
+        setShowStickyBar(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollTestimonials = (dir) => {
     const el = testimonialRef.current;
@@ -297,15 +323,28 @@ const Home = () => {
     <div className="home-container">
 
       {/* ================= HERO ================= */}
-      <header className="hero">
+      <header className="hero" ref={heroRef}>
         <div className="wrap">
           <div className="hero-grid">
             <div className="hero-content">
               <h1>The verification layer behind <span className="grad">modern lending</span></h1>
               <p className="lead">Pull CIBIL, Experian, Equifax and CRIF reports through one API, get AI-driven risk insights on every applicant, and approve with confidence in minutes.</p>
               <div className="hero-actions">
-                {/* <a className="btn btn-primary" href="#contact">Book a demo</a>
-                <a className="btn btn-dark-outline" href="#contact">Talk to sales</a> */}
+                <RouterLink
+                  to={AUTH_ROUTE}
+                  state={{ source: "hero_primary" }}
+                  className="btn btn-primary"
+                  aria-label="Get started free with VerifyHub"
+                >
+                  Get started free &rarr;
+                </RouterLink>
+                <a
+                  className="btn btn-dark-outline"
+                  href="#services"
+                  aria-label="See how VerifyHub works"
+                >
+                  See how it works &darr;
+                </a>
               </div>
             </div>
             <div className="hero-visual">
@@ -314,52 +353,6 @@ const Home = () => {
           </div>
         </div>
       </header>
-
-      {/* ================= TESTIMONIALS ================= */}
-      <section id="testimonials" className="tm" aria-labelledby="testimonials-heading">
-        <div className="wrap">
-          <div className="tm-head">
-            <div>
-              <span className="svc-pill">CLIENT STORIES</span>
-              <h2 id="testimonials-heading" className="svc-h2 tm-title">
-                Trusted by <span className="svc-grad">lenders and fintechs</span> across India
-              </h2>
-            </div>
-
-            <div className="tm-nav">
-              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(-1)} aria-label="Previous testimonials">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-              </button>
-              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(1)} aria-label="Next testimonials">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-              </button>
-            </div>
-          </div>
-
-          <ul className="tm-track" ref={testimonialRef} tabIndex={0} aria-label="Client testimonials, scroll horizontally">
-            {TESTIMONIALS.map((t, i) => (
-              <li key={i} className="tm-card">
-                <figure>
-                  <span className="tm-mark" aria-hidden="true">&ldquo;</span>
-                  <blockquote className="tm-quote">{t.quote}</blockquote>
-                  <figcaption className="tm-person">
-                    {t.avatar ? (
-                      <img className="tm-avatar" src={t.avatar} alt="" />
-                    ) : (
-                      <span className="tm-avatar tm-avatar-empty" aria-hidden="true">{getInitials(t.name)}</span>
-                    )}
-                    <span className="tm-meta">
-                      <strong>{t.name}</strong>
-                      <span>{t.role}</span>
-                      <span>{t.company}</span>
-                    </span>
-                  </figcaption>
-                </figure>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
 
       {/* ================= OUR SERVICES WRAPPER ================= */}
       <section id="services" aria-labelledby="services-heading" className="services-wrapper">
@@ -383,7 +376,9 @@ const Home = () => {
               </span>
               <h3>Credit Bureau API</h3>
               <p>Pull full credit reports from CIBIL, Experian, Equifax and CRIF with a single integration.</p>
-              <a href="#bureau-coverage" className="svc-link">Explore the credit report API &rarr;</a>
+              <RouterLink to={AUTH_ROUTE} state={{ source: "offer_credit_bureau" }} className="svc-link" aria-label="Try Credit Bureau API now">
+                Try it now &rarr;
+              </RouterLink>
             </article>
 
             <article className="svc-offer-card tone-purple reveal" ref={addToRevealRefs}>
@@ -392,7 +387,9 @@ const Home = () => {
               </span>
               <h3>AI Decisioning</h3>
               <p>Risk assessment, key factors and recommendations on every report, ready for your credit team.</p>
-              <a href="#ai-credit-report" className="svc-link">See AI credit decisioning &rarr;</a>
+              <RouterLink to={AUTH_ROUTE} state={{ source: "offer_ai_decisioning" }} className="svc-link" aria-label="Try AI Decisioning now">
+                Try it now &rarr;
+              </RouterLink>
             </article>
             <article className="svc-offer-card tone-teal reveal" ref={addToRevealRefs}>
               <span className="svc-icon">
@@ -400,7 +397,9 @@ const Home = () => {
               </span>
               <h3>GST Verification</h3>
               <p>Authenticate GSTIN, taxpayer status and filing compliance instantly.</p>
-              <a href="#gst-verification" className="svc-link">Explore GST verification &rarr;</a>
+              <RouterLink to={AUTH_ROUTE} state={{ source: "offer_gst_verification" }} className="svc-link" aria-label="Try GST Verification now">
+                Try it now &rarr;
+              </RouterLink>
             </article>
 
             <article className="svc-offer-card tone-orange reveal" ref={addToRevealRefs}>
@@ -409,7 +408,9 @@ const Home = () => {
               </span>
               <h3>Vehicle RC Verification</h3>
               <p>Verify registration, owner, insurance and permit details instantly.</p>
-              <a href="#vehicle-rc" className="svc-link">Explore vehicle RC verification &rarr;</a>
+              <RouterLink to={AUTH_ROUTE} state={{ source: "offer_vehicle_rc" }} className="svc-link" aria-label="Try Vehicle RC Verification now">
+                Try it now &rarr;
+              </RouterLink>
             </article>
           </div>
         </div>
@@ -446,7 +447,16 @@ const Home = () => {
                 ))}
               </ul>
 
-              
+              <div style={{ marginTop: '28px' }}>
+                <RouterLink
+                  to={AUTH_ROUTE}
+                  state={{ source: "ai_decisioning_section" }}
+                  className="btn btn-primary svc-cta"
+                  aria-label="Try AI Decisioning now"
+                >
+                  Try AI Decisioning &rarr;
+                </RouterLink>
+              </div>
             </div>
 
             {/* RIGHT — analysis card */}
@@ -523,10 +533,10 @@ const Home = () => {
 
             <div className="svc-bureau-grid">
               {[
-                { name: 'CIBIL', full: 'Credit Information Bureau', color: '#2f5bd8' },
-                { name: 'Experian', full: 'Experian', color: '#7c3aed' },
-                { name: 'Equifax', full: 'Equifax', color: '#b4231f' },
-                { name: 'CRIF', full: 'CRIF', color: '#0f7b5a' },
+                { name: 'CIBIL', full: 'Credit Information Bureau', color: '#2f5bd8', key: 'cibil' },
+                { name: 'Experian', full: 'Experian', color: '#7c3aed', key: 'experian' },
+                { name: 'Equifax', full: 'Equifax', color: '#b4231f', key: 'equifax' },
+                { name: 'CRIF', full: 'CRIF', color: '#0f7b5a', key: 'crif' },
               ].map((b) => (
                 <article key={b.name} className="svc-bureau-card reveal" ref={addToRevealRefs}>
                   <span className="svc-live">&bull; LIVE</span>
@@ -536,6 +546,15 @@ const Home = () => {
                     <br />
                     Score &amp; full report analysis
                   </p>
+                  <RouterLink
+                    to={AUTH_ROUTE}
+                    state={{ source: `bureau_card_${b.key}` }}
+                    className="svc-link"
+                    style={{ color: b.color }}
+                    aria-label={`Try ${b.name} report now`}
+                  >
+                    Try {b.name} now &rarr;
+                  </RouterLink>
                 </article>
               ))}
             </div>
@@ -580,14 +599,16 @@ const Home = () => {
                     ))}
                   </ul>
 
-                  {/* <Box
-                    component={RouterLink}
-                    to="/login"
-                    onClick={() => sessionStorage.setItem('preLoginPath', window.location.pathname)}
-                    className="btn btn-primary svc-cta"
-                  >
-                    {svc.cta} <span>&rarr;</span>
-                  </Box> */}
+                  <div style={{ marginTop: '24px' }}>
+                    <RouterLink
+                      to={AUTH_ROUTE}
+                      state={{ source: `verify_service_${svc.id}` }}
+                      className="btn btn-primary svc-cta"
+                      aria-label={`${svc.cta} now`}
+                    >
+                      {svc.id === 'gst-verification' ? 'Verify GST now' : 'Verify vehicle RC now'} &rarr;
+                    </RouterLink>
+                  </div>
                 </div>
 
                 {/* MOCK RESULT CARD */}
@@ -705,9 +726,93 @@ const Home = () => {
             ))}
           </div>
 
+          {/* Full-width CTA Banner after Why Choose VerifyHub */}
+          <div className="wc-cta-strip reveal" ref={addToRevealRefs} style={{ marginTop: '56px' }}>
+            <div className="wc-cta-text">
+              <h3 className="wc-cta-headline">Ready to transform your verification workflow?</h3>
+              <p className="wc-cta-sub">
+                Sign up in 2 minutes. Instant API keys, transparent billing, and dedicated developer support.
+              </p>
+            </div>
+            <RouterLink
+              to={AUTH_ROUTE}
+              state={{ source: "why_verifyhub_banner" }}
+              className="btn btn-primary wc-cta-btn"
+              aria-label="Create free account on VerifyHub"
+            >
+              Create free account &rarr;
+            </RouterLink>
+          </div>
 
         </div>
       </section>
+
+      {/* ================= TESTIMONIALS ================= */}
+      <section id="testimonials" className="tm" aria-labelledby="testimonials-heading">
+        <div className="wrap">
+          <div className="tm-head">
+            <div>
+              <span className="svc-pill">CLIENT STORIES</span>
+              <h2 id="testimonials-heading" className="svc-h2 tm-title">
+                Trusted by <span className="svc-grad">lenders and fintechs</span> across India
+              </h2>
+            </div>
+
+            <div className="tm-nav">
+              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(-1)} aria-label="Previous testimonials">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+              </button>
+              <button type="button" className="tm-btn" onClick={() => scrollTestimonials(1)} aria-label="Next testimonials">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <ul className="tm-track" ref={testimonialRef} tabIndex={0} aria-label="Client testimonials, scroll horizontally">
+            {TESTIMONIALS.map((t, i) => (
+              <li key={i} className="tm-card">
+                <figure>
+                  <span className="tm-mark" aria-hidden="true">&ldquo;</span>
+                  <blockquote className="tm-quote">{t.quote}</blockquote>
+                  <figcaption className="tm-person">
+                    {t.avatar ? (
+                      <img className="tm-avatar" src={t.avatar} alt="" />
+                    ) : (
+                      <span className="tm-avatar tm-avatar-empty" aria-hidden="true">{getInitials(t.name)}</span>
+                    )}
+                    <span className="tm-meta">
+                      <strong>{t.name}</strong>
+                      <span>{t.role}</span>
+                      <span>{t.company}</span>
+                    </span>
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
+
+          
+        </div>
+      </section>
+
+      {/* ================= MOBILE STICKY BOTTOM BAR ================= */}
+      <aside
+        className={`home-mobile-sticky-bar ${showStickyBar ? 'visible' : ''}`}
+        aria-label="Quick mobile signup"
+      >
+        <div className="home-mobile-sticky-text">
+          <span className="home-mobile-sticky-title">VerifyHub for Lenders</span>
+          <span className="home-mobile-sticky-sub">All bureaus &middot; Instant access</span>
+        </div>
+        <RouterLink
+          to={AUTH_ROUTE}
+          state={{ source: "mobile_sticky_bar" }}
+          className="btn btn-primary home-mobile-sticky-btn"
+          aria-label="Get started on mobile"
+        >
+          Get started
+        </RouterLink>
+      </aside>
 
     </div>
   );
