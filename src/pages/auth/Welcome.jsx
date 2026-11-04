@@ -32,8 +32,8 @@ const Welcome = () => {
 
   useEffect(() => {
     if (!fromRegister) {
-      // Not arrived via registration, redirect to login immediately.
-      navigate("/login", { replace: true });
+      // Not arrived via registration, redirect to login-register immediately.
+      navigate("/login-register", { replace: true });
       return;
     }
 
