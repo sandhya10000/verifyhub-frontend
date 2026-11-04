@@ -39,15 +39,40 @@ const pickImages = (fileList, existing) => {
 
 const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
 
+// One thumbnail. On a load failure (often a stale cached failure within the
+// same session) retry with a fresh URL, then show a retry button.
+const AttachmentImage = ({ attachment }) => {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const base = attachmentUrl(attachment);
+  const src = attempt === 0 ? base : `${base}?r=${attempt}&t=${Date.now()}`;
+
+  if (failed) {
+    return (
+      <Box component="button" type="button" onClick={() => { setFailed(false); setAttempt((n) => n + 1); }}
+        sx={{ width: 96, height: 96, borderRadius: 1, border: '1px dashed', borderColor: 'divider', bgcolor: 'transparent', cursor: 'pointer', fontSize: '0.7rem', color: 'inherit' }}>
+        Image unavailable · Retry
+      </Box>
+    );
+  }
+  return (
+    <Box component="a" href={base} target="_blank" rel="noopener noreferrer"
+      sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+      <img src={src} alt={attachment.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={() => {
+          if (attempt < 2) setTimeout(() => setAttempt((n) => n + 1), 800);
+          else setFailed(true);
+        }} />
+    </Box>
+  );
+};
+
 const AttachmentGrid = ({ attachments }) => {
   if (!attachments?.length) return null;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
       {attachments.map((a, i) => (
-        <Box key={a.url || i} component="a" href={attachmentUrl(a)} target="_blank" rel="noopener noreferrer"
-          sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-          <img src={attachmentUrl(a)} alt={a.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </Box>
+        <AttachmentImage key={a.url || i} attachment={a} />
       ))}
     </Box>
   );
@@ -143,12 +168,27 @@ const AdminSupport = () => {
     }
   };
 
-  const handleOpenDialog = (ticket) => {
+  const handleOpenDialog = async (ticket) => {
+    // Open immediately with the list copy, then replace it with the fresh ticket
+    // so attachments and messages are never stale.
+    console.log(ticket)
     setSelectedTicket(ticket);
     setUpdateStatus(ticket.status);
     setInternalNotes(ticket.internalNotes || '');
     setReplyText('');
+    setReplyFiles([]);
     setIsDialogOpen(true);
+    try {
+      const data = await ticketService.getTicketById(ticket._id);
+      console.log(data)
+      if (data.success && data.data) {
+        setSelectedTicket(data.data);
+        setUpdateStatus(data.data.status);
+        setInternalNotes(data.data.internalNotes || '');
+      }
+    } catch (error) {
+      console.error('Failed to refresh ticket:', error);
+    }
   };
 
   const handleSendReply = async () => {

@@ -48,6 +48,10 @@ export const ticketService = {
     );
     return res.data;
   },
+  getTicketById: async (id) => {
+    const res = await api.get(`/admin/tickets/${id}`);
+    return res.data;
+  },
   replyAsAdmin: async (id, text, files = []) => {
     const res = await api.post(`/admin/tickets/${id}/messages`, buildTicketForm({ text }, files));
     return res.data;

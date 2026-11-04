@@ -50,16 +50,41 @@ const pickImages = (fileList, existing) => {
 
 const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
 
+// One thumbnail. If the browser fails to load it (often a stale cached failure
+// within the same session), retry with a fresh URL before showing a retry button.
+const AttachmentImage = ({ attachment }) => {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const base = attachmentUrl(attachment);
+  const src = attempt === 0 ? base : `${base}?r=${attempt}&t=${Date.now()}`;
+
+  if (failed) {
+    return (
+      <Box component="button" type="button" onClick={() => { setFailed(false); setAttempt((n) => n + 1); }}
+        sx={{ width: 96, height: 96, borderRadius: 1, border: '1px dashed', borderColor: 'divider', bgcolor: 'transparent', cursor: 'pointer', fontSize: '0.7rem', color: 'inherit' }}>
+        Image unavailable · Retry
+      </Box>
+    );
+  }
+  return (
+    <Box component="a" href={base} target="_blank" rel="noopener noreferrer"
+      sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+      <img src={src} alt={attachment.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={() => {
+          if (attempt < 2) setTimeout(() => setAttempt((n) => n + 1), 800);
+          else setFailed(true);
+        }} />
+    </Box>
+  );
+};
+
 // Thumbnails for a message/ticket. Clicking opens the full image in a new tab.
 const AttachmentGrid = ({ attachments }) => {
   if (!attachments?.length) return null;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
       {attachments.map((a, i) => (
-        <Box key={a.url || i} component="a" href={attachmentUrl(a)} target="_blank" rel="noopener noreferrer"
-          sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-          <img src={attachmentUrl(a)} alt={a.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </Box>
+        <AttachmentImage key={a.url || i} attachment={a} />
       ))}
     </Box>
   );
