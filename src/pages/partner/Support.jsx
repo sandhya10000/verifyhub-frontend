@@ -15,7 +15,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Send } from 'lucide-react';
+import { Send, Paperclip, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ticketService } from '../../services/ticketService';
 import DataTable from '../../Components/shared/DataTable';
@@ -30,8 +30,45 @@ const statusLabel = (s) => {
 
 const makeSupportId = () => String(Math.floor(100000 + Math.random() * 900000));
 
+const MAX_IMAGES = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+// Picks images from a file input, enforcing type, size and count limits.
+// Returns { files, error } so the caller can show a single message.
+const pickImages = (fileList, existing) => {
+  const picked = [];
+  for (const f of Array.from(fileList || [])) {
+    if (!IMAGE_TYPES.includes(f.type)) return { files: existing, error: 'Only PNG, JPG or WebP images can be attached.' };
+    if (f.size > MAX_IMAGE_BYTES) return { files: existing, error: `"${f.name}" is larger than 5 MB.` };
+    picked.push(f);
+  }
+  const merged = [...existing, ...picked];
+  if (merged.length > MAX_IMAGES) return { files: existing, error: `You can attach up to ${MAX_IMAGES} images.` };
+  return { files: merged, error: '' };
+};
+
+const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
+
+// Thumbnails for a message/ticket. Clicking opens the full image in a new tab.
+const AttachmentGrid = ({ attachments }) => {
+  if (!attachments?.length) return null;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
+      {attachments.map((a, i) => (
+        <Box key={a.url || i} component="a" href={attachmentUrl(a)} target="_blank" rel="noopener noreferrer"
+          sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+          <img src={attachmentUrl(a)} alt={a.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const Support = () => {
   const [formData, setFormData] = useState({ category: '', reference: makeSupportId(), description: '' });
+  const [files, setFiles] = useState([]);
+  const [replyFiles, setReplyFiles] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
@@ -140,10 +177,12 @@ const Support = () => {
       await ticketService.createTicket({
         category: formData.category,
         reference: formData.reference,
-        description: formData.description
+        description: formData.description,
+        files,
       });
       setToast({ open: true, message: 'Ticket submitted successfully! We will get back to you shortly.', severity: 'success' });
       setFormData({ category: '', reference: makeSupportId(), description: '' });
+      setFiles([]);
       fetchMyTickets();
     } catch {
       setToast({ open: true, message: 'Failed to submit ticket. Please try again.', severity: 'error' });
@@ -160,17 +199,19 @@ const Support = () => {
       setSelectedTicket(ticket);
     }
     setReplyText('');
+    setReplyFiles([]);
     setThreadOpen(true);
   };
 
   const handleReply = async () => {
-    if (!replyText.trim() || !selectedTicket) return;
+    if ((!replyText.trim() && replyFiles.length === 0) || !selectedTicket) return;
     setSendingReply(true);
     try {
-      const data = await ticketService.replyAsPartner(selectedTicket._id, replyText.trim());
+      const data = await ticketService.replyAsPartner(selectedTicket._id, replyText.trim(), replyFiles);
       if (data.success) {
         setSelectedTicket(data.data);
         setReplyText('');
+        setReplyFiles([]);
         fetchMyTickets();
       }
     } catch (err) {
@@ -250,6 +291,32 @@ const Support = () => {
             </TextField>
             <TextField fullWidth label="Support ID" name="reference" value={formData.reference} disabled helperText="Auto-generated for this ticket" InputProps={{ sx: { borderRadius: 1 } }} />
             <TextField fullWidth multiline rows={4} label="Describe the issue" name="description" placeholder="Tell us what happened..." value={formData.description} onChange={handleInputChange} error={!!errors.description} helperText={errors.description} InputProps={{ sx: { borderRadius: 1 } }} />
+            <Box>
+              <Button component="label" variant="outlined" startIcon={<Paperclip size={16} />} disabled={files.length >= MAX_IMAGES} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+                Attach screenshots
+                <input hidden type="file" accept="image/png,image/jpeg,image/webp" multiple
+                  onChange={(e) => {
+                    const r = pickImages(e.target.files, files);
+                    if (r.error) setToast({ open: true, message: r.error, severity: 'error' });
+                    else setFiles(r.files);
+                    e.target.value = '';
+                  }} />
+              </Button>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>PNG, JPG or WebP · up to {MAX_IMAGES} images · 5 MB each</Typography>
+              {files.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                  {files.map((f, i) => (
+                    <Box key={`${f.name}-${i}`} sx={{ position: 'relative', width: 72, height: 72, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                      <img src={URL.createObjectURL(f)} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <Box component="button" type="button" onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove image"
+                        sx={{ position: 'absolute', top: 2, right: 2, p: 0.25, border: 0, borderRadius: '50%', bgcolor: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', display: 'flex' }}>
+                        <X size={12} />
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
             <Box sx={{ mt: 1 }}>
               <Button type="submit" variant="contained" color="primary" disabled={isSubmitting} sx={{ py: 1.5, px: 3, borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: '1rem' }}>
                 {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Submit Ticket'}
@@ -290,6 +357,7 @@ const Support = () => {
                     You · {selectedTicket.createdAt ? format(new Date(selectedTicket.createdAt), 'MMM dd HH:mm') : ''}
                   </Typography>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{selectedTicket.description}</Typography>
+                  <AttachmentGrid attachments={selectedTicket.attachments} />
                 </Box>
               </Box>
               {(selectedTicket.messages || []).map((m, i) => {
@@ -300,7 +368,8 @@ const Support = () => {
                       <Typography variant="caption" sx={{ opacity: 0.75, fontWeight: 600 }}>
                         {mine ? 'You' : `Support${m.sender?.name ? ` · ${m.sender.name}` : ''}`} · {m.createdAt ? format(new Date(m.createdAt), 'MMM dd HH:mm') : ''}
                       </Typography>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{m.text}</Typography>
+                      {m.text && <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{m.text}</Typography>}
+                      <AttachmentGrid attachments={m.attachments} />
                     </Box>
                   </Box>
                 );
@@ -312,12 +381,37 @@ const Support = () => {
             </DialogContent>
             <DialogActions sx={{ p: 2, gap: 1 }}>
               {selectedTicket.status !== 'resolved' ? (
-                <>
+                <Box sx={{ width: '100%' }}>
+                  {replyFiles.length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                      {replyFiles.map((f, i) => (
+                        <Box key={`${f.name}-${i}`} sx={{ position: 'relative', width: 56, height: 56, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                          <img src={URL.createObjectURL(f)} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <Box component="button" type="button" onClick={() => setReplyFiles((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove image"
+                            sx={{ position: 'absolute', top: 2, right: 2, p: 0.25, border: 0, borderRadius: '50%', bgcolor: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', display: 'flex' }}>
+                            <X size={10} />
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Button component="label" size="small" sx={{ minWidth: 0, p: 1, borderRadius: 2 }} disabled={replyFiles.length >= MAX_IMAGES} aria-label="Attach images">
+                    <Paperclip size={18} />
+                    <input hidden type="file" accept="image/png,image/jpeg,image/webp" multiple
+                      onChange={(e) => {
+                        const r = pickImages(e.target.files, replyFiles);
+                        if (r.error) setToast({ open: true, message: r.error, severity: 'error' });
+                        else setReplyFiles(r.files);
+                        e.target.value = '';
+                      }} />
+                  </Button>
                   <TextField fullWidth size="small" placeholder="Type your reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                  <Button variant="contained" onClick={handleReply} disabled={!replyText.trim() || sendingReply} startIcon={sendingReply ? <CircularProgress size={16} color="inherit" /> : <Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  <Button variant="contained" onClick={handleReply} disabled={(!replyText.trim() && replyFiles.length === 0) || sendingReply} startIcon={sendingReply ? <CircularProgress size={16} color="inherit" /> : <Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     Reply
                   </Button>
-                </>
+                  </Box>
+                </Box>
               ) : (
                 <Button onClick={() => setThreadOpen(false)} variant="outlined" sx={{ borderRadius: 2, textTransform: 'none' }}>Close</Button>
               )}

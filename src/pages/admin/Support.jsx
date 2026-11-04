@@ -18,7 +18,40 @@ import {
   Alert
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, Paperclip } from 'lucide-react';
+
+const MAX_IMAGES = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+// Validates picked images (type, 5 MB each, max 3 total). Returns { files, error }.
+const pickImages = (fileList, existing) => {
+  const picked = [];
+  for (const f of Array.from(fileList || [])) {
+    if (!IMAGE_TYPES.includes(f.type)) return { files: existing, error: 'Only PNG, JPG or WebP images can be attached.' };
+    if (f.size > MAX_IMAGE_BYTES) return { files: existing, error: `"${f.name}" is larger than 5 MB.` };
+    picked.push(f);
+  }
+  const merged = [...existing, ...picked];
+  if (merged.length > MAX_IMAGES) return { files: existing, error: `You can attach up to ${MAX_IMAGES} images.` };
+  return { files: merged, error: '' };
+};
+
+const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
+
+const AttachmentGrid = ({ attachments }) => {
+  if (!attachments?.length) return null;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
+      {attachments.map((a, i) => (
+        <Box key={a.url || i} component="a" href={attachmentUrl(a)} target="_blank" rel="noopener noreferrer"
+          sx={{ display: 'block', width: 96, height: 96, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+          <img src={attachmentUrl(a)} alt={a.filename || 'attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </Box>
+      ))}
+    </Box>
+  );
+};
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ticketService } from '../../services/ticketService';
@@ -45,6 +78,7 @@ const AdminSupport = () => {
   const [updateStatus, setUpdateStatus] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [replyFiles, setReplyFiles] = useState([]);
   const [sendingReply, setSendingReply] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportToast, setExportToast] = useState(null);
@@ -118,14 +152,15 @@ const AdminSupport = () => {
   };
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || !selectedTicket) return;
+    if ((!replyText.trim() && replyFiles.length === 0) || !selectedTicket) return;
     setSendingReply(true);
     try {
-      const data = await ticketService.replyAsAdmin(selectedTicket._id, replyText.trim());
+      const data = await ticketService.replyAsAdmin(selectedTicket._id, replyText.trim(), replyFiles);
       if (data.success) {
         setSelectedTicket(data.data);
         setUpdateStatus(data.data.status);
         setReplyText('');
+        setReplyFiles([]);
         fetchTickets();
         window.dispatchEvent(new Event('ticketUpdated'));
       }
@@ -400,6 +435,7 @@ const AdminSupport = () => {
                         {selectedTicket.partnerId?.name || 'Partner'} · {selectedTicket.createdAt ? format(new Date(selectedTicket.createdAt), 'MMM dd HH:mm') : ''}
                       </Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{selectedTicket.description}</Typography>
+                      <AttachmentGrid attachments={selectedTicket.attachments} />
                     </Box>
                   </Box>
                   {(selectedTicket.messages || []).map((m, i) => {
@@ -410,23 +446,34 @@ const AdminSupport = () => {
                             <Typography variant="caption" sx={{ opacity: 0.75, fontWeight: 600 }}>
                               {isAdminMsg ? `You${m.sender?.name ? ` · ${m.sender.name}` : ''}` : `${selectedTicket.partnerId?.name || 'Partner'}`} · {m.createdAt ? format(new Date(m.createdAt), 'MMM dd HH:mm') : ''}
                             </Typography>
-                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{m.text}</Typography>
+                            {m.text && <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{m.text}</Typography>}
+                            <AttachmentGrid attachments={m.attachments} />
                           </Box>
                         </Box>
                       );
                     })}
                 </Paper>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                  <Button component="label" size="small" aria-label="Attach images" disabled={replyFiles.length >= MAX_IMAGES} sx={{ minWidth: 0, p: 1, borderRadius: 2 }}>
+                    <Paperclip size={18} />
+                    <input hidden type="file" accept="image/png,image/jpeg,image/webp" multiple
+                      onChange={(e) => {
+                        const r = pickImages(e.target.files, replyFiles);
+                        if (r.error) alert(r.error);
+                        else setReplyFiles(r.files);
+                        e.target.value = '';
+                      }} />
+                  </Button>
                   <TextField
                     fullWidth
                     size="small"
-                    placeholder="Type a reply to partner..."
+                    placeholder={replyFiles.length ? `${replyFiles.length} image(s) attached` : 'Type a reply to partner...'}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
-                  <Button variant="contained" onClick={handleSendReply} disabled={!replyText.trim() || sendingReply} startIcon={<Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  <Button variant="contained" onClick={handleSendReply} disabled={(!replyText.trim() && replyFiles.length === 0) || sendingReply} startIcon={<Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     Reply
                   </Button>
                 </Box>

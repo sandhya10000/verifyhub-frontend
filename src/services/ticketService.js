@@ -13,9 +13,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Builds multipart/form-data: text fields plus up to 3 image files under "attachments".
+function buildTicketForm(fields, files) {
+  const form = new FormData();
+  Object.entries(fields).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) form.append(k, v);
+  });
+  files.forEach((f) => form.append("attachments", f));
+  return form;
+}
+
 export const ticketService = {
-  createTicket: async (payload) => {
-    const res = await api.post("/tickets", payload);
+  // payload: { category, reference, description, files? } — files are sent as multipart.
+  createTicket: async ({ files = [], ...fields }) => {
+    const res = await api.post("/tickets", buildTicketForm(fields, files));
     return res.data;
   },
   getMyTickets: async () => {
@@ -26,8 +37,8 @@ export const ticketService = {
     const res = await api.get(`/tickets/${id}`);
     return res.data;
   },
-  replyAsPartner: async (id, text) => {
-    const res = await api.post(`/tickets/${id}/messages`, { text });
+  replyAsPartner: async (id, text, files = []) => {
+    const res = await api.post(`/tickets/${id}/messages`, buildTicketForm({ text }, files));
     return res.data;
   },
   // Admin
@@ -37,8 +48,8 @@ export const ticketService = {
     );
     return res.data;
   },
-  replyAsAdmin: async (id, text) => {
-    const res = await api.post(`/admin/tickets/${id}/messages`, { text });
+  replyAsAdmin: async (id, text, files = []) => {
+    const res = await api.post(`/admin/tickets/${id}/messages`, buildTicketForm({ text }, files));
     return res.data;
   },
   updateTicket: async (id, payload) => {
