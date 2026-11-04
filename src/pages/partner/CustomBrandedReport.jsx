@@ -148,6 +148,13 @@ const CustomBrandedReportPage = () => {
 
   useEffect(() => {
     load();
+    const handleBrandingUpdated = () => {
+      load();
+    };
+    window.addEventListener('brandingUpdated', handleBrandingUpdated);
+    return () => {
+      window.removeEventListener('brandingUpdated', handleBrandingUpdated);
+    };
   }, []);
 
   const formValid = validateEmail(email) && validatePhone(phone);
@@ -373,17 +380,17 @@ const CustomBrandedReportPage = () => {
       <Box sx={{ width: '100%', maxWidth: 1100, mx: 'auto', mt: { xs: 3, md: 5 }, px: { xs: 1.5, sm: 2.5, md: 3 }, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: { xs: 7, sm: 8, md: 10 }, boxSizing: 'border-box', '& > *': { width: '100%', minWidth: 0, boxSizing: 'border-box' } }}>
         <FadeInSection><HeroSection status={status} /></FadeInSection>
 
-        {isPaid ? (
+        {status === 'active' ? (
           <FadeInSection>
-            {status === 'active' ? (
-              <BrandedReportAnalyzerSection brandProfile={brandProfile} />
-            ) : (
-              <BrandedReportPaidView
-                statusData={brandingStatusData}
-                activeRequest={activeRequest}
-                onStatusUpdate={load}
-              />
-            )}
+            <BrandedReportAnalyzerSection brandProfile={brandProfile} />
+          </FadeInSection>
+        ) : (status === 'paid' || status === 'onboarding') ? (
+          <FadeInSection>
+            <BrandedReportPaidView
+              statusData={brandingStatusData}
+              activeRequest={activeRequest}
+              onStatusUpdate={load}
+            />
           </FadeInSection>
         ) : (
           <>
@@ -509,13 +516,6 @@ const CustomBrandedReportPage = () => {
                 )}
               </Box>
             </FadeInSection>
-          </>
-        )}
-
-        {isPaid && (
-          <>
-            <FadeInSection><CustomisationGrid /></FadeInSection>
-            <FadeInSection><ThemesGallery /></FadeInSection>
           </>
         )}
       </Box>
