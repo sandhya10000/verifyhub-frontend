@@ -16,6 +16,9 @@ const AdminRoute = ({ children }) => {
   // Not logged in → root landing page
   if (!user) return <Navigate to="/" replace />;
 
+  // Brand designers belong in their own panel
+  if (user.role === 'brand_designer') return <Navigate to="/brand-desk" replace />;
+
   // Logged in but not admin → partner dashboard
   if (user.role !== 'admin') return <Navigate to="/partner/dashboard" replace />;
 

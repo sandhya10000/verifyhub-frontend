@@ -62,6 +62,8 @@ const Login = () => {
         navigate(from, { replace: true });
       } else if (isAdmin) {
         navigate("/admin/overview");
+      } else if (res.user?.role === "brand_designer") {
+        navigate("/brand-desk");
       } else {
         navigate("/partner/dashboard");
       }
