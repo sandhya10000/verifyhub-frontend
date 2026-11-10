@@ -37,6 +37,16 @@ const pickImages = (fileList, existing) => {
   return { files: merged, error: '' };
 };
 
+// Ctrl+V handler: clipboard images are attached like picked files; text paste is untouched.
+const handlePasteImages = (event, existing, onFiles, onError) => {
+  const pasted = getPastedImages(event);
+  if (pasted.length === 0) return;
+  event.preventDefault();
+  const r = pickImages(pasted, existing);
+  if (r.error) onError(r.error);
+  else onFiles(r.files);
+};
+
 const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
 
 // One thumbnail. On a load failure (often a stale cached failure within the
@@ -79,7 +89,7 @@ const AttachmentGrid = ({ attachments }) => {
 };
 import axios from 'axios';
 import { format } from 'date-fns';
-import { ticketService } from '../../services/ticketService';
+import { ticketService, getPastedImages } from '../../services/ticketService';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import RowActions from '../../Components/shared/RowActions';
@@ -510,6 +520,7 @@ const AdminSupport = () => {
                     placeholder={replyFiles.length ? `${replyFiles.length} image(s) attached` : 'Type a reply to partner...'}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
+                    onPaste={(e) => handlePasteImages(e, replyFiles, setReplyFiles, (msg) => alert(msg))}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />

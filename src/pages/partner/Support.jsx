@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Send, Paperclip, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { ticketService } from '../../services/ticketService';
+import { ticketService, getPastedImages } from '../../services/ticketService';
 import DataTable from '../../Components/shared/DataTable';
 import StatusBadge from '../../Components/shared/StatusBadge';
 import RowActions from '../../Components/shared/RowActions';
@@ -46,6 +46,17 @@ const pickImages = (fileList, existing) => {
   const merged = [...existing, ...picked];
   if (merged.length > MAX_IMAGES) return { files: existing, error: `You can attach up to ${MAX_IMAGES} images.` };
   return { files: merged, error: '' };
+};
+
+// Ctrl+V handler for text fields: images on the clipboard are attached like picked files,
+// while plain-text paste falls through untouched.
+const handlePasteImages = (event, existing, onFiles, onError) => {
+  const pasted = getPastedImages(event);
+  if (pasted.length === 0) return;
+  event.preventDefault();
+  const r = pickImages(pasted, existing);
+  if (r.error) onError(r.error);
+  else onFiles(r.files);
 };
 
 const attachmentUrl = (a) => `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${a.url}`;
@@ -315,10 +326,10 @@ const Support = () => {
               {categories.map((option) => (<MenuItem key={option} value={option}>{option}</MenuItem>))}
             </TextField>
             <TextField fullWidth label="Support ID" name="reference" value={formData.reference} disabled helperText="Auto-generated for this ticket" InputProps={{ sx: { borderRadius: 1 } }} />
-            <TextField fullWidth multiline rows={4} label="Describe the issue" name="description" placeholder="Tell us what happened..." value={formData.description} onChange={handleInputChange} error={!!errors.description} helperText={errors.description} InputProps={{ sx: { borderRadius: 1 } }} />
+            <TextField fullWidth multiline rows={4} label="Describe the issue" name="description" placeholder="Tell us what happened... (you can paste a screenshot with Ctrl+V)" value={formData.description} onChange={handleInputChange} onPaste={(e) => handlePasteImages(e, files, setFiles, (msg) => setToast({ open: true, message: msg, severity: 'error' }))} error={!!errors.description} helperText={errors.description} InputProps={{ sx: { borderRadius: 1 } }} />
             <Box>
               <Button component="label" variant="outlined" startIcon={<Paperclip size={16} />} disabled={files.length >= MAX_IMAGES} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
-                Attach screenshots
+                Attach Images
                 <input hidden type="file" accept="image/png,image/jpeg,image/webp" multiple
                   onChange={(e) => {
                     const r = pickImages(e.target.files, files);
@@ -327,7 +338,7 @@ const Support = () => {
                     e.target.value = '';
                   }} />
               </Button>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>PNG, JPG or WebP · up to {MAX_IMAGES} images · 5 MB each</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>Attach or paste (Ctrl+V) · PNG, JPG or WebP · up to {MAX_IMAGES} images · 5 MB each</Typography>
               {files.length > 0 && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                   {files.map((f, i) => (
@@ -431,7 +442,7 @@ const Support = () => {
                         e.target.value = '';
                       }} />
                   </Button>
-                  <TextField fullWidth size="small" placeholder="Type your reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  <TextField fullWidth size="small" placeholder="Type your reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} onPaste={(e) => handlePasteImages(e, replyFiles, setReplyFiles, (msg) => setToast({ open: true, message: msg, severity: 'error' }))} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   <Button variant="contained" onClick={handleReply} disabled={(!replyText.trim() && replyFiles.length === 0) || sendingReply} startIcon={sendingReply ? <CircularProgress size={16} color="inherit" /> : <Send size={16} />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     Reply
                   </Button>

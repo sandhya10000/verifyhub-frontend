@@ -23,6 +23,21 @@ function buildTicketForm(fields, files) {
   return form;
 }
 
+// Pulls image files out of a paste event (e.g. a Win+Shift+S screenshot).
+// Returns [] when the clipboard holds no files, so plain-text paste is untouched.
+export function getPastedImages(event) {
+  const items = Array.from(event.clipboardData?.items || []);
+  const stamp = Date.now();
+  return items
+    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter(Boolean)
+    .map((f, i) => {
+      const ext = f.type.split("/")[1] || "png";
+      return new File([f], `screenshot-${stamp}-${i + 1}.${ext}`, { type: f.type });
+    });
+}
+
 export const ticketService = {
   // payload: { category, reference, description, files? } — files are sent as multipart.
   createTicket: async ({ files = [], ...fields }) => {
