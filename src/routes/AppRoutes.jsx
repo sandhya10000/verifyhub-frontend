@@ -119,8 +119,8 @@ const AppRoutes = () => {
         <Route path="/login" element={<Navigate to={AUTH_ROUTE} replace />} />
         <Route path="/signup" element={<Navigate to={AUTH_ROUTE} replace />} />
         <Route path="/register" element={<Navigate to={AUTH_ROUTE} replace />} />
-        <Route path={WELCOME_ROUTE} element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
         <Route path={THANK_YOU_ROUTE} element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
+        <Route path={WELCOME_ROUTE} element={<Navigate to={THANK_YOU_ROUTE} replace />} />
         <Route path="/thankyou" element={<Navigate to={THANK_YOU_ROUTE} replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 

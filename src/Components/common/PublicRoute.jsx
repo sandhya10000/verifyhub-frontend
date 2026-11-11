@@ -17,6 +17,10 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
+    // If the user just registered and is navigating to thank-you, do not redirect to dashboard
+    if (sessionStorage.getItem('vh_from_register') === '1') {
+      return children;
+    }
     const home = user.role === 'admin' ? '/admin/overview'
       : user.role === 'brand_designer' ? '/brand-desk'
       : '/dashboard';

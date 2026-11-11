@@ -110,8 +110,12 @@ const LoginRegister = () => {
     return () => clearTimeout(timer);
   }, [isMobile]);
 
-  // Redirection guard: If user is already authenticated, take them directly to dashboard
+  // Redirection guard: If user is already authenticated, take them directly to dashboard.
+  // Skip if the user just registered and is transitioning to the thank-you page.
   useEffect(() => {
+    if (sessionStorage.getItem("vh_from_register") === "1") {
+      return;
+    }
     if (!authLoading && user) {
       navigate(
         user.role === "admin" ? "/admin/overview"
@@ -261,19 +265,22 @@ const LoginRegister = () => {
       await authService.verifySignupOtp(savedSignupData.email, otp);
       const res = await authService.signup(savedSignupData);
 
-      if (res.success && res.token && res.user) {
-        login(res.user, res.token);
-      }
+      // 1. Set the "just registered" session flag BEFORE updating auth state
+      sessionStorage.setItem("vh_from_register", "1");
 
-      // Fire dataLayer success event ONLY on confirmed registration API success
+      // 2. Fire dataLayer success event ONLY on confirmed registration API success (deduped)
       trackRegistrationSuccess({
         userId: res.user?.id || res.user?._id,
         email: savedSignupData.email,
         phone: savedSignupData.phone,
       });
 
-      // Flag session so /welcome / /thank-you knows user just registered
-      sessionStorage.setItem("vh_from_register", "1");
+      // 3. Update auth state / session
+      if (res.success && res.token && res.user) {
+        login(res.user, res.token);
+      }
+
+      // 4. Navigate directly to thank-you page
       navigate(THANK_YOU_ROUTE || "/thank-you", { replace: true, state: { fromRegister: true } });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Verification failed";
