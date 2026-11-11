@@ -25,7 +25,9 @@ const partnerFilterOptions = (options, { inputValue }) => {
   });
 };
 
-const AdminPartners = () => {
+// whiteLabelOnly → same page, limited to partners enrolled in white-label services.
+const AdminPartners = ({ whiteLabelOnly = false }) => {
+  const scope = whiteLabelOnly ? '&whiteLabel=1' : '';
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,7 +122,8 @@ const AdminPartners = () => {
       const queryParams = new URLSearchParams({
         page,
         limit,
-        ...(debouncedSearch && { search: debouncedSearch })
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(whiteLabelOnly && { whiteLabel: '1' }),
       }).toString();
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -158,6 +161,7 @@ const AdminPartners = () => {
 
       const params = new URLSearchParams({ page: 1, all: 1 });
       if (debouncedSearch) params.append('search', debouncedSearch);
+      if (whiteLabelOnly) params.append('whiteLabel', '1');
 
       const res = await axios.get(`${API_BASE_URL}/admin/partners?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -195,7 +199,7 @@ const AdminPartners = () => {
         p.isActive !== false ? 'Active' : 'Suspended',
       ]);
 
-      const nameParts = ['admin_partners'];
+      const nameParts = [whiteLabelOnly ? 'admin_white_label_partners' : 'admin_partners'];
       if (debouncedSearch) nameParts.push(`search_${debouncedSearch}`);
       nameParts.push(fileStamp());
 
@@ -250,7 +254,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1${scope}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
@@ -339,7 +343,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1${scope}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
@@ -382,7 +386,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1${scope}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
@@ -615,10 +619,12 @@ const AdminPartners = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-            Partners
+            {whiteLabelOnly ? 'White Labeled Partners' : 'Partners'}
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Manage and view all registered partners.
+            {whiteLabelOnly
+              ? 'Partners enrolled in white-label (custom branded) services.'
+              : 'Manage and view all registered partners.'}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
@@ -674,7 +680,7 @@ const AdminPartners = () => {
       ) : (
         <>
           <DataTable
-            title="Registered Partners"
+            title={whiteLabelOnly ? 'White Labeled Partners' : 'Registered Partners'}
             columns={columns}
             data={partners}
             emptyMessage="No partners found."

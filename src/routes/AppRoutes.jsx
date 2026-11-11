@@ -31,7 +31,7 @@ const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
-const AdminWhiteLabelReports = lazy(() => import("../pages/admin/WhiteLabelReports"));
+const AdminWhiteLabelRequests = lazy(() => import("../pages/admin/WhiteLabelRequests"));
 const BrandDeskLayout = lazy(() => import("../layouts/BrandDeskLayout"));
 const BrandDeskRoute = lazy(() => import("../Components/common/BrandDeskRoute"));
 const BrandDeskRequests = lazy(() => import("../pages/branddesk/Requests"));
@@ -275,8 +275,22 @@ const AppRoutes = () => {
             element={<AdminAiReports />}
           />
           <Route
+            path="white-label-partners"
+            element={<AdminPartners whiteLabelOnly />}
+          />
+          <Route
+            path="white-label-reports"
+            element={<AdminAiReports brandedOnly />}
+          />
+          {/* Legacy URL → the white-label reports tab */}
+          <Route
             path="white-label"
-            element={<AdminWhiteLabelReports />}
+            element={<Navigate to="/admin/white-label-reports" replace />}
+          />
+          {/* Paid white-label request tracker (setup status, payments) — not in the sidebar */}
+          <Route
+            path="white-label-requests"
+            element={<AdminWhiteLabelRequests />}
           />
           <Route
             path="rc-reports"

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Drawer, Typography, IconButton, AppBar, Toolbar, Menu as MuiMenu, MenuItem } from '@mui/material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, IndianRupee, Image as ImageIcon, RefreshCcw, Activity, Bot, CarFront, ReceiptText, Landmark, Settings, Palette, Menu as
+import { LayoutDashboard, Users, IndianRupee, Image as ImageIcon, RefreshCcw, Activity, Bot, CarFront, ReceiptText, Landmark, Settings, Palette, BadgeCheck, Menu as
 MenuIcon, LogOut
 } from 'lucide-react';
 import AppSidebar from '../Components/shared/AppSidebar';
@@ -50,6 +50,7 @@ const AdminLayout = () => {
       items: [
         { text: 'Overview', icon: <LayoutDashboard size={20} />, path: '/admin/overview' },
         { text: 'Partners', icon: <Users size={20} />, path: '/admin/partners' },
+        { text: 'White Labeled Partners', icon: <BadgeCheck size={20} />, path: '/admin/white-label-partners' },
         { text: 'Pricing Control', icon: <IndianRupee size={20} />, path: '/admin/pricing' },
         { text: 'Banners', icon: <ImageIcon size={20} />, path: '/admin/banners' },
         // { text: 'API Control', icon: <Settings2 size={20} />, path: '/admin/api' },
@@ -67,7 +68,7 @@ const AdminLayout = () => {
       items: [
         { text: 'Credit Bureau Reports', icon: <Activity size={20} />, path: '/admin/reports' },
         { text: 'AI Analysed Reports', icon: <Bot size={20} />, path: '/admin/ai-reports' },
-        { text: 'White-label Reports', icon: <Palette size={20} />, path: '/admin/white-label' },
+        { text: 'White-label Reports', icon: <Palette size={20} />, path: '/admin/white-label-reports' },
         { text: 'Vehicle RC Reports', icon: <CarFront size={20} />, path: '/admin/rc-reports' },
         { text: 'GST Reports', icon: <ReceiptText size={20} />, path: '/admin/gst-reports' },
         { text: 'Bank Statement Reports', icon: <Landmark size={20} />, path: '/admin/bsa-reports' },
