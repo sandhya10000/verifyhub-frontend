@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ScrollToTop from "../Components/shared/ScrollToTop";
-import { AUTH_ROUTE } from "./routesConfig";
+import { AUTH_ROUTE, THANK_YOU_ROUTE, WELCOME_ROUTE } from "./routesConfig";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("../pages/Home"));
@@ -119,7 +119,9 @@ const AppRoutes = () => {
         <Route path="/login" element={<Navigate to={AUTH_ROUTE} replace />} />
         <Route path="/signup" element={<Navigate to={AUTH_ROUTE} replace />} />
         <Route path="/register" element={<Navigate to={AUTH_ROUTE} replace />} />
-        <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
+        <Route path={WELCOME_ROUTE} element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
+        <Route path={THANK_YOU_ROUTE} element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
+        <Route path="/thankyou" element={<Navigate to={THANK_YOU_ROUTE} replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Global Dashboard route */}
