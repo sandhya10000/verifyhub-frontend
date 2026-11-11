@@ -17,7 +17,10 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/dashboard'} replace />;
+    const home = user.role === 'admin' ? '/admin/overview'
+      : user.role === 'brand_designer' ? '/brand-desk'
+      : '/dashboard';
+    return <Navigate to={home} replace />;
   }
 
   return children;

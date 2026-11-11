@@ -31,6 +31,11 @@ const RechargePlans = lazy(() => import("../pages/partner/Plans"));
 const AdminOverview = lazy(() => import("../pages/admin/Overview"));
 const AdminReports = lazy(() => import("../pages/admin/Reports"));
 const AdminAiReports = lazy(() => import("../pages/admin/AiReports"));
+const AdminWhiteLabelReports = lazy(() => import("../pages/admin/WhiteLabelReports"));
+const BrandDeskLayout = lazy(() => import("../layouts/BrandDeskLayout"));
+const BrandDeskRoute = lazy(() => import("../Components/common/BrandDeskRoute"));
+const BrandDeskRequests = lazy(() => import("../pages/branddesk/Requests"));
+const BrandDeskRequestDetail = lazy(() => import("../pages/branddesk/RequestDetail"));
 const AdminRcReports = lazy(() => import("../pages/admin/RcReports"));
 const AdminGstReports = lazy(() => import("../pages/admin/GstReports"));
 const AdminBankStatementReports = lazy(() => import("../pages/admin/BankStatementReports"));
@@ -225,6 +230,13 @@ const AppRoutes = () => {
           />
         </Route>
 
+        {/* Brand designer panel (white-label setup) — brand_designer + admin */}
+        <Route path="/brand-desk" element={<BrandDeskRoute><BrandDeskLayout /></BrandDeskRoute>}>
+          <Route index element={<Navigate to="/brand-desk/requests" replace />} />
+          <Route path="requests" element={<BrandDeskRequests />} />
+          <Route path="requests/:id" element={<BrandDeskRequestDetail />} />
+        </Route>
+
         {/* Admin */}
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<Navigate to="/admin/overview" replace />} />
@@ -261,6 +273,10 @@ const AppRoutes = () => {
           <Route
             path="ai-reports"
             element={<AdminAiReports />}
+          />
+          <Route
+            path="white-label"
+            element={<AdminWhiteLabelReports />}
           />
           <Route
             path="rc-reports"

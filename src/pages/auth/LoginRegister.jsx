@@ -113,7 +113,12 @@ const LoginRegister = () => {
   // Redirection guard: If user is already authenticated, take them directly to dashboard
   useEffect(() => {
     if (!authLoading && user) {
-      navigate(user.role === "admin" ? "/admin/overview" : "/partner/dashboard", { replace: true });
+      navigate(
+        user.role === "admin" ? "/admin/overview"
+          : user.role === "brand_designer" ? "/brand-desk"
+          : "/partner/dashboard",
+        { replace: true },
+      );
     }
   }, [user, authLoading, navigate]);
 
@@ -152,6 +157,8 @@ const LoginRegister = () => {
         navigate(from, { replace: true });
       } else if (isAdmin) {
         navigate("/admin/overview", { replace: true });
+      } else if (res.user?.role === "brand_designer") {
+        navigate("/brand-desk", { replace: true });
       } else {
         navigate("/partner/dashboard", { replace: true });
       }

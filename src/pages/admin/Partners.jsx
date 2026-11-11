@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete, Snackbar } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, TextField, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Autocomplete, Snackbar, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -78,6 +78,23 @@ const AdminPartners = () => {
   const [deductSubmitting, setDeductSubmitting] = useState(false);
   const [deductError, setDeductError] = useState(null);
   const [deductSuccess, setDeductSuccess] = useState(null);
+
+  // VeriPoints adjust modal (add or deduct)
+  const [pointsOpen, setPointsOpen] = useState(false);
+  const [pointsOptions, setPointsOptions] = useState([]);
+  const [pointsLoading, setPointsLoading] = useState(false);
+  const [pointsPartner, setPointsPartner] = useState(null);
+  const [pointsAction, setPointsAction] = useState('add');
+  const [pointsAmount, setPointsAmount] = useState('');
+  const [pointsNote, setPointsNote] = useState('');
+  const [pointsSubmitting, setPointsSubmitting] = useState(false);
+  const [pointsError, setPointsError] = useState(null);
+  const [pointsSuccess, setPointsSuccess] = useState(null);
+  const pointsAmountNum = Math.floor(Number(pointsAmount));
+  const pointsBalance = pointsPartner != null ? Number(pointsPartner.creditPoints || 0) : null;
+  const pointsPreview = pointsPartner && pointsAmountNum > 0 && pointsBalance != null
+    ? (pointsAction === 'add' ? pointsBalance + pointsAmountNum : pointsBalance - pointsAmountNum)
+    : null;
 
   const deductAmountNum = Math.round(Number(deductAmount) * 100) / 100;
   const deductBalance = deductPartner != null ? Number(deductPartner.walletBalance || 0) : null;
@@ -225,6 +242,88 @@ const AdminPartners = () => {
       setToggleError(err.response?.data?.message || 'Failed to update status. Please try again.');
     } finally {
       setToggling(false);
+    }
+  };
+
+  const loadPointsOptions = async (preset) => {
+    setPointsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.get(`${API_BASE_URL}/admin/partners?all=1`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setPointsOptions(res.data.data);
+        if (preset) {
+          const fresh = res.data.data.find((p) => p._id === preset._id);
+          if (fresh) setPointsPartner(fresh);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load partners for VeriPoints:', err);
+    } finally {
+      setPointsLoading(false);
+    }
+  };
+
+  const handleOpenPoints = (preset = null) => {
+    setPointsError(null);
+    setPointsSuccess(null);
+    setPointsAmount('');
+    setPointsNote('');
+    setPointsAction('add');
+    setPointsPartner(preset || null);
+    setPointsOpen(true);
+    loadPointsOptions(preset);
+  };
+
+  const handleClosePoints = () => {
+    if (pointsSubmitting) return;
+    setPointsOpen(false);
+    setPointsPartner(null);
+  };
+
+  const handleSubmitPoints = async () => {
+    if (!pointsPartner || !(pointsAmountNum > 0)) {
+      setPointsError('Select a partner and enter a positive whole number of points.');
+      return;
+    }
+    if (!pointsNote.trim()) {
+      setPointsError('A reason is required for audit.');
+      return;
+    }
+    if (pointsAction === 'deduct' && pointsBalance != null && pointsAmountNum > pointsBalance) {
+      setPointsError(`Amount exceeds the partner's VeriPoints balance (${pointsBalance.toLocaleString('en-IN')}).`);
+      return;
+    }
+    setPointsSubmitting(true);
+    setPointsError(null);
+    setPointsSuccess(null);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await axios.post(
+        `${API_BASE_URL}/admin/partners/${pointsPartner._id}/points`,
+        { action: pointsAction, amount: pointsAmountNum, note: pointsNote.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const creditPoints = res.data.data.creditPoints;
+        const apply = (p) => (p._id === pointsPartner._id ? { ...p, creditPoints } : p);
+        setPointsPartner((prev) => (prev ? { ...prev, creditPoints } : prev));
+        setPointsOptions((prev) => prev.map(apply));
+        setPartners((prev) => prev.map(apply));
+        setPointsSuccess(`${pointsAction === 'add' ? 'Added' : 'Deducted'} ${pointsAmountNum.toLocaleString('en-IN')} VeriPoints. New balance ${Number(creditPoints).toLocaleString('en-IN')}.`);
+        setPointsAmount('');
+        setPointsNote('');
+      } else {
+        setPointsError(res.data?.message || 'Failed to adjust VeriPoints.');
+      }
+    } catch (err) {
+      setPointsError(err.response?.data?.message || 'Failed to adjust VeriPoints. Please try again.');
+    } finally {
+      setPointsSubmitting(false);
     }
   };
 
@@ -504,6 +603,7 @@ const AdminPartners = () => {
           { label: 'View Details', onClick: () => openDetails(row) },
           { label: 'Add Funds', onClick: () => handleOpenFunds(row) },
           { label: 'Deduct Funds', danger: true, onClick: () => handleOpenDeduct(row) },
+          { label: 'Adjust VeriPoints', onClick: () => handleOpenPoints(row) },
           { label: row.isActive !== false ? 'Suspend Account' : 'Reactivate Account', danger: row.isActive !== false, onClick: () => { setSelectedPartner(row); setToggleError(null); setConfirmOpen(true); } },
         ]} />
       )
@@ -527,6 +627,9 @@ const AdminPartners = () => {
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenFunds()} sx={{ whiteSpace: 'nowrap' }}>
             Add Funds
+          </Button>
+          <Button variant="outlined" onClick={() => handleOpenPoints()} sx={{ whiteSpace: 'nowrap' }}>
+            VeriPoints
           </Button>
           <Button variant="outlined" color="error" startIcon={<RemoveIcon />} onClick={() => handleOpenDeduct()} sx={{ whiteSpace: 'nowrap' }}>
             Deduct Funds
@@ -614,6 +717,81 @@ const AdminPartners = () => {
             variant="contained"
           >
             {toggling ? 'Please wait…' : selectedPartner?.isActive !== false ? 'Suspend' : 'Reactivate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={pointsOpen} onClose={handleClosePoints} maxWidth="sm" fullWidth>
+        <DialogTitle>Adjust VeriPoints</DialogTitle>
+        <DialogContent dividers>
+          <DialogContentText sx={{ mb: 2 }}>
+            Add or deduct whole VeriPoints for a partner. Every change is recorded in the points ledger with your reason. Points can never go negative.
+          </DialogContentText>
+          {pointsError && <Alert severity="error" sx={{ mb: 2 }}>{pointsError}</Alert>}
+          {pointsSuccess && <Alert severity="success" sx={{ mb: 2 }}>{pointsSuccess}</Alert>}
+          <Autocomplete
+            options={pointsOptions}
+            filterOptions={partnerFilterOptions}
+            loading={pointsLoading}
+            value={pointsPartner}
+            onChange={(_, v) => setPointsPartner(v)}
+            getOptionLabel={(p) => `${p.name || ''} · ${p.email || ''} · ${p.partner_id || ''}`}
+            isOptionEqualToValue={(a, b) => a._id === b._id}
+            renderInput={(params) => <TextField {...params} label="Select partner" size="small" fullWidth />}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={pointsAction}
+            onChange={(_, v) => { if (v) setPointsAction(v); }}
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="add" sx={{ textTransform: 'none', fontWeight: 700 }}>Add points</ToggleButton>
+            <ToggleButton value="deduct" sx={{ textTransform: 'none', fontWeight: 700 }}>Deduct points</ToggleButton>
+          </ToggleButtonGroup>
+          {pointsPartner && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, borderRadius: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Current VeriPoints</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{Number(pointsBalance || 0).toLocaleString('en-IN')}</Typography>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>After adjustment</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: pointsPreview != null ? (pointsAction === 'add' ? '#10B981' : '#EF4444') : 'text.primary' }}>
+                  {pointsPreview != null ? pointsPreview.toLocaleString('en-IN') : '—'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <TextField
+            label="Points"
+            type="number"
+            size="small"
+            fullWidth
+            value={pointsAmount}
+            onChange={(e) => setPointsAmount(e.target.value)}
+            inputProps={{ min: 1, step: 1 }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Reason (required)"
+            size="small"
+            fullWidth
+            value={pointsNote}
+            onChange={(e) => setPointsNote(e.target.value)}
+            placeholder="e.g. Goodwill points for failed report"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePoints} disabled={pointsSubmitting}>Close</Button>
+          <Button
+            onClick={handleSubmitPoints}
+            disabled={pointsSubmitting || !pointsPartner || !(pointsAmountNum > 0) || !pointsNote.trim()}
+            variant="contained"
+            color={pointsAction === 'deduct' ? 'error' : 'primary'}
+          >
+            {pointsSubmitting ? 'Saving…' : pointsAction === 'add' ? 'Add VeriPoints' : 'Deduct VeriPoints'}
           </Button>
         </DialogActions>
       </Dialog>
