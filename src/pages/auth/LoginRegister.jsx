@@ -30,6 +30,12 @@ import { loginSchema, signupSchema } from "../../schemas/authSchemas";
 import { authService } from "../../services/authService";
 import useAuth from "../../context/useAuth";
 import { stateMenuItems } from "../../Components/shared/StateMenuItems";
+import {
+  trackRegistrationSuccess,
+  trackRegistrationError,
+  resetRegistrationSuccessFlag,
+} from "../../utils/analytics";
+import { THANK_YOU_ROUTE } from "../../routes/routesConfig";
 
 /**
  * LoginRegisterPage
@@ -214,6 +220,8 @@ const LoginRegister = () => {
       setSavedSignupData(data);
       setSignupStep(2);
     } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Failed to send OTP";
+      trackRegistrationError({ step: "otp_send", errorMessage: msg });
       applySignupBackendError(err, "Failed to send OTP");
     }
   };
@@ -235,11 +243,11 @@ const LoginRegister = () => {
     try {
       setSignupError(null);
       if (!/^\d{6}$/.test(otp)) {
-        setSignupError(
-          otpOnWhatsApp
-            ? "Enter the 6-digit OTP sent to your email and WhatsApp"
-            : "Enter the 6-digit OTP sent to your email"
-        );
+        const errorMsg = otpOnWhatsApp
+          ? "Enter the 6-digit OTP sent to your email and WhatsApp"
+          : "Enter the 6-digit OTP sent to your email";
+        setSignupError(errorMsg);
+        trackRegistrationError({ step: "otp_verify", errorMessage: errorMsg });
         return;
       }
       setVerifyingOtp(true);
@@ -250,10 +258,19 @@ const LoginRegister = () => {
         login(res.user, res.token);
       }
 
-      // Flag session so /welcome knows user just registered
+      // Fire dataLayer success event ONLY on confirmed registration API success
+      trackRegistrationSuccess({
+        userId: res.user?.id || res.user?._id,
+        email: savedSignupData.email,
+        phone: savedSignupData.phone,
+      });
+
+      // Flag session so /welcome / /thank-you knows user just registered
       sessionStorage.setItem("vh_from_register", "1");
-      navigate("/welcome", { replace: true, state: { fromRegister: true } });
+      navigate(THANK_YOU_ROUTE || "/thank-you", { replace: true, state: { fromRegister: true } });
     } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Verification failed";
+      trackRegistrationError({ step: "registration", errorMessage: msg });
       applySignupBackendError(err, "Verification failed");
     } finally {
       setVerifyingOtp(false);
@@ -284,6 +301,7 @@ const LoginRegister = () => {
 
   const switchToSignup = (e) => {
     if (e) e.preventDefault();
+    resetRegistrationSuccessFlag();
     setSignupError(null);
     setSignupFieldError(null);
     setMode("signup");
@@ -444,7 +462,12 @@ const LoginRegister = () => {
                 )}
 
                 {signupStep === 1 ? (
-                  <Box component="form" onSubmit={handleSignupSubmit(onSignupDetailsSubmit)} noValidate>
+                  <Box
+                    component="form"
+                    id="registration_form_step1"
+                    onSubmit={handleSignupSubmit(onSignupDetailsSubmit)}
+                    noValidate
+                  >
                     {/* First / last name */}
                     <Box sx={{ display: "flex", gap: 3, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
                       <Box sx={{ flex: 1 }}>
@@ -539,17 +562,26 @@ const LoginRegister = () => {
                       size="large"
                       variant="contained"
                       color="primary"
-                      type="submit"
+                      type="button"
+                      onClick={handleSignupSubmit(onSignupDetailsSubmit)}
                       disabled={isSignupSubmitting}
                       sx={{ mb: 3, py: 1.5, fontWeight: 700, bgcolor: "#5B4FD6", "&:hover": { bgcolor: "#4A3FC0" } }}
                     >
-                      {isSignupSubmitting ?<CircularProgress size={24} color="inherit" /> : "Send OTP"}
+                      {isSignupSubmitting ? <CircularProgress size={24} color="inherit" /> : "Send OTP"}
                     </Button>
 
                   </Box>
                 ) : (
                   /* Step 2: OTP Entry */
-                  <Box>
+                  <Box
+                    component="form"
+                    id="registration_form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      onVerifyAndRegister();
+                    }}
+                    noValidate
+                  >
                     {otpSent && (
                       <Alert severity="success" sx={{ mb: 3 }}>
                         {otpOnWhatsApp
@@ -565,7 +597,7 @@ const LoginRegister = () => {
                       size="large"
                       variant="contained"
                       color="primary"
-                      onClick={onVerifyAndRegister}
+                      type="submit"
                       disabled={verifyingOtp}
                       sx={{ mb: 2, py: 1.5, fontWeight: 700 }}
                     >
@@ -575,13 +607,20 @@ const LoginRegister = () => {
                       fullWidth
                       size="large"
                       variant="outlined"
+                      type="button"
                       onClick={handleResendOtp}
                       disabled={cooldown > 0 || verifyingOtp}
                       sx={{ mb: 2 }}
                     >
                       {cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
                     </Button>
-                    <Button fullWidth variant="text" onClick={() => setSignupStep(1)} disabled={verifyingOtp}>
+                    <Button
+                      fullWidth
+                      variant="text"
+                      type="button"
+                      onClick={() => setSignupStep(1)}
+                      disabled={verifyingOtp}
+                    >
                       Back to details
                     </Button>
                   </Box>

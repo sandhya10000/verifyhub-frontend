@@ -7,8 +7,9 @@ import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import confetti from "canvas-confetti";
 import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
+import { trackVirtualPageView } from "../../utils/analytics";
 
-const COUNTDOWN_SECONDS = 60;
+const COUNTDOWN_SECONDS = 120;
 const DASHBOARD_PATH = "/partner/dashboard";
 const SESSION_FLAG = "vh_from_register";
 
@@ -39,6 +40,9 @@ const Welcome = () => {
 
     // Clear the sessionStorage flag the moment we land here.
     sessionStorage.removeItem(SESSION_FLAG);
+
+    // Virtual page view for GTM / GA4 on thank-you / welcome landing
+    trackVirtualPageView(location.pathname || "/thank-you", "Thank You - Registration Confirmed");
 
     // Start countdown.
     intervalRef.current = setInterval(() => {
