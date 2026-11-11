@@ -5,8 +5,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import confetti from "canvas-confetti";
-import AuthLayout from "../../Components/auth/AuthLayout";
 import AuthCard from "../../Components/auth/AuthCard";
+import Logo from "../../Components/shared/Logo";
+import useAuth from "../../context/useAuth";
 import { trackVirtualPageView } from "../../utils/analytics";
 
 const COUNTDOWN_SECONDS = 120;
@@ -22,33 +23,40 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const Welcome = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [count, setCount] = useState(COUNTDOWN_SECONDS);
   const intervalRef = useRef(null);
+  const pageViewFiredRef = useRef(false);
 
-  const [fromRegister] = useState(
-    () =>
-      location.state?.fromRegister === true ||
-      sessionStorage.getItem(SESSION_FLAG) === "1"
+  // Accessible if user just registered OR if already authenticated
+  const isAllowed = Boolean(
+    location.state?.fromRegister === true ||
+    sessionStorage.getItem(SESSION_FLAG) === "1" ||
+    user
   );
 
   useEffect(() => {
-    if (!fromRegister) {
-      // Not arrived via registration, redirect to login/register immediately.
+    if (!isAllowed) {
+      // Unauthenticated non-registered visitor: redirect to login
       navigate("/login/register", { replace: true });
       return;
     }
 
-    // Clear the sessionStorage flag the moment we land here.
-    sessionStorage.removeItem(SESSION_FLAG);
+    // Fire virtual page view once per load using window.location.pathname
+    if (!pageViewFiredRef.current) {
+      pageViewFiredRef.current = true;
+      trackVirtualPageView(
+        typeof window !== "undefined" ? window.location.pathname : "/thank-you",
+        "Thank You - Registration Confirmed"
+      );
+    }
 
-    // Virtual page view for GTM / GA4 on thank-you / welcome landing
-    trackVirtualPageView(location.pathname || "/thank-you", "Thank You - Registration Confirmed");
-
-    // Start countdown.
+    // Start countdown for full duration before redirecting to dashboard
     intervalRef.current = setInterval(() => {
       setCount((prev) => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
+          sessionStorage.removeItem(SESSION_FLAG);
           navigate(DASHBOARD_PATH, { replace: true });
           return 0;
         }
@@ -59,11 +67,11 @@ const Welcome = () => {
     return () => {
       clearInterval(intervalRef.current);
     };
-  }, [fromRegister, navigate]);
+  }, [isAllowed, navigate]);
 
   // ── Celebration: party-popper confetti on page open ───────────────────────
   useEffect(() => {
-    if (!fromRegister) return;
+    if (!isAllowed) return;
 
     // Respect users who prefer reduced motion.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -106,22 +114,43 @@ const Welcome = () => {
       clearTimeout(burstTimer);
       confetti.reset();
     };
-  }, [fromRegister]);
+  }, [isAllowed]);
 
   const goNow = () => {
     clearInterval(intervalRef.current);
+    sessionStorage.removeItem(SESSION_FLAG);
     navigate(DASHBOARD_PATH, { replace: true });
   };
 
-  // While the guard is still deciding, render nothing to avoid flash.
-  if (!fromRegister) return null;
+  // Render nothing while unauthorized check resolves
+  if (!isAllowed) return null;
 
   return (
-    <AuthLayout variant="split">
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        bgcolor: "#F6F8FB",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        px: { xs: 2, sm: 3 },
+        py: { xs: 2, sm: 3 },
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Compact Logo above card */}
+      <Box sx={{ mb: { xs: 2, sm: 2.5 }, display: "flex", justifyContent: "center" }}>
+        <Logo height={32} alt="VerifyHub" />
+      </Box>
+
       <AuthCard
         sx={{
-          maxWidth: 520,
+          maxWidth: 480,
           textAlign: "center",
+          "& .MuiBox-root": {
+            boxSizing: "border-box",
+          },
         }}
       >
         {/* Success icon */}
@@ -129,14 +158,14 @@ const Welcome = () => {
           sx={{
             display: "flex",
             justifyContent: "center",
-            mb: 3,
-            mt: 1,
+            mb: { xs: 1.5, sm: 2 },
+            mt: 0.5,
           }}
         >
           <Box
             sx={{
-              width: 80,
-              height: 80,
+              width: { xs: 64, sm: 72 },
+              height: { xs: 64, sm: 72 },
               borderRadius: "50%",
               background:
                 "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 70%)",
@@ -155,7 +184,7 @@ const Welcome = () => {
               },
             }}
           >
-            <CheckCircleIcon sx={{ fontSize: 48, color: "#10B981" }} />
+            <CheckCircleIcon sx={{ fontSize: { xs: 38, sm: 44 }, color: "#10B981" }} />
           </Box>
         </Box>
 
@@ -165,19 +194,19 @@ const Welcome = () => {
             display: "inline-flex",
             alignItems: "center",
             gap: 0.75,
-            px: 1.75,
-            py: 0.6,
-            mb: 2,
+            px: 1.5,
+            py: 0.45,
+            mb: { xs: 1.25, sm: 1.5 },
             borderRadius: "999px",
             background: "rgba(16,185,129,0.08)",
             border: "1px solid rgba(16,185,129,0.22)",
           }}
         >
-          <FavoriteRoundedIcon sx={{ fontSize: 14, color: "#10B981" }} />
+          <FavoriteRoundedIcon sx={{ fontSize: 13, color: "#10B981" }} />
           <Typography
             component="span"
             sx={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 700,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
@@ -188,25 +217,28 @@ const Welcome = () => {
           </Typography>
         </Box>
 
-        {/* Heading */}
+        {/* Heading (Single h1 for page accessibility) */}
         <Typography
-          variant="h4"
+          component="h1"
           sx={{
             fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+            fontSize: { xs: "1.5rem", sm: "1.75rem" },
             fontWeight: 800,
-            mb: 1.5,
+            mb: 1,
             letterSpacing: "-0.02em",
+            color: "text.primary",
           }}
         >
           Welcome to Verify Hub
         </Typography>
 
         <Typography
-          variant="body1"
+          variant="body2"
           color="text.secondary"
-          sx={{ mb: 4, lineHeight: 1.7, maxWidth: 380, mx: "auto" }}
+          sx={{ mb: { xs: 2, sm: 2.5 }, lineHeight: 1.55, maxWidth: 360, mx: "auto", fontSize: { xs: "0.875rem", sm: "0.925rem" } }}
         >
-          Your account has been created successfully. Head to your dashboard to explore.        </Typography>
+          Your account has been created successfully. Head to your dashboard to explore.
+        </Typography>
 
         {/* ── Countdown: gradient ring + glass pill ───────────────────────── */}
         <Box
@@ -214,8 +246,8 @@ const Welcome = () => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 2,
-            mb: 4,
+            gap: 1.5,
+            mb: { xs: 2.5, sm: 3 },
           }}
         >
           {/* Ring */}
@@ -231,11 +263,11 @@ const Welcome = () => {
               aria-hidden="true"
               sx={{
                 position: "absolute",
-                inset: -10,
+                inset: -8,
                 borderRadius: "50%",
                 background:
                   "radial-gradient(circle, rgba(37,99,235,0.18) 0%, rgba(20,184,166,0.08) 55%, transparent 75%)",
-                filter: "blur(8px)",
+                filter: "blur(6px)",
               }}
             />
 
@@ -312,7 +344,7 @@ const Welcome = () => {
                 component="span"
                 sx={{
                   fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                  fontSize: 40,
+                  fontSize: 34,
                   fontWeight: 800,
                   lineHeight: 1,
                   background:
@@ -331,8 +363,8 @@ const Welcome = () => {
               <Typography
                 component="span"
                 sx={{
-                  mt: 0.5,
-                  fontSize: 10,
+                  mt: 0.25,
+                  fontSize: 9.5,
                   fontWeight: 700,
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
@@ -352,9 +384,9 @@ const Welcome = () => {
             sx={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 1,
-              px: 2,
-              py: 0.9,
+              gap: 0.75,
+              px: 1.75,
+              py: 0.7,
               borderRadius: "999px",
               background: "rgba(37,99,235,0.06)",
               border: "1px solid rgba(37,99,235,0.14)",
@@ -365,8 +397,8 @@ const Welcome = () => {
             <Box
               aria-hidden="true"
               sx={{
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
                 borderRadius: "50%",
                 backgroundColor: "#10B981",
                 animation: "vhDot 1.4s ease-in-out infinite",
@@ -375,14 +407,14 @@ const Welcome = () => {
                     boxShadow: "0 0 0 0 rgba(16,185,129,0.5)",
                   },
                   "50%": {
-                    boxShadow: "0 0 0 6px rgba(16,185,129,0)",
+                    boxShadow: "0 0 0 5px rgba(16,185,129,0)",
                   },
                 },
               }}
             />
             <Typography
               variant="body2"
-              sx={{ fontWeight: 500, color: "text.secondary" }}
+              sx={{ fontWeight: 500, color: "text.secondary", fontSize: "0.825rem" }}
             >
               Taking you to your Partner Dashboard in{" "}
               <Box
@@ -399,13 +431,13 @@ const Welcome = () => {
         <Button
           id="welcome-go-to-dashboard-btn"
           fullWidth
-          size="large"
+          size="medium"
           variant="contained"
           onClick={goNow}
           endIcon={
             <ArrowForwardRoundedIcon
               className="vh-cta-arrow"
-              sx={{ transition: "transform 0.25s ease" }}
+              sx={{ transition: "transform 0.25s ease", fontSize: 18 }}
             />
           }
           sx={{
@@ -415,13 +447,13 @@ const Welcome = () => {
               "linear-gradient(135deg, #2563EB 0%, #0EA5E9 60%, #14B8A6 100%)",
             color: "#fff",
             fontWeight: 700,
-            fontSize: "1rem",
+            fontSize: "0.95rem",
             letterSpacing: "0.01em",
-            borderRadius: "14px",
-            py: 1.6,
+            borderRadius: "12px",
+            py: 1.3,
             textTransform: "none",
             boxShadow:
-              "0 10px 24px -6px rgba(37,99,235,0.55), inset 0 1px 0 rgba(255,255,255,0.25)",
+              "0 8px 20px -6px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
             transition: "transform 0.2s ease, box-shadow 0.2s ease",
 
             // Shine sweep
@@ -441,9 +473,9 @@ const Welcome = () => {
             "&:hover": {
               background:
                 "linear-gradient(135deg, #1D4ED8 0%, #0284C7 60%, #0D9488 100%)",
-              transform: "translateY(-2px)",
+              transform: "translateY(-1px)",
               boxShadow:
-                "0 16px 32px -8px rgba(37,99,235,0.6), inset 0 1px 0 rgba(255,255,255,0.3)",
+                "0 12px 28px -6px rgba(37,99,235,0.55), inset 0 1px 0 rgba(255,255,255,0.3)",
             },
             "&:hover::after": { left: "130%" },
             "&:hover .vh-cta-arrow": { transform: "translateX(4px)" },
@@ -457,7 +489,7 @@ const Welcome = () => {
           Go to Dashboard
         </Button>
       </AuthCard>
-    </AuthLayout>
+    </Box>
   );
 };
 
