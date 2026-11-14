@@ -81,6 +81,14 @@ const PartnerLayout = () => {
         const response = await fetch(`${API_BASE_URL}/partner/custom-branded-report/status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return;
+        }
+
         const data = await response.json();
         if (data.success && data.data?.status) {
           setBrandingStatus(data.data.status);
@@ -112,6 +120,14 @@ const PartnerLayout = () => {
         const response = await fetch(`${API_BASE_URL}/tickets/unread-count`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return;
+        }
+
         const data = await response.json();
         if (data.success) setUnreadReplies(data.count);
       } catch (error) {

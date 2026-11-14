@@ -133,10 +133,10 @@ const BankStatementAnalyzer = () => {
         a.href = url;
         a.download = `bank-statement-analysis-${id}.pdf`;
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       } else {
         window.open(url, "_blank", "noopener,noreferrer");
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       setError("Could not open the report. Please try again.");
     } finally {
@@ -176,6 +176,7 @@ const BankStatementAnalyzer = () => {
 
   const done = analysis?.status === "Success";
   const failed = analysis?.status === "Failed";
+  const inProgress = Boolean(analysis) && !done && !failed;
 
   return (
     <Box sx={{ maxWidth: 1000, mx: "auto", backgroundColor: "#fff", borderRadius: 3, overflow: "hidden", border: "1px solid #e5e7eb" }}>
@@ -262,12 +263,16 @@ const BankStatementAnalyzer = () => {
         )}
 
         {/* PROGRESS */}
-        {analysis && analysis.status === "Processing" && (
+        {inProgress && (
           <Card variant="outlined" sx={{ borderRadius: 3, textAlign: "center", py: 4 }}>
             <CircularProgress />
-            <Typography sx={{ fontWeight: 800, mt: 2 }}>Analysing the bank statement…</Typography>
+            <Typography sx={{ fontWeight: 800, mt: 2 }}>
+              {analysis.status === "Finalizing" ? "Generating your report…" : "Analysing the bank statement…"}
+            </Typography>
             <Typography variant="body2" sx={{ color: "#64748b", mt: 0.5 }}>
-              This usually takes a minute or two. You can leave this page and come back from Recent Analyses.
+              {analysis.status === "Finalizing"
+                ? "Please wait while we prepare your PDF report."
+                : "This usually takes a minute or two. You can leave this page and come back from Recent Analyses."}
             </Typography>
           </Card>
         )}

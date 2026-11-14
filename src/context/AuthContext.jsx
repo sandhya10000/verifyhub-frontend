@@ -61,6 +61,13 @@ export const AuthProvider = ({ children }) => {
       const res = await fetch(`${base}/partner/overview/summary`, {
         headers: { Authorization: `Bearer ${t}` },
       });
+
+      // If response status is 401, clear session and trigger logout
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+
       const data = await res.json();
       if (data?.success) {
         if (data.data?.lastRecharge !== undefined) {
