@@ -10,7 +10,7 @@ import Logo from "../../Components/shared/Logo";
 import useAuth from "../../context/useAuth";
 import { trackVirtualPageView } from "../../utils/analytics";
 
-const COUNTDOWN_SECONDS = 120;
+const COUNTDOWN_SECONDS = 5;
 const DASHBOARD_PATH = "/partner/dashboard";
 const SESSION_FLAG = "vh_from_register";
 
