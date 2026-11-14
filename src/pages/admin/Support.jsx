@@ -516,8 +516,11 @@ const AdminSupport = () => {
                   </Button>
                   <TextField
                     fullWidth
+                    multiline
+                    minRows={1}
+                    maxRows={6}
                     size="small"
-                    placeholder={replyFiles.length ? `${replyFiles.length} image(s) attached` : 'Type a reply to partner...'}
+                    placeholder={replyFiles.length ? `${replyFiles.length} image(s) attached` : 'Type a reply to partner... (Shift+Enter for a new line)'}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onPaste={(e) => handlePasteImages(e, replyFiles, setReplyFiles, (msg) => alert(msg))}
