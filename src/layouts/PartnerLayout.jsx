@@ -253,7 +253,7 @@ const PartnerLayout = () => {
       text: "Bank Statement Analyzer",
       icon: <Landmark size={20} />,
       path: "/partner/account/reports/bsa",
-      badge: "Newly launched",
+      badge: "Price Dropped",
     },
   ];
 
