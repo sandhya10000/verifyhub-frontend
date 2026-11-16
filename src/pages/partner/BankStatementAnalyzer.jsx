@@ -3,12 +3,15 @@ import axios from "axios";
 import {
   Box, Typography, Card, CardContent, Grid, Button, Alert, CircularProgress,
   Checkbox, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, InputAdornment, IconButton,
 } from "@mui/material";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DownloadIcon from "@mui/icons-material/Download";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LockIcon from "@mui/icons-material/Lock";
 import { creditAPI } from "../../services/authService";
 import useAuth from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +41,11 @@ const BankStatementAnalyzer = () => {
   const [price, setPrice] = useState(100);
   const [downloading, setDownloading] = useState(false);
 
+  // Password-protected PDF support
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+
   const [recentOpen, setRecentOpen] = useState(false);
   const [recent, setRecent] = useState([]);
   const [recentLoading, setRecentLoading] = useState(false);
@@ -53,6 +61,8 @@ const BankStatementAnalyzer = () => {
 
   const pickFile = (f) => {
     setError("");
+    setNeedsPassword(false);
+    setPassword("");
     if (!f) return;
     if (f.type !== "application/pdf" && !/\.pdf$/i.test(f.name)) {
       setError("Please upload the bank statement as a PDF file.");
@@ -98,6 +108,9 @@ const BankStatementAnalyzer = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (password) {
+        formData.append("password", password);
+      }
       const res = await creditAPI.analyzeBankStatement(formData);
       if (res?.success) {
         setAnalysisId(res.id);
@@ -107,7 +120,13 @@ const BankStatementAnalyzer = () => {
         setError(res?.message || "Unable to start the analysis.");
       }
     } catch (err) {
-      setError(resolveReportError(err, hasToppedUp, "Unable to analyse the bank statement. Please try again."));
+      const respData = err?.response?.data;
+      if (respData?.requiresPassword || respData?.code === "PASSWORD_PROTECTED" || respData?.code === "INCORRECT_PASSWORD") {
+        setNeedsPassword(true);
+        setError(respData?.message || "This statement is password-protected. Please enter the password.");
+      } else {
+        setError(resolveReportError(err, hasToppedUp, "Unable to analyse the bank statement. Please try again."));
+      }
       if (err?.response?.data?.failureCharge) refreshWallet?.();
     } finally {
       setUploading(false);
@@ -117,6 +136,8 @@ const BankStatementAnalyzer = () => {
   const resetForm = () => {
     setFile(null);
     setConsent(false);
+    setPassword("");
+    setNeedsPassword(false);
     setAnalysisId(null);
     setAnalysis(null);
     setError("");
@@ -214,7 +235,7 @@ const BankStatementAnalyzer = () => {
         {!analysis && (
           <Box component="form" onSubmit={handleAnalyze}>
             <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
-              Please upload the statement <strong>without a password</strong>. Password-protected PDFs are not accepted and are not charged.
+              Upload your bank statement PDF. If your PDF is password-protected by the bank, enter the password below to unlock.
             </Alert>
 
             <Box
@@ -237,6 +258,55 @@ const BankStatementAnalyzer = () => {
               />
             </Box>
 
+            {/* Password input section */}
+            {(needsPassword || file) && (
+              <Box
+                sx={{
+                  mt: 2.5,
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: needsPassword ? "#fffbeb" : "#f8fafc",
+                  border: needsPassword ? "1px solid #fde68a" : "1px solid #e2e8f0",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                  <LockIcon sx={{ fontSize: 18, color: needsPassword ? "#d97706" : "#64748b" }} />
+                  <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: needsPassword ? "#92400e" : "#334155" }}>
+                    {needsPassword ? "Password Protected PDF" : "PDF Password (Optional)"}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: needsPassword ? "#b45309" : "#64748b" }}>
+                  {needsPassword
+                    ? "This statement is encrypted. Enter the password set by your bank (e.g. PAN, DOB, or account digits)."
+                    : "If this statement is encrypted by your bank, provide the password to automatically unlock it."}
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter PDF password..."
+                  autoFocus={needsPassword}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ bgcolor: "#fff" }}
+                />
+              </Box>
+            )}
+
             <Box sx={{ mt: 2.5, p: 2, borderRadius: 2, bgcolor: "#f5f8ff", border: "1px solid #dbe4f0" }}>
               <FormControlLabel
                 control={<Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} />}
@@ -253,7 +323,9 @@ const BankStatementAnalyzer = () => {
               startIcon={uploading ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : null}
               sx={{ mt: 3, py: 1.5, borderRadius: 2.5, fontWeight: 700, textTransform: "none", backgroundColor: "#2563eb" }}
             >
-              {uploading ? "Uploading..." : `Analyse Statement${showPrice ? ` · ₹${price}` : ""}`}
+              {uploading
+                ? "Unlocking & Analyzing..."
+                : (needsPassword ? "Unlock & Analyze Statement" : `Analyse Statement${showPrice ? ` · ₹${price}` : ""}`)}
             </Button>
 
             <Button variant="text" fullWidth sx={{ mt: 1.5, textTransform: "none" }} onClick={() => setRecentOpen(true)}>
