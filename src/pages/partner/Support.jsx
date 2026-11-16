@@ -298,27 +298,7 @@ const Support = () => {
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '5fr 7fr' }, gap: 3, alignItems: 'stretch' }}>
-        <Paper sx={{ p: 4, borderRadius: 1, border: '1px solid', borderColor: 'divider', boxShadow: '0 4px 20px rgba(15,27,45,.05)', minWidth: 0 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Reach Us</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ py: 2, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 2, alignItems: 'center' }}>
-              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>WHATSAPP</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>+91 99107 37470</Typography>
-            </Box>
-            <Divider />
-            <Box sx={{ py: 2, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 2, alignItems: 'center' }}>
-              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>EMAIL</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>info@verifyhub.in</Typography>
-            </Box>
-            <Divider />
-            <Box sx={{ py: 2, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 2, alignItems: 'center' }}>
-              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>HOURS</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Mon–Sat · 9:30 AM – 7:00 PM IST</Typography>
-            </Box>
-          </Box>
-        </Paper>
-
+      <Box sx={{ maxWidth: 840, mx: 'auto' }}>
         <Paper sx={{ p: 4, borderRadius: 1, border: '1px solid', borderColor: 'divider', boxShadow: '0 4px 20px rgba(15,27,45,.05)', minWidth: 0 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Raise a Ticket</Typography>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

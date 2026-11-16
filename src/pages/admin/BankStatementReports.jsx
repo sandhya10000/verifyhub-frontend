@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, CircularProgress, Alert, Button, Tooltip, TextField,
-  InputAdornment, Tabs, Tab, Chip,
+  InputAdornment, Tabs, Tab, Chip, IconButton,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { Search } from "lucide-react";
 import axios from "axios";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DownloadIcon from "@mui/icons-material/Download";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataTable from "../../Components/shared/DataTable";
 import Pagination from "../../Components/shared/Pagination";
 import StatusBadge from "../../Components/shared/StatusBadge";
@@ -39,6 +40,7 @@ const AdminBankStatementReports = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(null);
   const [limit, setLimit] = useState(50);
+  const [openingOriginalId, setOpeningOriginalId] = useState(null);
 
   // Successful / Failed tabs; in-progress analyses appear in neither.
   const [activeTab, setActiveTab] = useState(0);
@@ -126,6 +128,25 @@ const AdminBankStatementReports = () => {
     }
   };
 
+  const openOriginalStatement = async (row) => {
+    try {
+      setOpeningOriginalId(row.id);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE}/admin/bsa-reports/${row.id}/original-statement`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error("[BSA] admin open original statement failed:", err);
+      setError("Original statement file is not available for this record.");
+    } finally {
+      setOpeningOriginalId(null);
+    }
+  };
+
   const reasonColumn = {
     header: "Reason", field: "reason", minWidth: 220,
     render: (r) => {
@@ -190,6 +211,33 @@ const AdminBankStatementReports = () => {
     {
       header: "Status", field: "status", nowrap: true, minWidth: 110,
       render: (r) => <StatusBadge status={r.status === "Success" ? "Success" : r.status === "Failed" ? "Failed" : "Pending"} />,
+    },
+    {
+      header: "Uploaded Statement", field: "uploaded", align: "center", width: 150,
+      render: (r) => {
+        const opening = openingOriginalId === r.id;
+        const available = r.hasOriginalStatement !== false;
+        return available ? (
+          <Tooltip title={`Open uploaded statement (${r.fileName || "statement.pdf"}) in a new tab`}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => openOriginalStatement(r)}
+                disabled={opening}
+                sx={{ color: "#1D4ED8", "&:hover": { bgcolor: "#EAF1FE" } }}
+              >
+                {opening ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <VisibilityIcon fontSize="small" />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+        ) : (
+          <Typography sx={{ color: "#B0B8C5", fontSize: "0.75rem" }}>—</Typography>
+        );
+      },
     },
     {
       header: "Report", field: "pdf", align: "right", width: 200,
