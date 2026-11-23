@@ -59,6 +59,33 @@ export default function BsaUploadModal({ isOpen, onClose, onUploadSuccess }) {
     setIsDragging(false);
   };
 
+  const inspectPdfEncryption = async (pdfFile) => {
+    if (!pdfFile || !pdfFile.name.toLowerCase().endsWith('.pdf')) {
+      setNeedsPassword(false);
+      return;
+    }
+    try {
+      // Fast browser-side check using standard FileReader buffer inspection
+      const buffer = await pdfFile.slice(0, 8192).arrayBuffer();
+      const headerStr = new TextDecoder('latin1').decode(buffer);
+      // Standard PDF encryption dictionary signature
+      if (headerStr.includes('/Encrypt')) {
+        setNeedsPassword(true);
+      } else {
+        // Deep inspection up to first 250KB if trailer has encrypt
+        const trailerBuf = await pdfFile.slice(0, Math.min(pdfFile.size, 250000)).arrayBuffer();
+        const fullStr = new TextDecoder('latin1').decode(trailerBuf);
+        if (fullStr.includes('/Encrypt')) {
+          setNeedsPassword(true);
+        } else {
+          setNeedsPassword(false);
+        }
+      }
+    } catch {
+      setNeedsPassword(false);
+    }
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
@@ -66,15 +93,18 @@ export default function BsaUploadModal({ isOpen, onClose, onUploadSuccess }) {
       const dropped = e.dataTransfer.files[0];
       setFile(dropped);
       setErrorMsg('');
-      setNeedsPassword(false);
+      setPassword('');
+      inspectPdfEncryption(dropped);
     }
   };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selected = e.target.files[0];
+      setFile(selected);
       setErrorMsg('');
-      setNeedsPassword(false);
+      setPassword('');
+      inspectPdfEncryption(selected);
     }
   };
 
